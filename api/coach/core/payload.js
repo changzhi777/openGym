@@ -12,6 +12,7 @@
  */
 import { glyphStr } from './glyphs.js';
 import { LIBRARY, LIB_BY_ID, libraryHas, libraryName, librarySlice, isStretch, MAX_LIBRARY } from './library.js';
+import { INSTRUCTIONS_ZH, INSTRUCTIONS_ZH_TW } from './instructions-zh.js';
 
 export const CONTRACT = 1;
 // Bounds from FR-22. A review reads a training block, not a training career: more history
@@ -479,6 +480,37 @@ export function workoutMeta(S, workoutId) {
  * an HMAC on its instance secret (api/coach/handle.js), the phone draws a random one once and
  * keeps it. Either way it is 16 characters and never the uid.
  */
+/* ---------- zh exercise knowledge ----------
+   The library slice carries ids and taxonomy, never how-to. For a user writing Chinese the
+   catalogue holds step-by-step instructions for the 1,324 classic exercises (zh and zh-TW
+   alike), generated into instructions-zh.js. Quoting them is what lets the Coach write a
+   technique cue into a Chinese plan for an exercise it has never seen performed. Reference
+   knowledge, the same standing as the library itself — not the person's data, so no consent
+   category names it. Bounded like every other field: a handful of exercises, a few steps
+   each, a chapter cap under the payload ceiling. Silence is the fallback — a language with
+   no pack, or an id with no entry, adds nothing and the payload reads exactly as before. */
+export const EXERCISE_STEPS_MAX = 40;
+export const STEP_COUNT_MAX = 6;
+export const STEP_TEXT_MAX = 160;
+export const EXERCISE_STEPS_CHARS = 12_000;
+const zhPackOf = lang =>
+  /^zh[-_]?(tw|hant)/i.test(lang || '') ? INSTRUCTIONS_ZH_TW : /^zh/i.test(lang || '') ? INSTRUCTIONS_ZH : null;
+function exerciseSteps(lang, ids) {
+  const pack = zhPackOf(lang);
+  if (!pack) return null;
+  const out = [];
+  let chars = 0;
+  for (const id of ids || []) {
+    if (out.length >= EXERCISE_STEPS_MAX || chars >= EXERCISE_STEPS_CHARS) break;
+    const e = pack[id];
+    if (!e) continue;
+    const s = e.s.slice(0, STEP_COUNT_MAX).map(x => x.slice(0, STEP_TEXT_MAX));
+    chars += e.n.length + s.join('').length;
+    out.push({ id, n: e.n, s });
+  }
+  return out.length ? out : null;
+}
+
 export function build(S, opts = {}) {
   if (typeof opts.handle !== 'string' || !opts.handle) throw new Error('payload.build: opts.handle is required');
   const coach = S.coach || {};
@@ -527,6 +559,9 @@ export function build(S, opts = {}) {
       p.session = { id: ident(w.id) || null, ...cleanWorkout(w) };
       p.previous = previous.map(cleanWorkout);
       const inSession = new Set(entriesOf(w).map(en => ident(en.id)));
+      // A debrief reads the session it names; its cues may quote how those exercises are done.
+      const zs = exerciseSteps(p.meta.lang, [...inSession]);
+      if (zs) p.exerciseSteps = zs;
       const agg = aggregates(S, [w]);
       p.aggregates = { ...agg, exercises: agg.exercises.filter(e => inSession.has(e.id)) };
       // The four weeks before the session. A session whose date does not parse has no "before",
@@ -555,8 +590,15 @@ export function build(S, opts = {}) {
     if (opts.cohort) p.cohort = cleanCohort(opts.cohort);
     // A review names mostly what is already trained; 60 candidates is plenty for a swap.
     p.library = librarySlice(S, p.coachProfile?.equipment, { keep: trainedIds(S, workouts), max: 60 });
+    // Cues for the exercises the window actually contains, over the same id domain as the slice.
+    const zs = exerciseSteps(p.meta.lang, trainedIds(S, workouts));
+    if (zs) p.exerciseSteps = zs;
   } else {
     p.library = librarySlice(S, p.coachProfile?.equipment, { keep: trainedIds(S, S.workouts || []) });
+    // Creation has no window to read; the steps cover everything the plan and history name,
+    // so a first cue for a newly proposed exercise is quotable too.
+    const zs = exerciseSteps(p.meta.lang, trainedIds(S, S.workouts || []));
+    if (zs) p.exerciseSteps = zs;
     // Creation for a returning user: what they have actually handled, so proposed baselines
     // start from evidence rather than optimism (B2/FR-20).
     const best = {};

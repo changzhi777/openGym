@@ -260,6 +260,18 @@ renders from, so the screen cannot drift from the payload — are:
 | `cohort` (optional) | only with comparison on and your own opt-in: anonymous medians from the other people sharing — never their data, and never yours to them beyond the same medians |
 | `prefs` | unit, language, effort scale |
 
+Alongside your data the payload can carry **reference knowledge**, which is nobody's. The
+`library` — the exercise catalogue filtered to your equipment — always does. And when the
+language the app is writing in is Chinese (`zh` or `zh-TW`), `exerciseSteps` does too: the
+exercise's translated name and its step-by-step technique instructions, for the exercises
+your plan and history already contain and nobody else. It is generated into a committed pack
+from the same translated catalogue the app itself displays (`catalogue/i18n/` →
+`api/coach/core/instructions-zh.js`, regenerate with `node scripts/build-coach-assets.mjs`),
+bounded like every other field (at most 40 exercises, 6 steps each, a chapter cap), and absent
+for every other language — an English payload is byte-for-byte the payload it was before the
+pack existed. It is not a consent category, for the same reason the library never was: it says
+nothing about you. Exercise media and its source attribution stay out of the payload entirely.
+
 A review reads a training block, not a training career: the window is capped at **12 weeks or 60
 sessions**. Your profile is identified by a stable pseudonym that is never the user id and never
 reversible.
