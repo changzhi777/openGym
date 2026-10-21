@@ -1904,10 +1904,23 @@ function dataWritable() {
   return ok;
 }
 
+const notYetGo = async (req, res) => json(res, 501, { error: 'planned for the Go backend', code: 'not-implemented' });
+
 const routes = {
   // 503 rather than a flag in a 200: the container healthcheck is `wget --spider`, which reads
   // the status and nothing else, and an instance that cannot write its data directory is exactly
   // what "unhealthy" is for. The 200 keeps the shape it had, plus the flag it is now asserting.
+  // fork (Muhe): SaaS 后台端点已进 openapi.yaml 契约(P0);Node 侧不实现,Go 后端落地前
+  // 一律 501 —— 前端 views/admin/ 对这些只做占位渲染不会调用,501 是误调用的明确信号。
+  'GET /api/admin/overview': notYetGo,
+  'GET /api/admin/users/{id}/quota': notYetGo,
+  'PUT /api/admin/users/{id}/quota': notYetGo,
+  'GET /api/admin/users/{id}/activity': notYetGo,
+  'GET /api/admin/roles': notYetGo,
+  'POST /api/admin/roles/grant': notYetGo,
+  'POST /api/admin/roles/revoke': notYetGo,
+  'POST /api/admin/step-up': notYetGo,
+
   'GET /api/health': async (req, res) => {
     if (!dataWritable()) return json(res, 503, { ok: false, writable: false });
     json(res, 200, { ok: true, users: db.users.length, writable: true });
@@ -2656,6 +2669,9 @@ const server = http.createServer(async (req, res) => {
   let key = req.method + ' ' + url.pathname;
   // The one route with a parameter in its path. Mapped onto its template key here so the table
   // above stays a plain lookup, and so csrfOk and the catch-all see one name for every file.
+  // fork (Muhe): the two {id} admin routes map onto template keys the same way.
+  const mu = /^\/api\/admin\/users\/([^/]+)\/(quota|activity)$/.exec(url.pathname);
+  if (mu) { key = req.method + ' /api/admin/users/{id}/' + mu[2]; }
   const mm = /^\/api\/media\/([0-9a-f]{64})$/.exec(url.pathname);
   if (mm) { key = req.method + ' /api/media/{hash}'; req.mediaHash = mm[1]; }
   const handler = routes[key];
