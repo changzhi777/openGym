@@ -2740,6 +2740,168 @@ paths:
               schema: { $ref: '#/components/schemas/Ok' }
         '401': { $ref: '#/components/responses/Unauthorized' }
 
+  # ── fork (Muhe): SaaS 后台新端点,Go 后端实现(方案 .zcf/plan/current/saas-backend-go.md) ──
+  /api/admin/overview:
+    get:
+      tags: [admin]
+      operationId: adminOverview
+      summary: 'Admin: instance overview KPIs'
+      description: >-
+        Aggregated counters for the console dashboard (one query server-side,
+        not the client summing /api/admin/users). Admin only.
+      responses:
+        '200':
+          description: Overview counters.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users: { type: integer }
+                  active_today: { type: integer }
+                  workouts: { type: integer }
+                  live: { type: integer }
+                  ai_calls_month: { type: integer, description: Present once the Go billing counters land. }
+                  now: { type: number }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/admin/users/{id}/quota:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+        description: The user id.
+    get:
+      tags: [admin]
+      operationId: adminUserQuotaGet
+      summary: 'Admin: a user quota row'
+      responses:
+        '200':
+          description: Quota values.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminQuota' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    put:
+      tags: [admin]
+      operationId: adminUserQuotaPut
+      summary: 'Admin: change a user quota (step-up required)'
+      description: Requires a recent step-up; answers 403 code=passkey-required otherwise.
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AdminQuota' }
+      responses:
+        '200': { description: Saved. }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/admin/users/{id}/activity:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+        description: The user id.
+    get:
+      tags: [admin]
+      operationId: adminUserActivity
+      summary: 'Admin: another user workout detail (step-up required)'
+      description: >-
+        Sensitive data access: only with a step-up in the last 5 minutes;
+        every read is written to the admin audit log. 403 code=passkey-required otherwise.
+      responses:
+        '200':
+          description: Workout history (same shape as the drill-down).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminUserDetail' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/admin/roles:
+    get:
+      tags: [admin]
+      operationId: adminRoles
+      summary: 'Admin: role assignments (super_admin only)'
+      responses:
+        '200':
+          description: Role rows.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  roles:
+                    type: array
+                    items: { $ref: '#/components/schemas/AdminRoleRow' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/admin/roles/grant:
+    post:
+      tags: [admin]
+      operationId: adminRoleGrant
+      summary: 'Admin: grant a role (super_admin only, step-up required)'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id, role]
+              properties:
+                id: { type: string }
+                role: { type: string, enum: [super_admin, ops, support] }
+      responses:
+        '200': { description: Granted. }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/admin/roles/revoke:
+    post:
+      tags: [admin]
+      operationId: adminRoleRevoke
+      summary: 'Admin: revoke a role (super_admin only, step-up required)'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id, role]
+              properties:
+                id: { type: string }
+                role: { type: string, enum: [super_admin, ops, support] }
+      responses:
+        '200': { description: Revoked. }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/admin/step-up:
+    post:
+      tags: [admin]
+      operationId: adminStepUp
+      summary: 'Admin: start a step-up passkey ceremony'
+      description: >-
+        Hands out a challenge bound to the admin session; the assertion is
+        verified by the same call with `credential` present, which then grants
+        a 5-minute step-up window written to the audit log.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                credential: { type: object, description: 'Second call: the WebAuthn assertion.' }
+      responses:
+        '200':
+          description: First call returns the challenge options; second returns { ok, until }.
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
   /api/admin/coach:
     get:
       tags: [admin, coach]
@@ -3099,6 +3261,26 @@ components:
           example: { error: "that code is wrong, used or expired", code: "link-invalid" }
 
   schemas:
+    AdminQuota:
+      type: object
+      description: Per-user resource caps (fork, Go backend). Missing key reads as the plan default.
+      properties:
+        custom_exercises: { type: integer }
+        media_mb: { type: integer }
+        ai_calls_month: { type: integer }
+        updated_at: { type: number }
+
+    AdminRoleRow:
+      type: object
+      description: One role assignment (fork, Go backend). Soft-revoked rows keep granted_by for the audit trail.
+      properties:
+        user_id: { type: string }
+        name: { type: string, description: Display name at grant time. }
+        role: { type: string, enum: [super_admin, ops, support] }
+        granted_by: { type: string }
+        granted_at: { type: number }
+        revoked_at: { type: number, description: Present on soft revoke. }
+
     Error:
       type: object
       required: [error]
