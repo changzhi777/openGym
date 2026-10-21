@@ -74,6 +74,23 @@ export const getLang = () => lang
 export const dateLocale = () => DATE_LOCALES[lang] || 'en-GB'
 export const getVersion = () => version
 
+// —— fork 品牌(渲染层替换) ——————————————————————————————————————————————
+// 源串(=i18n 键)与 locale 文件都不动,rebase 上游零冲突;只在 t()/tn() 出口把
+// openGym 换成本 fork 的名字:zh/zh-TW 显示中文名,其余语言显示英文代理名。
+// 「Documents/openGym」是 Android 自动备份的**真实目录名**(BackupFolderRow
+// 的 DEFAULT_FOLDER,已同步改为 MuheFit),先占位替换再动品牌词,保证文案与
+// 文件系统里实际路径一致。
+export const BRAND = { zh: '沐禾健身', 'zh-TW': '沐禾健身' }
+const brandName = () => BRAND[lang] || 'Muhe Fit'
+const brandText = v => (
+  typeof v === 'string' && v.includes('openGym')
+    ? v.replaceAll('Documents/openGym', 'Documents/MuheFit')
+       .replaceAll('文档/openGym', '文档/MuheFit')
+       .replaceAll('an openGym', 'a ' + brandName())  // 冠词:openGym 元音开头用 an,Muhe Fit 辅音开头用 a
+       .replaceAll('openGym', brandName())
+    : v
+)
+
 // Translate a source string; {0},{1}… are replaced with args (also on the English fallback).
 export function t(s, ...args) {
   let v = dict[s] || s
@@ -84,7 +101,7 @@ export function t(s, ...args) {
     v = (typeof args[0] === 'number' && forms[pluralCategory(args[0])]) || forms.other || forms.many || forms.one || s
   }
   for (let i = 0; i < args.length; i++) v = v.replaceAll('{' + i + '}', args[i])
-  return v
+  return brandText(v)
 }
 
 /* ------------------------------------------------------------------ plurals --
@@ -121,7 +138,7 @@ export function tn(one, other, n, ...rest) {
       let v = form
       const args = [n, ...rest]
       for (let i = 0; i < args.length; i++) v = v.replaceAll('{' + i + '}', args[i])
-      return v
+      return brandText(v)
     }
   }
   return t(n === 1 ? one : other, n, ...rest)

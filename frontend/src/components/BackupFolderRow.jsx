@@ -4,7 +4,8 @@ import { backupFolder, chooseBackupFolder, resetBackupFolder, onBackupFolderChan
 import { useUI } from '../store/useUI.js'
 import { Row } from './ui.jsx'
 
-const DEFAULT_FOLDER = 'Documents/openGym'
+// fork:上游默认目录是 Documents/openGym,品牌替换后文案与实际路径需一致(见 i18n-core brandText)
+const DEFAULT_FOLDER = 'Documents/MuheFit'
 
 /* Where auto-backup puts its copies on this Android phone (#161): Documents/openGym, or a folder
    chosen with the system picker — a sync app's, an SD card's. The choice is this phone's alone

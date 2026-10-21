@@ -1,7 +1,7 @@
 {
-  "name": "openGym",
-  "short_name": "openGym",
-  "description": "Personal gym & body weight tracker",
+  "name": "沐禾健身",
+  "short_name": "沐禾健身",
+  "description": "自托管的健身与体重追踪器 — 计划、训练、进步，数据归你",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
