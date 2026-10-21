@@ -113,3 +113,10 @@ button.adm-tr.adm-td:last-child { border-bottom: 0; }
   .adm-ucell { grid-column: 1 / -1; }
   button.adm-tr.adm-td { grid-template-columns: 1fr 1fr; }
 }
+
+/* ===== P2:审计 ===== */
+.adm-chip.on { border-color: var(--acc); color: var(--label); background: var(--acc-soft); }
+.adm-tr.adm-day { grid-template-columns: 1fr; font-size: 11px; }
+.adm-tr.adm-audit { grid-template-columns: 1fr 120px; }
+.adm-audit .fail, .adm-rowline .fail { color: var(--bad-text); }
+@media (max-width: 899px) { .adm-tr.adm-audit { grid-template-columns: 1fr; } }

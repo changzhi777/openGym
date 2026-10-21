@@ -47,6 +47,7 @@ import AdminOverview from './views/admin/Overview.jsx'
 import AdminPlaceholder from './views/admin/Placeholder.jsx'
 import AdminUsers from './views/admin/Users.jsx'
 import AdminUserDetail from './views/admin/UserDetail.jsx'
+import AdminAudit from './views/admin/Audit.jsx'
 import AdminCoach from './views/AdminCoach.jsx'
 import CoachChat from './views/CoachChat.jsx'
 import Measurements from './views/Measurements.jsx'
@@ -240,7 +241,7 @@ function Shell() {
                 <Route index element={<AdminOverview />} />
                 <Route path="users" element={<AdminUsers />} />
                 <Route path="users/:id" element={<AdminUserDetail />} />
-                <Route path="audit" element={<AdminPlaceholder phase="P2" />} />
+                <Route path="audit" element={<AdminAudit />} />
                 <Route path="roles" element={<AdminPlaceholder phase="P2" />} />
                 <Route path="invites" element={<AdminPlaceholder phase="P1" legacy />} />
                 <Route path="coach" element={<AdminCoach />} />
