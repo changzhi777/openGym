@@ -51,7 +51,24 @@
 
 > 后续改动在此追加；对外提供网络服务时，本节即 §13 源码可用性的入口之一。
 
-## 6. 部署与本地开发
+## 6. 测试门口径（2026-10-21 基线实测）
+
+```bash
+./scripts/test-all.sh          # = Node 22 + TZ=UTC 跑 api/frontend/mcp 三套
+```
+
+基线：**api 605 / frontend 5060 / mcp 95 全绿**。
+
+两个钉死的环境变量不是玄学（实测记录）：
+
+- **Node 22**（与上游 `.github/workflows/test.yml` 一致）：Node ≥24 的实验性全局
+  `localStorage`（值为 undefined）会遮蔽 happy-dom 的注入，frontend 565 用例红。
+- **TZ=UTC**：`demoSeed.js` 用本地时区 `getHours()` 决定是否生成"今天"的演示训练。
+  UTC+8 下 fake-noon 即本地 20 点 → 今天的 demo Push Day 生成 → coach-week 的
+  DONE RULE 命中 → mcp 4 红 + frontend 3 红。上游 CI 在 UTC 下恰好避开；这是
+  上游的时区可移植性问题（值得向上游提 issue/PR）。
+
+## 7. 部署与本地开发
 
 - 生产实例：PVE CT 151（openGym-allinone）@ 10.10.10.151 —— 更新用
   `scripts/deploy-ct151.sh`（回内网运行；`--api-only` 只更 API）。
