@@ -42,6 +42,10 @@ import StructuralBalance from './views/StructuralBalance.jsx'
 import ProgressPhotos from './views/ProgressPhotos.jsx'
 import { SettingsRoute } from './views/Settings.jsx'
 import Admin from './views/Admin.jsx'
+import AdminShell from './views/admin/AdminShell.jsx'
+import AdminOverview from './views/admin/Overview.jsx'
+import AdminPlaceholder from './views/admin/Placeholder.jsx'
+import AdminCoach from './views/AdminCoach.jsx'
 import CoachChat from './views/CoachChat.jsx'
 import Measurements from './views/Measurements.jsx'
 import CoachIntake from './views/CoachIntake.jsx'
@@ -230,7 +234,15 @@ function Shell() {
               <Route path="/coach/intake" element={<CoachIntake />} />
               <Route path="/coach/proposal" element={<Navigate to="/coach" replace />} />
               <Route path="/coach/setup" element={<CoachSetup />} />
-              <Route path="/admin" element={user?.admin ? <Admin /> : <Navigate to="/home" replace />} />
+              <Route path="/admin" element={user?.admin ? <AdminShell /> : <Navigate to="/home" replace />}>
+                <Route index element={<AdminOverview />} />
+                <Route path="users" element={<AdminPlaceholder phase="P1" />} />
+                <Route path="audit" element={<AdminPlaceholder phase="P2" />} />
+                <Route path="roles" element={<AdminPlaceholder phase="P2" />} />
+                <Route path="invites" element={<AdminPlaceholder phase="P1" legacy />} />
+                <Route path="coach" element={<AdminCoach />} />
+                <Route path="legacy" element={<Admin />} />
+              </Route>
               <Route path="*" element={<Navigate to="/home" replace />} />
             </Routes>
           )}

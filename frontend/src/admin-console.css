@@ -1,0 +1,75 @@
+/* admin-console.css — 管理后台控制台样式(fork,P0)
+   设计依据 docs/admin-ui-design.md §4/§6:不新增色板,只加 5 个语义令牌;
+   桌面 ≥1000px 左侧栏 220px + 内容区;移动 <1000px 顶栏 + 横向页签。 */
+
+.adm-console {
+  /* 语义令牌(设计 §6.6):红/绿/黄/蓝的「文字级」色,及危险按钮前景 */
+  --ok-text: #34d399;
+  --bad-text: #f8717a;
+  --warn-text: #fbbf24;
+  --info-text: #7cb7ff;
+  --on-danger: #100c0e;
+  color: var(--label);
+}
+
+/* ===== 布局壳:桌面侧栏 / 移动顶栏 ===== */
+.adm-shell { display: grid; grid-template-columns: 220px 1fr; min-height: 100dvh; }
+.adm-side {
+  border-right: 1px solid var(--hair); padding: 18px 14px; display: flex;
+  flex-direction: column; gap: 4px; position: sticky; top: 0; height: 100dvh;
+  background: var(--bg-el);
+}
+.adm-side .brand { font-size: 15px; font-weight: 700; letter-spacing: .02em; padding: 4px 10px 14px; }
+.adm-side .nav-item {
+  display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 10px;
+  color: var(--label-2); text-decoration: none; font-size: 14px;
+}
+.adm-side .nav-item[aria-current='page'] { background: var(--acc-soft); color: var(--label); }
+.adm-side .nav-group { font-size: 11px; color: var(--label-3); padding: 14px 10px 4px; text-transform: uppercase; letter-spacing: .08em; }
+.adm-side .spacer { flex: 1; }
+.adm-identity { border-top: 1px solid var(--hair); padding: 12px 10px 2px; font-size: 12px; color: var(--label-2); }
+.adm-main { padding: 22px clamp(16px, 4vw, 40px) 90px; max-width: 1120px; width: 100%; margin: 0 auto; }
+
+/* 移动(<1000px):侧栏收起为顶栏 + 横向页签 */
+@media (max-width: 999px) {
+  .adm-shell { grid-template-columns: 1fr; }
+  .adm-side {
+    position: sticky; top: 0; height: auto; flex-direction: row; align-items: center;
+    border-right: 0; border-bottom: 1px solid var(--hair); padding: 8px 12px; gap: 8px;
+    overflow-x: auto; z-index: 30;
+  }
+  .adm-side .brand { padding: 0 8px 0 0; white-space: nowrap; }
+  .adm-side .nav-group, .adm-side .spacer, .adm-side .adm-back { display: none; }
+  .adm-side .nav-item { padding: 7px 11px; white-space: nowrap; font-size: 13.5px; }
+  .adm-side .adm-identity { display: none; }
+  .adm-main { padding: 16px 14px 90px; }
+}
+
+/* ===== 概览 ===== */
+.adm-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.adm-kpi { background: var(--surface); border: 1px solid var(--hair); border-radius: 14px; padding: 13px 15px; }
+.adm-kpi .k { font-size: 12px; color: var(--label-2); }
+.adm-kpi .v { font-size: 24px; font-weight: 700; margin-top: 3px; font-variant-numeric: tabular-nums; }
+.adm-kpi .sub { font-size: 11.5px; color: var(--label-3); margin-top: 2px; }
+.adm-card { background: var(--surface); border: 1px solid var(--hair); border-radius: 14px; padding: 15px 16px; margin-bottom: 12px; }
+.adm-card h3 { font-size: 13.5px; color: var(--label); margin-bottom: 9px; }
+.adm-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 720px) { .adm-grid-2 { grid-template-columns: 1fr; } }
+.adm-rowline { display: flex; justify-content: space-between; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--hair); font-size: 13.5px; }
+.adm-rowline:last-child { border-bottom: 0; }
+.adm-rowline .who { color: var(--label-2); }
+.adm-rowline .ok { color: var(--label-2); }         /* 成功安静(设计 §审计) */
+.adm-rowline .fail { color: var(--bad-text); }
+.adm-attention { display: flex; align-items: center; gap: 10px; border: 1px solid var(--hair);
+  border-radius: 12px; padding: 10px 14px; font-size: 13px; color: var(--warn-text); margin-bottom: 12px; }
+
+/* 角色徽章 / step-up chip */
+.adm-badge { display: inline-flex; align-items: center; border-radius: 99px; padding: 2px 9px;
+  font-size: 11px; background: var(--acc-soft); color: var(--label); }
+.adm-badge.readonly { background: var(--surface-3); color: var(--label-2); }
+
+/* 空态 / 加载态 / 403 */
+.adm-empty { color: var(--label-3); font-size: 13.5px; padding: 22px 0; text-align: center; }
+.adm-403 { max-width: 420px; margin: 10vh auto; text-align: center; }
+.adm-403 h2 { font-size: 18px; margin-bottom: 8px; }
+.adm-403 p { color: var(--label-2); font-size: 13.5px; }
