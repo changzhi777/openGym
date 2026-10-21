@@ -91,7 +91,17 @@ async function callApi(payload, attempt = 1) {
   const data = await res.json()
   let text = data.choices?.[0]?.message?.content?.trim() || ''
   text = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '')
-  return { parsed: JSON.parse(text), usage: data.usage }
+  try {
+    return { parsed: JSON.parse(text), usage: data.usage }
+  } catch (e) {
+    // 模型偶发输出坏 JSON(长文本里未转义/截断):重试整批,3 次仍失败才抛
+    if (attempt <= 3) {
+      console.warn(`  JSON 坏(第 ${attempt} 次),重试…`)
+      await new Promise(r => setTimeout(r, 1500 * attempt))
+      return callApi(payload, attempt + 1)
+    }
+    throw new Error(`JSON 解析失败: ${e.message} — 片段: ${text.slice(0, 160)}`)
+  }
 }
 
 async function main() {
@@ -118,7 +128,14 @@ async function main() {
       if (needInstr) payload[id].instructions = e.instructions
     }
     process.stdout.write(`[${i + batch.length}/${todo.length}] 翻译中… `)
-    const { parsed, usage } = await callApi(payload)
+    let parsed, usage
+    try {
+      ({ parsed, usage } = await callApi(payload))
+    } catch (e) {
+      // 单批失败不拖垮全量:记录后跳过,重跑脚本会自动重试这些条目
+      console.log(`❌ 跳过本批(${e.message.slice(0, 80)});重跑脚本会再试`)
+      continue
+    }
     tokens += (usage?.total_tokens || 0)
     let ok = 0
     for (const { id, e, needDesc, needInstr } of batch) {
