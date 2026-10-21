@@ -73,3 +73,43 @@
 .adm-403 { max-width: 420px; margin: 10vh auto; text-align: center; }
 .adm-403 h2 { font-size: 18px; margin-bottom: 8px; }
 .adm-403 p { color: var(--label-2); font-size: 13.5px; }
+
+/* ===== P1:用户列表/详情/危险操作 ===== */
+.adm-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.adm-search { background: var(--surface); border: 1px solid var(--hair); color: var(--label);
+  border-radius: 10px; padding: 9px 12px; font-size: 14px; min-width: 0; flex: 0 1 280px; }
+.adm-search:focus { outline: none; border-color: var(--acc); }
+.adm-count { font-size: 12.5px; color: var(--label-3); font-variant-numeric: tabular-nums; }
+.adm-plain { background: none; border: 1px solid var(--hair); color: var(--label-2);
+  border-radius: 10px; padding: 8px 13px; font-size: 13.5px; cursor: pointer; }
+.adm-plain:hover { color: var(--label); border-color: var(--label-3); }
+
+.adm-table { border: 1px solid var(--hair); border-radius: 14px; overflow: hidden; background: var(--surface); }
+.adm-tr { display: grid; grid-template-columns: 1fr 90px 120px auto; gap: 8px; align-items: center;
+  padding: 10px 14px; border-bottom: 1px solid var(--hair); font-size: 13.5px; width: 100%; text-align: left; }
+.adm-tr.adm-th { color: var(--label-3); font-size: 11.5px; text-transform: uppercase; letter-spacing: .06em; background: var(--bg-el); }
+button.adm-tr.adm-td { background: none; border: 0; border-bottom: 1px solid var(--hair); color: var(--label); cursor: pointer; }
+button.adm-tr.adm-td:hover { background: var(--surface-2); }
+button.adm-tr.adm-td:last-child { border-bottom: 0; }
+.adm-ucell b { font-weight: 600; }
+.adm-usub { color: var(--label-2); font-size: 12px; margin-top: 2px; }
+.adm-badges { display: flex; gap: 6px; justify-content: flex-end; }
+.adm-num { font-variant-numeric: tabular-nums; text-align: right; }
+.adm-pager { display: flex; align-items: center; gap: 12px; justify-content: center; margin-top: 14px; color: var(--label-2); font-size: 13px; }
+.adm-pager button { background: none; border: 1px solid var(--hair); color: var(--label-2); border-radius: 8px; padding: 4px 12px; }
+.adm-actions { display: flex; gap: 8px; }
+
+/* 危险按钮(设计 §6.6:实心红底 + --on-danger 前景,对比度 6.2:1) */
+.adm-danger { width: 100%; border: 0; border-radius: 12px; padding: 13px 0; font-size: 14.5px; font-weight: 700;
+  background: var(--bad-text); color: var(--on-danger); cursor: pointer; }
+.adm-danger:disabled { opacity: .35; cursor: not-allowed; }
+.adm-danger-ghost { background: none; border: 1px solid var(--bad-text); color: var(--bad-text);
+  border-radius: 10px; padding: 8px 13px; font-size: 13.5px; cursor: pointer; }
+
+/* <900px:表格行转卡片(设计 §断点) */
+@media (max-width: 899px) {
+  .adm-tr { grid-template-columns: 1fr auto; }
+  .adm-tr.adm-th { display: none; }
+  .adm-ucell { grid-column: 1 / -1; }
+  button.adm-tr.adm-td { grid-template-columns: 1fr 1fr; }
+}
