@@ -1,5 +1,23 @@
 <div align="center">
 
+<img src="frontend/public/icon-512.png" alt="沐禾健身" width="128">
+
+# 沐禾健身 · Muhe Fit
+
+**自托管的健身与体重追踪器 — 计划、训练、进步，数据归你。**
+
+中文界面的 [openGym](https://github.com/DuarteSantos8/openGym) 二次开发版（AGPL-3.0）。
+
+[部署与本地开发](FORK.md) · [许可与媒体版权边界](FORK.md) · [上游项目](https://github.com/DuarteSantos8/openGym)
+
+</div>
+
+---
+
+> 以下为上游 openGym 原版 README，随上游同步保留（文档中的项目名、徽章、链接均指上游原项目）。
+
+<div align="center">
+
 <img src="assets/banner.png" alt="openGym" width="720">
 
 **A self-hosted gym and body-weight tracker you actually own.**

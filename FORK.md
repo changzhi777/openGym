@@ -48,6 +48,7 @@
 | 日期 | 分支/提交 | 内容 |
 |---|---|---|
 | 2026-10-21 | `zh-terminology` (6a8ad08d) | zh.js 14 处术语规范化（训练量/复盘/减载/预估 1RM），依据 `frontend/docs/i18n-terminology-audit.md` |
+| 2026-10-22 | `main` (c8832ca3) | 图标全套（PWA 180/192/512 + Android 6 密度） |
 | 2026-10-22 | `main` | **品牌替换 openGym → 沐禾健身 / Muhe Fit**：`i18n-core.js` t()/tn() 渲染层单点替换（含 `an openGym`→`a Muhe Fit` 冠词与 `Documents/openGym`→`Documents/MuheFit` 目录保护，locale 键零改动）；manifest/index.html/capacitor(appId=com.muhe.fit)/api RP_NAME/备份目录与文件名/分享图水印/.fit 软件名同步；图标暂留上游（待 Logo 资产） |
 
 > 后续改动在此追加；对外提供网络服务时，本节即 §13 源码可用性的入口之一。
