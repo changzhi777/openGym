@@ -49,7 +49,10 @@ export default function Overview() {
 
       {live > 0 && (
         <div className="adm-card"><h3>{adminT('实时训练中')}</h3>
-          {us.filter(u => u.live).map(u => <div key={u.id} className="adm-rowline"><span>{u.name}</span><span className="ok">{adminWhen(u.live)}</span></div>)}
+          {us.filter(u => u.live).map(u => <div key={u.id} className="adm-rowline">
+            <span>{u.name}</span>
+            <span className="ok">{u.live.exTotal ? `${u.live.exIdx}/${u.live.exTotal} · ` : ''}{u.live.setsDone}/{u.live.setsTotal} · {adminWhen(u.live.startedAt)}</span>
+          </div>)}
         </div>
       )}
 

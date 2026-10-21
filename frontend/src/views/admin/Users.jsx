@@ -43,7 +43,7 @@ export default function Users() {
         <div className="adm-tr adm-th" role="row">
           <span role="columnheader">{adminT('用户')}</span>
           <span role="columnheader">{adminT('累计训练')}</span>
-          <span role="columnheader">{adminT('刷新')}</span>
+          <span role="columnheader">{adminT('最近同步')}</span>
           <span role="columnheader"></span>
         </div>
         {view.map(u => (
