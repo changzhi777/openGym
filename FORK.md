@@ -92,9 +92,15 @@
 
 - **Android APK 构建**（2026-10-22 验证）：
   ```bash
-  cd frontend && npm run build && npx cap sync android
+  cd frontend && npm run build:mobile      # ⚠️ 不是 npm run build！
   cd android && JAVA_HOME=$(/usr/libexec/java_home -v 21) ./gradlew assembleDebug
   ```
+  ⚠️ **必须 `build:mobile`**：它才跑 `stage-media.mjs` 把 `catalogue/media`
+  （6,554 静图 + 6,554 动画，215MB）复制进 `dist/exercise-media` 并 cap sync。
+  用普通 `npm run build`（web 包）构建的 APK **动作动画全部无法播放**（2026-10-22 实测）。
+  媒体 180px 按 Gym visual 授权仅随 App 包分发。
   ⚠️ **必须 JDK 21**（Capacitor 7 的编译源级；JDK 17 报「无效的源发行版：21」）。
-  产物 `android/app/build/outputs/apk/debug/app-debug.apk`（debug 包名 `com.muhe.fit.test`，
-  与正式版并行安装；release 版需自备 keystore 签名）。
+  `cap sync` 会尝试 iOS 并报 CocoaPods 缺失（无害，或直接 `npx cap sync android`）。
+  ⚠️ `build:mobile` 后 `dist` 是移动包 —— 部署 web 前要重跑 `npm run build`。
+  产物 `android/app/build/outputs/apk/debug/app-debug.apk`（debug 包名 `com.muhe.fit.test`；
+  release 版需自备 keystore 签名）。
