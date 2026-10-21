@@ -89,3 +89,12 @@
   ```
   验证口径:`curl localhost:5173/api/health` → `{"ok":true,...}`；动作库图片走
   `/exercise-media/*` 由 Vite 从 `catalogue/media/` 直出。
+
+- **Android APK 构建**（2026-10-22 验证）：
+  ```bash
+  cd frontend && npm run build && npx cap sync android
+  cd android && JAVA_HOME=$(/usr/libexec/java_home -v 21) ./gradlew assembleDebug
+  ```
+  ⚠️ **必须 JDK 21**（Capacitor 7 的编译源级；JDK 17 报「无效的源发行版：21」）。
+  产物 `android/app/build/outputs/apk/debug/app-debug.apk`（debug 包名 `com.muhe.fit.test`，
+  与正式版并行安装；release 版需自备 keystore 签名）。
