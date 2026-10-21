@@ -113,7 +113,10 @@ function Shell() {
   // worked out here, on this device, and never written into the synced state (lib/default-lang.js).
   const config = useStore(s => s.config)
   const lang = effectiveLang(S, config)
-  useEffect(() => { setLang(lang, S.enParens?.[baseLang(lang)] ?? true, S.enOnly?.[baseLang(lang)] === true) }, [lang, S.enParens, S.enOnly])
+  // fork:中文默认不显示英文原名(纯中文动作名);其它语言沿用上游默认(双语括号)。
+  // 用户在设置里显式开/关后以 S.enParens 为准。
+  const parensDefault = !/^zh/.test(baseLang(lang))
+  useEffect(() => { setLang(lang, S.enParens?.[baseLang(lang)] ?? parensDefault, S.enOnly?.[baseLang(lang)] === true) }, [lang, S.enParens, S.enOnly])
   // Same shape as the language: a module-level display setting, pushed when it changes (#139).
   useEffect(() => { setWeightDecimals(S.wdec) }, [S.wdec])
   useEffect(() => { document.documentElement.lang = lang }, [langV, lang])
