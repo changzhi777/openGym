@@ -1,15 +1,15 @@
-# openGym HTTP API: hand-written OpenAPI 3.1 spec.
+# 沐禾健身 HTTP API: hand-written OpenAPI 3.1 spec.
 # Source of truth: api/server.js (a single framework-free Node file). Every route the
 # server registers is documented here; if you add a route there, add it here too.
 # Browsable version: https://opengym.ch/api.html
 openapi: 3.1.0
 
 info:
-  title: openGym API
+  title: 沐禾健身 API
   version: 1.4.1
-  summary: Passkey (WebAuthn) auth + per-user state storage for openGym
+  summary: Passkey (WebAuthn) auth + per-user state storage for 沐禾健身
   description: |
-    The backend of [openGym](https://opengym.ch), a free, open-source
+    The backend of 沐禾健身 (a fork of [openGym](https://opengym.ch)), a free, open-source
     gym & body-weight tracker. A plain Node server, no framework, JSON-file storage,
     HMAC-signed session cookies.
 

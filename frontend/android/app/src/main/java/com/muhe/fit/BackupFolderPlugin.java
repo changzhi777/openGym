@@ -1,4 +1,4 @@
-package ch.duartesantos.opengym;
+package com.muhe.fit;
 
 import android.app.Activity;
 import android.content.ContentResolver;

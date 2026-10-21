@@ -1,4 +1,4 @@
-package ch.duartesantos.opengym;
+package com.muhe.fit;
 
 import android.app.AlarmManager;
 import android.app.Notification;
@@ -29,13 +29,13 @@ import android.util.Log;
  * the user also allows notifications there.
  */
 public final class RestAlert {
-    static final String ACTION = "ch.duartesantos.opengym.action.REST_OVER";
-    static final String ACTION_PAUSE = "ch.duartesantos.opengym.rest.PAUSE";
-    static final String ACTION_MINUS = "ch.duartesantos.opengym.rest.MINUS";
-    static final String ACTION_PLUS = "ch.duartesantos.opengym.rest.PLUS";
-    static final String ACTION_SKIP = "ch.duartesantos.opengym.rest.SKIP";
-    static final String ACTION_ACCENT = "ch.duartesantos.opengym.rest.ACCENT";
-    static final String ACTION_HOLD = "ch.duartesantos.opengym.rest.HOLD";
+    static final String ACTION = "com.muhe.fit.action.REST_OVER";
+    static final String ACTION_PAUSE = "com.muhe.fit.rest.PAUSE";
+    static final String ACTION_MINUS = "com.muhe.fit.rest.MINUS";
+    static final String ACTION_PLUS = "com.muhe.fit.rest.PLUS";
+    static final String ACTION_SKIP = "com.muhe.fit.rest.SKIP";
+    static final String ACTION_ACCENT = "com.muhe.fit.rest.ACCENT";
+    static final String ACTION_HOLD = "com.muhe.fit.rest.HOLD";
     static final String CHANNEL_ID = "rest-over";
     /**
      * Settings → Vibrate off. Android keeps a channel's vibration as it was when the channel was

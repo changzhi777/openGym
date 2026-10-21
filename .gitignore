@@ -30,3 +30,9 @@ frontend/bundle-size.json
 
 # Local planning notes
 docs/superpowers/plans/
+
+# fork: local tooling / plan artifacts (nothing here belongs upstream)
+.zcf/
+.serena/
+.spec-workflow/
+.playwright-mcp/
