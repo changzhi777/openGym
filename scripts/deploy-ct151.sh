@@ -26,16 +26,17 @@ ct()  { pve "pct exec $CT -- $*"; }
 echo "==> [1/6] PVE 连通性"
 pve "echo ok" >/dev/null || { echo "❌ PVE $PVE_HOST 不可达(需在内网)"; exit 1; }
 
-echo "==> [2/6] rsync 代码(排除 node_modules/.git/data/dist)"
-rsync -az --delete \
+echo "==> [2/6] 打包代码 → PVE → CT(排除 node_modules/.git/data/dist)"
+TAR=/tmp/opengym-src.tar.gz
+tar -czf "$TAR" \
   --exclude node_modules --exclude .git --exclude data --exclude dist \
   --exclude .env --exclude .zcf --exclude .serena --exclude .spec-workflow \
   --exclude .playwright-mcp --exclude frontend/docs \
-  "$LOCAL_REPO/" "$PVE_HOST:/opt/openGym-src/"
-pve "pct push $CT /opt/openGym-src /opt/openGym --delete --exclude node_modules --exclude data" \
-  || pve "rsync -az --delete --exclude node_modules --exclude data --exclude .env /opt/openGym-src/ 127.0.0.1:/opt/openGym/ 2>/dev/null" \
-  || { echo "❌ 代码进 CT 失败(检查 pct push/rsync)"; exit 1; }
-pve "rm -rf /opt/openGym-src"
+  -C "$LOCAL_REPO" .
+scp -q "$TAR" "$PVE_HOST:/opt/opengym-src.tar.gz"
+pve "pct push $CT /opt/opengym-src.tar.gz /tmp/src.tar.gz"
+ct bash -c "mkdir -p /opt/openGym && tar -xzf /tmp/src.tar.gz -C /opt/openGym && rm -f /tmp/src.tar.gz"
+pve "rm -f /opt/opengym-src.tar.gz"
 
 echo "==> [3/6] API 依赖 + 重启"
 ct bash -c "cd /opt/openGym/api && npm ci --omit=dev && systemctl restart openGym-api"

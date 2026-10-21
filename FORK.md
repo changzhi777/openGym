@@ -51,8 +51,20 @@
 
 > 后续改动在此追加；对外提供网络服务时，本节即 §13 源码可用性的入口之一。
 
-## 6. 部署备注
+## 6. 部署与本地开发
 
-- 生产实例：PVE CT 151（openGym-allinone）@ 10.10.10.151 —— 详见
-  `scripts/deploy-ct151.sh`。
-- 本机验证：`docker-compose up -d` → http://localhost:8080。
+- 生产实例：PVE CT 151（openGym-allinone）@ 10.10.10.151 —— 更新用
+  `scripts/deploy-ct151.sh`（回内网运行；`--api-only` 只更 API）。
+- Docker Compose：`docker-compose up -d` → http://localhost:8080
+  （⚠️ ghcr.io 在部分网络下拉取极慢；镜像含全量动作媒体，体积大）。
+- **本机轻量全栈**（2026-10-21 验证可用）：
+  ```bash
+  # API:纯 Node,仅 3 个依赖(注意 3000 若被 SSH 隧道占用则换端口)
+  cd api && npm ci
+  PORT=3100 DATA_DIR=../data RP_ID=localhost ORIGIN=http://localhost:5173 \
+    SESSION_DAYS=90 TRUST_PROXY=1 node server.js
+  # 前端:Vite dev(/api 代理与媒体代理均内置,变量名是 API_TARGET 不是 API_ORIGIN)
+  cd frontend && npm ci && API_TARGET=http://127.0.0.1:3100 npm run dev
+  ```
+  验证口径:`curl localhost:5173/api/health` → `{"ok":true,...}`；动作库图片走
+  `/exercise-media/*` 由 Vite 从 `catalogue/media/` 直出。
