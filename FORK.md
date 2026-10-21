@@ -60,6 +60,8 @@
 
 基线：**api 605 / frontend 5060 / mcp 95 全绿**。
 
+已知偶发（非本轮改动引起，重跑即绿）：全量并行跑时 `useStore.tabs-owner` / `useStore.adopt-hold` 偶有 1-6 红（多标签 storage 事件的并发时序），单文件连跑稳定；api 偶有 1 红亦为重跑即绿。
+
 两个钉死的环境变量不是玄学（实测记录）：
 
 - **Node 22**（与上游 `.github/workflows/test.yml` 一致）：Node ≥24 的实验性全局
