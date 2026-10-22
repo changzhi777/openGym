@@ -23,6 +23,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/changzhi777/openGym/backend-go/internal/admin"
 	"github.com/changzhi777/openGym/backend-go/internal/auth"
 	"github.com/changzhi777/openGym/backend-go/internal/cache"
 	"github.com/changzhi777/openGym/backend-go/internal/store"
@@ -150,6 +151,25 @@ func main() {
 	r.GET("/api/media/:hash", mediaSvc.Get)
 	r.POST("/api/media/missing", mediaSvc.Missing)
 	r.POST("/api/media/sweep", mediaSvc.Sweep)
+
+	// P5:管理后台(角色分层:support 只读/ops 运营/super_admin 全权;敏感操作挂 step-up)。
+	adminSvc := admin.New(db, sessions, wa)
+	support := adminSvc.RequireRole(admin.RoleSupport)
+	ops := adminSvc.RequireRole(admin.RoleOps)
+	super := adminSvc.RequireRole(admin.RoleSuperAdmin)
+	stepUp := adminSvc.RequireStepUp()
+	r.GET("/api/admin/overview", support, adminSvc.Overview)
+	r.GET("/api/admin/users", support, adminSvc.Users)
+	r.GET("/api/admin/user", support, adminSvc.User)
+	r.POST("/api/admin/user/disable", ops, stepUp, adminSvc.Disable)
+	r.POST("/api/admin/user/delete", super, stepUp, adminSvc.Delete)
+	r.GET("/api/admin/users/:id/quota", support, adminSvc.QuotaGet)
+	r.PUT("/api/admin/users/:id/quota", ops, stepUp, adminSvc.QuotaPut)
+	r.GET("/api/admin/roles", super, adminSvc.Roles)
+	r.POST("/api/admin/roles/grant", super, stepUp, adminSvc.RoleGrant)
+	r.POST("/api/admin/roles/revoke", super, stepUp, adminSvc.RoleRevoke)
+	r.GET("/api/admin/audit-log", super, adminSvc.AuditLog)
+	r.POST("/api/admin/step-up", support, adminSvc.StepUp)
 
 	// 其余端点尚未实现 —— 与 Node 侧 501 stub 同语义。
 	r.NoRoute(func(c *gin.Context) {
