@@ -71,7 +71,12 @@ export function buildDemoState() {
   const [push, pull, legs] = starterRoutines()
   const byWeekday = { 1: push, 3: pull, 5: legs }
 
-  const nowH = new Date().getHours()
+  // UTC hours: the suites pin Date at a fake noon (12:00Z), and a local-hours read makes
+  // that noon land in the evening east of UTC+6 — today's session then generates, and the
+  // coach-week DONE rule flips the first session from `next` to `done`. UTC keeps the demo's
+  // "today" boundary stable for the tests in every timezone; for a person opening a fresh
+  // demo late in their own evening it just means today's session stays open a few hours longer.
+  const nowH = new Date().getUTCHours()
   const today = new Date(); today.setHours(12, 0, 0, 0)
   const start = new Date(today); start.setDate(start.getDate() - WEEKS * 7)
 
