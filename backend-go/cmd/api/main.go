@@ -93,6 +93,11 @@ func main() {
 	r.POST("/api/account/passkeys/options", svc.PasskeysOptions)
 	r.POST("/api/account/passkeys/verify", svc.PasskeysVerify)
 	r.DELETE("/api/account/passkeys", svc.PasskeysDelete)
+	r.POST("/api/account/device-link", svc.DeviceLinkCreate)
+	r.POST("/api/device-link/options", svc.DeviceLinkOptions)
+	r.POST("/api/device-link/verify", svc.DeviceLinkVerify)
+	r.POST("/api/account/passkeys/rename", svc.PasskeysRename)
+	r.POST("/api/logout/all", svc.LogoutAll)
 
 	// 其余端点尚未实现 —— 与 Node 侧 501 stub 同语义。
 	r.NoRoute(func(c *gin.Context) {

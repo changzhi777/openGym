@@ -4,10 +4,13 @@ package auth
 
 import (
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"io"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -323,4 +326,140 @@ func (s *Service) exclusionList(c *gin.Context, uid string) []KeyHandle {
 		out[i] = KeyHandle{ID: k.ID}
 	}
 	return out
+}
+
+/* ---- P2c:device-link ×3 / rename / logout-all ---- */
+
+func b64rand(n int) string {
+	raw := make([]byte, n)
+	rand.Read(raw)
+	return base64.RawURLEncoding.EncodeToString(raw)
+}
+
+func sha256hex(s string) string {
+	sum := sha256.Sum256([]byte(s))
+	return hex.EncodeToString(sum[:])
+}
+
+// DeviceLinkCreate POST /api/account/device-link — 登录态,码 15 分钟(Node 同 TTL)。
+func (s *Service) DeviceLinkCreate(c *gin.Context) {
+	u, ok := s.userOf(c)
+	if !ok {
+		jsonFail(c, 401, "not signed in", "")
+		return
+	}
+	if n, _ := store.CountPasskeys(c.Request.Context(), s.DB, u.ID); n >= 20 {
+		jsonFail(c, 409, "a profile can have at most 20 passkeys", "passkey-limit")
+		return
+	}
+	code := b64rand(9) // 明码只出现一次,库里只存哈希
+	h := b64rand(12)
+	exp := time.Now().Add(15 * time.Minute)
+	store.TouchLink(c.Request.Context(), s.DB, sha256hex(code), u.ID, h, exp)
+	c.JSON(200, gin.H{"code": code, "expires": exp.UnixMilli()})
+}
+
+// DeviceLinkOptions POST /api/device-link/options — 无会话,码即凭据;不消费(可重试)。
+func (s *Service) DeviceLinkOptions(c *gin.Context) {
+	b := readBody(c)
+	code := strings.TrimSpace(b.Code)
+	uid, h, ok := store.FindLink(c.Request.Context(), s.DB, sha256hex(code))
+	if !ok {
+		jsonFail(c, 400, "that code is wrong, used or expired", "link-invalid")
+		return
+	}
+	u, err := store.UserByID(c.Request.Context(), s.DB, uid)
+	if err != nil || u.Disabled {
+		jsonFail(c, 400, "that code is wrong, used or expired", "link-invalid")
+		return
+	}
+	keys, _ := store.KeysOf(c.Request.Context(), s.DB, uid)
+	excl := make([]KeyHandle, len(keys))
+	for i, k := range keys {
+		excl[i] = KeyHandle{ID: k.ID}
+	}
+	options, challenge, err := s.WA.CreationOptionsExclude([]byte(u.ID), u.Name, excl)
+	if err != nil {
+		jsonFail(c, 500, "options", "")
+		return
+	}
+	cid := s.Challenges.Put(&Challenge{Kind: "link", Challenge: challenge, UID: u.ID, LH: h})
+	c.JSON(200, gin.H{"cid": cid, "options": options, "id": u.ID, "name": u.Name})
+}
+
+// DeviceLinkVerify POST /api/device-link/verify — 新凭据入库 + 烧码 + 签 cookie 登录。
+func (s *Service) DeviceLinkVerify(c *gin.Context) {
+	b := readBody(c)
+	code := strings.TrimSpace(b.Code)
+	ch := s.Challenges.Take(b.CID)
+	uid, h, ok := store.FindLink(c.Request.Context(), s.DB, sha256hex(code))
+	if !ok {
+		jsonFail(c, 400, "that code is wrong, used or expired", "link-invalid")
+		return
+	}
+	if ch == nil || ch.Kind != "link" || ch.LH != h || ch.UID != uid {
+		jsonFail(c, 400, "challenge expired, try again", "challenge-expired")
+		return
+	}
+	u, err := store.UserByID(c.Request.Context(), s.DB, uid)
+	if err != nil || u.Disabled {
+		jsonFail(c, 400, "that code is wrong, used or expired", "link-invalid")
+		return
+	}
+	key, err := s.WA.VerifyRegistration([]byte(u.ID), u.Name, b.Credential, ch.Challenge)
+	if err != nil {
+		jsonFail(c, 400, "verification failed", "")
+		return
+	}
+	if err := store.InsertKey(c.Request.Context(), s.DB, u.ID, store.KeyRow{ID: key.ID, PublicKey: key.PublicKey}); err != nil {
+		jsonFail(c, 409, "credential already registered", "credential-exists")
+		return
+	}
+	store.BurnLink(c.Request.Context(), s.DB, sha256hex(code))
+	s.setCookie(c, u.ID, u.SV)
+	c.JSON(200, gin.H{"user": gin.H{"id": u.ID, "name": u.Name, "admin": false}})
+}
+
+// PasskeysRename POST /api/account/passkeys/rename — {id, name}。
+func (s *Service) PasskeysRename(c *gin.Context) {
+	u, ok := s.userOf(c)
+	if !ok {
+		jsonFail(c, 401, "not signed in", "")
+		return
+	}
+	var body struct {
+		ID   string `json:"id"`
+		Name string `json:"name"`
+	}
+	json.NewDecoder(c.Request.Body).Decode(&body)
+	if body.ID == "" {
+		jsonFail(c, 400, "id required", "")
+		return
+	}
+	name := strings.TrimSpace(body.Name)
+	if len(name) > 40 {
+		name = name[:40]
+	}
+	if err := store.RenamePasskey(c.Request.Context(), s.DB, u.ID, body.ID, name); err != nil {
+		jsonFail(c, 404, "no such passkey", "not-found")
+		return
+	}
+	c.JSON(200, gin.H{"ok": true})
+}
+
+// LogoutAll POST /api/logout/all — sv+1,全部旧 cookie/Bearer 失效。
+func (s *Service) LogoutAll(c *gin.Context) {
+	u, ok := s.userOf(c)
+	if !ok {
+		jsonFail(c, 401, "not signed in", "")
+		return
+	}
+	if err := store.BumpSV(c.Request.Context(), s.DB, u.ID); err != nil {
+		jsonFail(c, 500, "bump", "")
+		return
+	}
+	for _, v := range s.Sessions.ClearValue() {
+		c.Writer.Header().Add("Set-Cookie", v)
+	}
+	c.JSON(200, gin.H{"ok": true})
 }

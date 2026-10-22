@@ -126,3 +126,34 @@ func CountPasskeys(ctx context.Context, db *pgxpool.Pool, uid string) (int, erro
 	err := db.QueryRow(ctx, `SELECT count(*) FROM passkeys WHERE user_id = $1`, uid).Scan(&n)
 	return n, err
 }
+
+func TouchLink(ctx context.Context, db *pgxpool.Pool, codeHash, uid, h string, exp time.Time) error {
+	_, err := db.Exec(ctx, `INSERT INTO device_links (code_hash, user_id, h, exp) VALUES ($1,$2,$3,$4)
+		ON CONFLICT (code_hash) DO UPDATE SET user_id=$2, h=$3, exp=$4`, codeHash, uid, h, exp)
+	return err
+}
+
+func FindLink(ctx context.Context, db *pgxpool.Pool, codeHash string) (uid, h string, ok bool) {
+	err := db.QueryRow(ctx, `SELECT user_id, h FROM device_links WHERE code_hash=$1 AND exp > now()`, codeHash).Scan(&uid, &h)
+	return uid, h, err == nil
+}
+
+func BurnLink(ctx context.Context, db *pgxpool.Pool, codeHash string) {
+	db.Exec(ctx, `DELETE FROM device_links WHERE code_hash=$1`, codeHash)
+}
+
+func BumpSV(ctx context.Context, db *pgxpool.Pool, uid string) error {
+	_, err := db.Exec(ctx, `UPDATE users SET sv = sv + 1 WHERE id=$1`, uid)
+	return err
+}
+
+func RenamePasskey(ctx context.Context, db *pgxpool.Pool, uid, credID, name string) error {
+	ct, err := db.Exec(ctx, `UPDATE passkeys SET name=$3 WHERE id=$1 AND user_id=$2`, credID, uid, name)
+	if err != nil {
+		return err
+	}
+	if ct.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}

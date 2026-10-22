@@ -15,6 +15,7 @@ type Challenge struct {
 	UID       string
 	Name      string
 	Code      string // invite code(register 用)
+	LH        string // device-link 的绑定随机数(challenge↔link 配对)
 	Exp       time.Time
 }
 
