@@ -36,3 +36,6 @@ docs/superpowers/plans/
 .serena/
 .spec-workflow/
 .playwright-mcp/
+
+# fork backend-go
+backend-go/muhe-api

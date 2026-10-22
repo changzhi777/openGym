@@ -1,0 +1,38 @@
+# 沐禾健身 Go 后端栈(fork 专属;上游 docker-compose.yml 不动,P6 前两栈并存)
+# 用法: docker-compose -f compose.go.yml up -d --build
+services:
+  pg:
+    image: postgres:16-alpine   # 本地已有;17 部署时再拉
+    environment:
+      POSTGRES_USER: muhe
+      POSTGRES_PASSWORD: muhe
+      POSTGRES_DB: muhe
+    volumes:
+      - muhe-pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U muhe"]
+      interval: 3s
+      retries: 12
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      retries: 12
+
+  api:
+    build: .
+    environment:
+      PORT: "3100"
+      DATABASE_URL: postgres://muhe:muhe@pg:5432/muhe?sslmode=disable
+      REDIS_ADDR: redis:6379
+    ports:
+      - "3110:3100"
+    depends_on:
+      pg: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    restart: unless-stopped
+
+volumes:
+  muhe-pg:

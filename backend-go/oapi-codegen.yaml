@@ -1,0 +1,7 @@
+# oapi-codegen 配置 — 从根 api/openapi.yaml 生成 Gin 服务骨架(P0 已验证契约)
+package: apigen
+generate:
+  models: true
+  gin-server: true
+  strict-server: false
+output: internal/apigen/gen.go
