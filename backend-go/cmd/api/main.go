@@ -6,13 +6,18 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
+
+	webauthn "github.com/changzhi777/openGym/backend-go/internal/auth"
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/changzhi777/openGym/backend-go/internal/auth"
 	"github.com/changzhi777/openGym/backend-go/internal/cache"
 	"github.com/changzhi777/openGym/backend-go/internal/store"
 )
@@ -69,7 +74,21 @@ func main() {
 		c.JSON(status, gin.H{"ok": pgOK && rdOK, "pg": pgOK, "redis": rdOK, "svc": "muhe-go"})
 	})
 
-	// P1:其余一切端点尚未实现 —— 与 Node 侧 501 stub 同语义。
+	// P2a 认证闭环(register/login ×2 + me + logout)。
+	wa, err := webauthn.NewWebAuthn(rpName(), rpID(), origin())
+	if err != nil {
+		log.Fatalf("webauthn: %v", err)
+	}
+	sessions := auth.NewSessions(secret(), sessionDays(), strings.Contains(origin(), "https://"))
+	svc := &auth.Service{DB: db, WA: wa, Sessions: sessions, Challenges: auth.NewChallengeStore()}
+	r.POST("/api/register/options", svc.RegisterOptions)
+	r.POST("/api/register/verify", svc.RegisterVerify)
+	r.POST("/api/login/options", svc.LoginOptions)
+	r.POST("/api/login/verify", svc.LoginVerify)
+	r.GET("/api/me", svc.Me)
+	r.POST("/api/logout", svc.Logout)
+
+	// 其余端点尚未实现 —— 与 Node 侧 501 stub 同语义。
 	r.NoRoute(func(c *gin.Context) {
 		c.JSON(http.StatusNotImplemented, gin.H{"error": "planned for a later phase", "code": "not-implemented"})
 	})
@@ -79,4 +98,29 @@ func main() {
 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatal(err)
 	}
+}
+
+// 环境读取(RP_NAME/RP_ID/ORIGIN/SESSION_DAYS/SECRET 与 Node 同名同义)。
+func rpName() string { return envOr("RP_NAME", "沐禾健身") }
+func rpID() string   { return envOr("RP_ID", "localhost") }
+func origin() string { return envOr("ORIGIN", "http://localhost:8080") }
+func sessionDays() int {
+	n := 90
+	if v := os.Getenv("SESSION_DAYS"); v != "" {
+		fmt.Sscanf(v, "%d", &n)
+	}
+	return n
+}
+func secret() []byte {
+	v := os.Getenv("SECRET")
+	if v == "" {
+		v = "dev-secret" // 与 Node data/secret 对接由部署注入;本地默认仅用于开发
+	}
+	return []byte(v)
+}
+func envOr(k, d string) string {
+	if v := os.Getenv(k); v != "" {
+		return v
+	}
+	return d
 }
