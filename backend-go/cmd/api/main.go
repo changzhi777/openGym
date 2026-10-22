@@ -18,6 +18,7 @@ import (
 	"github.com/changzhi777/openGym/backend-go/internal/testmode"
 	"github.com/changzhi777/openGym/backend-go/internal/data"
 	"github.com/changzhi777/openGym/backend-go/internal/httpx"
+	"github.com/changzhi777/openGym/backend-go/internal/media"
 	"github.com/changzhi777/openGym/backend-go/internal/push"
 
 	"github.com/gin-gonic/gin"
@@ -142,6 +143,13 @@ func main() {
 	r.POST("/api/push/test", ph.Test)
 	r.POST("/api/push/rest-timer", ph.RestTimer)
 	r.POST("/api/push/rest-timer/cancel", ph.RestTimerCancel)
+
+	// P4:媒体四端点(文件布局与 Node 兼容:<DATA_DIR>/media/<uid>/<sha>)。
+	mediaSvc := &media.Handlers{DB: db, Sessions: sessions, Svc: media.New(os.Getenv("DATA_DIR"))}
+	r.PUT("/api/media/:hash", mediaSvc.Put)
+	r.GET("/api/media/:hash", mediaSvc.Get)
+	r.POST("/api/media/missing", mediaSvc.Missing)
+	r.POST("/api/media/sweep", mediaSvc.Sweep)
 
 	// 其余端点尚未实现 —— 与 Node 侧 501 stub 同语义。
 	r.NoRoute(func(c *gin.Context) {

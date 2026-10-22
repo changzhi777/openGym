@@ -90,6 +90,11 @@ func BodyGuard() gin.HandlerFunc {
 			c.Next()
 			return
 		}
+		// 二进制端点(媒体上传)豁免:大小与格式由各自 handler 校验(40MB 视频 > 5MiB 全局帽)。
+		if strings.HasPrefix(c.Request.URL.Path, "/api/media/") {
+			c.Next()
+			return
+		}
 		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxBody+1)
 		raw, err := io.ReadAll(c.Request.Body)
 		if err != nil && strings.Contains(err.Error(), "request body too large") {
@@ -100,7 +105,8 @@ func BodyGuard() gin.HandlerFunc {
 			c.AbortWithStatusJSON(413, gin.H{"error": "body too large"})
 			return
 		}
-		if len(raw) > 0 {
+		ct := c.GetHeader("Content-Type")
+		if len(raw) > 0 && (ct == "" || strings.Contains(ct, "json")) {
 			var v any
 			if jerr := json.Unmarshal(raw, &v); jerr != nil {
 				// 深度超限是合法 JSON(只是存不下):放行,由 handler 判「invalid state」
