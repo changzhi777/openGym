@@ -17,6 +17,7 @@ import (
 	webauthn "github.com/changzhi777/openGym/backend-go/internal/auth"
 	"github.com/changzhi777/openGym/backend-go/internal/testmode"
 	"github.com/changzhi777/openGym/backend-go/internal/data"
+	"github.com/changzhi777/openGym/backend-go/internal/httpx"
 
 	"github.com/gin-gonic/gin"
 
@@ -80,6 +81,9 @@ func main() {
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
 	r.Use(gin.Recovery())
+	r.Use(httpx.CORS(origin())) // 预检 204 + Capacitor 源(Node APP_ORIGINS 同集)
+	r.Use(httpx.CSRF(origin())) // Node csrfOk 移植(Sec-Fetch-Site 优先)
+	r.Use(httpx.BodyGuard())    // 5MiB cap → 413;坏 JSON → 400(全路由)
 
 	// 与 Node 版同形:容器 healthcheck 读状态码,写不进数据目录 = 不健康。
 	r.GET("/api/health", func(c *gin.Context) {
@@ -124,6 +128,8 @@ func main() {
 	r.GET("/api/data", dataSvc.Get)
 	r.GET("/api/data/rev", dataSvc.GetRev)
 	r.PUT("/api/data", dataSvc.Put)
+	cfgSvc := &httpx.ConfigSvc{DB: db, Sessions: sessions}
+	r.GET("/api/config", cfgSvc.Get)
 
 	// 其余端点尚未实现 —— 与 Node 侧 501 stub 同语义。
 	r.NoRoute(func(c *gin.Context) {

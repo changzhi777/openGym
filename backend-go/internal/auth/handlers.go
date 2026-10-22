@@ -35,8 +35,12 @@ type authBody struct {
 
 func readBody(c *gin.Context) *authBody {
 	b := &authBody{}
-	raw, _ := io.ReadAll(c.Request.Body)
-	json.Unmarshal(raw, b)
+	raw, _ := c.Get("rawBody") // BodyGuard 中间件预读(字符串 key,避免包循环)
+	rb, _ := raw.([]byte)
+	if rb == nil {
+		rb, _ = io.ReadAll(c.Request.Body)
+	}
+	json.Unmarshal(rb, b)
 	return b
 }
 
