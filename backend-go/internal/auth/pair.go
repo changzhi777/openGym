@@ -55,3 +55,14 @@ func (p *PairStore) Take(code string) string {
 	}
 	return e.UID
 }
+
+// RevokeUID 作废该用户的全部活码(logout-all:码是"待兑现的会话",必须随登出全灭)。
+func (p *PairStore) RevokeUID(uid string) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	for k, v := range p.m {
+		if v.UID == uid {
+			delete(p.m, k)
+		}
+	}
+}

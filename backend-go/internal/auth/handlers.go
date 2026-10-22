@@ -460,6 +460,8 @@ func (s *Service) LogoutAll(c *gin.Context) {
 		jsonFail(c, 500, "bump", "")
 		return
 	}
+	s.Pairs.RevokeUID(u.ID) // 码是待兑现的会话:随登出全灭(Node 同义)
+	store.DeleteLinksOf(c.Request.Context(), s.DB, u.ID)
 	for _, v := range s.Sessions.ClearValue() {
 		c.Writer.Header().Add("Set-Cookie", v)
 	}

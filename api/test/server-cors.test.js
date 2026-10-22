@@ -19,7 +19,12 @@ async function startServer(t) {
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gym-cors-'));
   fs.writeFileSync(path.join(dataDir, 'secret'), 'c'.repeat(64), { mode: 0o600 });
   fs.writeFileSync(path.join(dataDir, 'db.json'), JSON.stringify({ users: [], creds: [], subs: [], invites: [] }));
-  const child = spawn(process.execPath, ['server.js'], {
+  const child = spawn(process.env.MUHE_GO || process.execPath,
+      process.env.MUHE_GO ? [] : ['server.js'],
+      process.env.MUHE_GO ? {
+    cwd: API, stdio: ['ignore', 'pipe', 'pipe'],
+    env: { ...process.env, MUHE_TEST: '1', PORT: '0', DATA_DIR: dataDir, ORIGIN: 'https://gym.example.com', RP_ID: 'gym.example.com' }
+  } : {
     cwd: API, stdio: ['ignore', 'pipe', 'pipe'],
     env: { ...process.env, PORT: '0', DATA_DIR: dataDir, ORIGIN: 'https://gym.example.com', RP_ID: 'gym.example.com' }
   });

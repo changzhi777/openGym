@@ -157,3 +157,8 @@ func RenamePasskey(ctx context.Context, db *pgxpool.Pool, uid, credID, name stri
 	}
 	return nil
 }
+
+// DeleteLinksOf 登出全部时连 device-link 码一并作废(Node dropDeviceLinks)。
+func DeleteLinksOf(ctx context.Context, db *pgxpool.Pool, uid string) {
+	db.Exec(ctx, `DELETE FROM device_links WHERE user_id=$1`, uid)
+}

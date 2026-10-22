@@ -7,6 +7,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"net"
 	"log"
 	"net/http"
 	"os"
@@ -14,6 +15,7 @@ import (
 	"time"
 
 	webauthn "github.com/changzhi777/openGym/backend-go/internal/auth"
+	"github.com/changzhi777/openGym/backend-go/internal/testmode"
 	"github.com/changzhi777/openGym/backend-go/internal/data"
 
 	"github.com/gin-gonic/gin"
@@ -32,12 +34,29 @@ func pgx5URL(u string) string {
 	return u
 }
 
+var _seedDir, _seedURL string
+
 func main() {
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "3100"
 	}
 	ctx := context.Background()
+
+	// P3.5:Node 测试套件双跑模式(MUHE_TEST=1 + DATA_DIR 由测试写入)。
+	if os.Getenv("MUHE_TEST") == "1" {
+		admin := os.Getenv("PG_ADMIN_URL")
+		if admin == "" {
+			admin = os.Getenv("DATABASE_URL")
+		}
+		perTest, secretBytes, dataDir := testmode.Setup(admin, os.Getenv("DATA_DIR"))
+		os.Setenv("DATABASE_URL", perTest)
+		os.Setenv("SECRET", string(secretBytes))
+		port = fmt.Sprint(testmode.FreePort())
+		defer testmode.Seed(perTest, dataDir) // db 建立后灌种子(main 里 db pool 在下方)
+		_seedDir = dataDir
+		_seedURL = perTest
+	}
 
 	dbURL := os.Getenv("DATABASE_URL")
 	// 迁移内嵌随进程跑(幂等),部署面只剩 PG+Redis+本进程。
@@ -111,9 +130,17 @@ func main() {
 		c.JSON(http.StatusNotImplemented, gin.H{"error": "planned for a later phase", "code": "not-implemented"})
 	})
 
-	srv := &http.Server{Addr: ":" + port, Handler: r, ReadHeaderTimeout: 5 * time.Second}
+		ln, lerr := net.Listen("tcp", ":"+port)
+	if lerr != nil {
+		log.Fatal(lerr)
+	}
+	if os.Getenv("MUHE_TEST") == "1" {
+		testmode.Seed(_seedURL, _seedDir) // 迁移已随 store.Migrate 跑完,listen 前灌种子
+		fmt.Println(testmode.BootLine(ln.Addr().(*net.TCPAddr).Port)) // 绑定后打,Node 同序
+	}
+	srv := &http.Server{Handler: r, ReadHeaderTimeout: 5 * time.Second}
 	log.Printf("muhe-go api on :%s (pg=%v redis=%v)", port, os.Getenv("DATABASE_URL") != "", os.Getenv("REDIS_ADDR") != "")
-	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+	if err := srv.Serve(ln); err != nil && err != http.ErrServerClosed {
 		log.Fatal(err)
 	}
 }

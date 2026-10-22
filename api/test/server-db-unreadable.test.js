@@ -25,7 +25,10 @@ function dataDir(t) {
   return d;
 }
 function start(t, d, env = {}) {
-  const child = spawn(process.execPath, ['server.js'], { cwd: API, stdio: ['ignore', 'pipe', 'pipe'],
+  const child = spawn(process.env.MUHE_GO || process.execPath,
+      process.env.MUHE_GO ? [] : ['server.js'],
+      process.env.MUHE_GO ? { cwd: API, stdio: ['ignore', 'pipe', 'pipe'],
+    env: { ...process.env, MUHE_TEST: '1', PORT: '0', DATA_DIR: d, ORIGIN: 'http://localhost:8080', RP_ID: 'localhost', ...env } } : { cwd: API, stdio: ['ignore', 'pipe', 'pipe'],
     env: { ...process.env, PORT: '0', DATA_DIR: d, ORIGIN: 'http://localhost:8080', RP_ID: 'localhost', ...env } });
   const h = { log: '', child };
   child.stdout.on('data', x => h.log += x); child.stderr.on('data', x => h.log += x);

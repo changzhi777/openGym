@@ -42,7 +42,12 @@ async function start(t, env = {}) {
     ],
     creds: [], subs: [], invites: []
   }));
-  const child = spawn(process.execPath, ['server.js'], {
+  const child = spawn(process.env.MUHE_GO || process.execPath,
+      process.env.MUHE_GO ? [] : ['server.js'],
+      process.env.MUHE_GO ? {
+    cwd: API, stdio: ['ignore', 'pipe', 'pipe'],
+    env: { ...process.env, MUHE_TEST: '1', PORT: '0', DATA_DIR: dataDir, ORIGIN, RP_ID: 'localhost', MEDIA_MIN_FREE_MB: '1', ...env }
+  } : {
     cwd: API, stdio: ['ignore', 'pipe', 'pipe'],
     env: { ...process.env, PORT: '0', DATA_DIR: dataDir, ORIGIN, RP_ID: 'localhost', MEDIA_MIN_FREE_MB: '1', ...env }
   });
