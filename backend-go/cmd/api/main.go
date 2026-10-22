@@ -202,12 +202,18 @@ func sessionDays() int {
 	}
 	return n
 }
+// secret 会话 HMAC 密钥:env 优先 → DATA_DIR/secret 文件(Node 同语义;灰度切换
+// 两栈必须同钥,cookie 才互通)→ dev 兜底。
 func secret() []byte {
-	v := os.Getenv("SECRET")
-	if v == "" {
-		v = "dev-secret" // 与 Node data/secret 对接由部署注入;本地默认仅用于开发
+	if v := os.Getenv("SECRET"); v != "" {
+		return []byte(v)
 	}
-	return []byte(v)
+	if dir := os.Getenv("DATA_DIR"); dir != "" {
+		if b, err := os.ReadFile(dir + "/secret"); err == nil && len(b) > 0 {
+			return b
+		}
+	}
+	return []byte("dev-secret")
 }
 func envOr(k, d string) string {
 	if v := os.Getenv(k); v != "" {
