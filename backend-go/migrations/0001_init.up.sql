@@ -6,7 +6,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;   -- gen_random_uuid()
 
 -- ===== 认证与租户 =====
 CREATE TABLE users (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  id text PRIMARY KEY,
   name text NOT NULL,
   email text UNIQUE,
   disabled boolean NOT NULL DEFAULT false,
@@ -15,7 +15,7 @@ CREATE TABLE users (
 
 CREATE TABLE passkeys (
   id text PRIMARY KEY,                       -- credential id
-  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  user_id text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   public_key bytea NOT NULL,
   counter bigint NOT NULL DEFAULT 0,
   transports text[],
@@ -27,13 +27,13 @@ CREATE TABLE orgs (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   type text NOT NULL DEFAULT 'personal' CHECK (type IN ('personal', 'team')),
   name text NOT NULL,
-  owner_user_id uuid REFERENCES users(id),
+  owner_user_id text REFERENCES users(id),
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE TABLE org_members (
   org_id uuid NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
-  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  user_id text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   role text NOT NULL DEFAULT 'member' CHECK (role IN ('owner', 'member', 'coach')),
   joined_at timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (org_id, user_id)
@@ -41,8 +41,8 @@ CREATE TABLE org_members (
 
 -- ===== 核心:字段级 merge 载体(替代 state-<uid>.json) =====
 CREATE TABLE states (
-  user_id uuid PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-  org_id uuid NOT NULL REFERENCES orgs(id),
+  user_id text PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  org_id uuid REFERENCES orgs(id),
   doc jsonb NOT NULL DEFAULT '{}',           -- settings 等 ~30 个小对象
   doc_ts jsonb NOT NULL DEFAULT '{}',        -- 每字段 _ts 映射(与 doc 同构)
   rev bigint NOT NULL DEFAULT 0,
@@ -52,8 +52,8 @@ CREATE TABLE states (
 -- ===== 高频关系化(M2 分析直接 SQL) =====
 CREATE TABLE workouts (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  org_id uuid NOT NULL REFERENCES orgs(id),
+  user_id text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  org_id uuid REFERENCES orgs(id),
   date text NOT NULL,                        -- YYYY-MM-DD(与客户端一致)
   routine_id text,
   started_at timestamptz,
@@ -78,8 +78,8 @@ CREATE TABLE sets (
 
 CREATE TABLE routines (
   id text PRIMARY KEY,                       -- 客户端自有 id(与 state 文档一致)
-  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  org_id uuid NOT NULL REFERENCES orgs(id),
+  user_id text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  org_id uuid REFERENCES orgs(id),
   name text NOT NULL,
   payload jsonb NOT NULL,
   updated_at timestamptz NOT NULL DEFAULT now()
@@ -88,7 +88,7 @@ CREATE INDEX ON routines (user_id);
 
 CREATE TABLE exercises (
   id text PRIMARY KEY,                       -- catalogue 4 位 id;自定义加前缀
-  owner_user_id uuid REFERENCES users(id) ON DELETE CASCADE,  -- NULL = 系统 5,632 条
+  owner_user_id text REFERENCES users(id) ON DELETE CASCADE,  -- NULL = 系统 5,632 条
   name text NOT NULL,
   body_part text,
   equipment text,
@@ -96,14 +96,14 @@ CREATE TABLE exercises (
 );
 
 CREATE TABLE bodyweights (
-  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  user_id text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   date text NOT NULL,
   kg numeric NOT NULL,
   PRIMARY KEY (user_id, date)
 );
 
 CREATE TABLE measurements (
-  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  user_id text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   date text NOT NULL,
   payload jsonb NOT NULL,
   PRIMARY KEY (user_id, date)
@@ -111,7 +111,7 @@ CREATE TABLE measurements (
 
 CREATE TABLE media (
   sha256 text PRIMARY KEY,
-  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  user_id text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   kind text NOT NULL,
   bytes bigint NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now()
@@ -121,9 +121,9 @@ CREATE TABLE media (
 CREATE TYPE admin_role AS ENUM ('super_admin', 'ops', 'support');
 
 CREATE TABLE admin_roles (
-  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  user_id text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   role admin_role NOT NULL,
-  granted_by uuid REFERENCES users(id),
+  granted_by text REFERENCES users(id),
   granted_at timestamptz NOT NULL DEFAULT now(),
   revoked_at timestamptz,
   PRIMARY KEY (user_id, role)
@@ -131,7 +131,7 @@ CREATE TABLE admin_roles (
 
 CREATE TABLE admin_audit_log (
   id bigserial PRIMARY KEY,
-  admin_user_id uuid NOT NULL,
+  admin_user_id text NOT NULL,
   action text NOT NULL,
   target_type text,
   target_id text,

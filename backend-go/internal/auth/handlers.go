@@ -150,7 +150,7 @@ func (s *Service) LoginVerify(c *gin.Context) {
 
 // Me GET /api/me
 func (s *Service) Me(c *gin.Context) {
-	u, ok := s.userOf(c)
+	u, ok := UserOf(c, s.DB, s.Sessions)
 	if !ok {
 		jsonFail(c, 401, "not signed in", "")
 		return
@@ -172,8 +172,10 @@ func (s *Service) setCookie(c *gin.Context, uid string, sv int64) {
 	}
 }
 
-// userOf 从 cookie/Bearer 解出有效用户(Node sessionOf 同义:disabled/sv 校验)。
-func (s *Service) userOf(c *gin.Context) (store.User, bool) {
+// UserOf 从 cookie/Bearer 解出有效用户(Node sessionOf 同义:disabled/sv 校验)。
+// 包级导出:data 等后续包复用同一会话判定。
+func UserOf(c *gin.Context, db *pgxpool.Pool, ss *Sessions) (store.User, bool) {
+	s := &Service{DB: db, Sessions: ss}
 	tok := ""
 	for _, raw := range strings.Split(c.GetHeader("Cookie"), ";") {
 		if i := strings.IndexByte(raw, '='); i >= 0 && strings.TrimSpace(raw[:i]) == s.Sessions.CookieName() {
@@ -203,7 +205,7 @@ func (s *Service) userOf(c *gin.Context) (store.User, bool) {
 
 // PairCreate POST /api/pair/create — 浏览器登录态签发配对码。
 func (s *Service) PairCreate(c *gin.Context) {
-	u, ok := s.userOf(c)
+	u, ok := UserOf(c, s.DB, s.Sessions)
 	if !ok {
 		jsonFail(c, 401, "not signed in", "")
 		return
@@ -230,7 +232,7 @@ func (s *Service) PairRedeem(c *gin.Context) {
 
 // PasskeysGet GET /api/account/passkeys
 func (s *Service) PasskeysGet(c *gin.Context) {
-	u, ok := s.userOf(c)
+	u, ok := UserOf(c, s.DB, s.Sessions)
 	if !ok {
 		jsonFail(c, 401, "not signed in", "")
 		return
@@ -246,7 +248,7 @@ func (s *Service) PasskeysGet(c *gin.Context) {
 
 // PasskeysOptions POST /api/account/passkeys/options — 加第二把(exclude 现有)。
 func (s *Service) PasskeysOptions(c *gin.Context) {
-	u, ok := s.userOf(c)
+	u, ok := UserOf(c, s.DB, s.Sessions)
 	if !ok {
 		jsonFail(c, 401, "not signed in", "")
 		return
@@ -267,7 +269,7 @@ func (s *Service) PasskeysOptions(c *gin.Context) {
 
 // PasskeysVerify POST /api/account/passkeys/verify
 func (s *Service) PasskeysVerify(c *gin.Context) {
-	u, ok := s.userOf(c)
+	u, ok := UserOf(c, s.DB, s.Sessions)
 	if !ok {
 		jsonFail(c, 401, "not signed in", "")
 		return
@@ -292,7 +294,7 @@ func (s *Service) PasskeysVerify(c *gin.Context) {
 
 // PasskeysDelete DELETE /api/account/passkeys — 最后一把不可删(否则锁死)。
 func (s *Service) PasskeysDelete(c *gin.Context) {
-	u, ok := s.userOf(c)
+	u, ok := UserOf(c, s.DB, s.Sessions)
 	if !ok {
 		jsonFail(c, 401, "not signed in", "")
 		return
@@ -343,7 +345,7 @@ func sha256hex(s string) string {
 
 // DeviceLinkCreate POST /api/account/device-link — 登录态,码 15 分钟(Node 同 TTL)。
 func (s *Service) DeviceLinkCreate(c *gin.Context) {
-	u, ok := s.userOf(c)
+	u, ok := UserOf(c, s.DB, s.Sessions)
 	if !ok {
 		jsonFail(c, 401, "not signed in", "")
 		return
@@ -422,7 +424,7 @@ func (s *Service) DeviceLinkVerify(c *gin.Context) {
 
 // PasskeysRename POST /api/account/passkeys/rename — {id, name}。
 func (s *Service) PasskeysRename(c *gin.Context) {
-	u, ok := s.userOf(c)
+	u, ok := UserOf(c, s.DB, s.Sessions)
 	if !ok {
 		jsonFail(c, 401, "not signed in", "")
 		return
@@ -449,7 +451,7 @@ func (s *Service) PasskeysRename(c *gin.Context) {
 
 // LogoutAll POST /api/logout/all — sv+1,全部旧 cookie/Bearer 失效。
 func (s *Service) LogoutAll(c *gin.Context) {
-	u, ok := s.userOf(c)
+	u, ok := UserOf(c, s.DB, s.Sessions)
 	if !ok {
 		jsonFail(c, 401, "not signed in", "")
 		return

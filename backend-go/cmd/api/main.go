@@ -14,6 +14,7 @@ import (
 	"time"
 
 	webauthn "github.com/changzhi777/openGym/backend-go/internal/auth"
+	"github.com/changzhi777/openGym/backend-go/internal/data"
 
 	"github.com/gin-gonic/gin"
 
@@ -98,6 +99,12 @@ func main() {
 	r.POST("/api/device-link/verify", svc.DeviceLinkVerify)
 	r.POST("/api/account/passkeys/rename", svc.PasskeysRename)
 	r.POST("/api/logout/all", svc.LogoutAll)
+
+	// P3a:数据三端点。
+	dataSvc := &data.Service{DB: db, Sessions: sessions}
+	r.GET("/api/data", dataSvc.Get)
+	r.GET("/api/data/rev", dataSvc.GetRev)
+	r.PUT("/api/data", dataSvc.Put)
 
 	// 其余端点尚未实现 —— 与 Node 侧 501 stub 同语义。
 	r.NoRoute(func(c *gin.Context) {
