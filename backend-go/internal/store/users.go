@@ -4,6 +4,7 @@ package store
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -78,4 +79,50 @@ func InsertKey(ctx context.Context, db *pgxpool.Pool, uid string, k KeyRow) erro
 func UpdateKeyCounter(ctx context.Context, db *pgxpool.Pool, credID string, counter uint32) error {
 	_, err := db.Exec(ctx, `UPDATE passkeys SET counter = $2 WHERE id = $1`, credID, counter)
 	return err
+}
+
+// PasskeyRow 列表条目(GET /api/account/passkeys 的形状)。
+type PasskeyRow struct {
+	ID        string  `json:"id"`
+	Name      *string `json:"name"`
+	CreatedAt string  `json:"createdAt"`
+	LastUsed  *string `json:"lastUsed"`
+}
+
+func ListPasskeys(ctx context.Context, db *pgxpool.Pool, uid string) ([]PasskeyRow, error) {
+	rows, err := db.Query(ctx, `SELECT id, name, created_at, last_used FROM passkeys WHERE user_id = $1 ORDER BY created_at`, uid)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []PasskeyRow{}
+	for rows.Next() {
+		var r PasskeyRow
+		var lu *time.Time
+		if err := rows.Scan(&r.ID, &r.Name, &r.CreatedAt, &lu); err != nil {
+			return nil, err
+		}
+		if lu != nil {
+			s := lu.Format(time.RFC3339); r.LastUsed = &s
+		}
+		out = append(out, r)
+	}
+	return out, rows.Err()
+}
+
+func DeletePasskey(ctx context.Context, db *pgxpool.Pool, uid, credID string) error {
+	ct, err := db.Exec(ctx, `DELETE FROM passkeys WHERE id = $1 AND user_id = $2`, credID, uid)
+	if err != nil {
+		return err
+	}
+	if ct.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func CountPasskeys(ctx context.Context, db *pgxpool.Pool, uid string) (int, error) {
+	var n int
+	err := db.QueryRow(ctx, `SELECT count(*) FROM passkeys WHERE user_id = $1`, uid).Scan(&n)
+	return n, err
 }

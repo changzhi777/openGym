@@ -80,13 +80,19 @@ func main() {
 		log.Fatalf("webauthn: %v", err)
 	}
 	sessions := auth.NewSessions(secret(), sessionDays(), strings.Contains(origin(), "https://"))
-	svc := &auth.Service{DB: db, WA: wa, Sessions: sessions, Challenges: auth.NewChallengeStore()}
+	svc := &auth.Service{DB: db, WA: wa, Sessions: sessions, Challenges: auth.NewChallengeStore(), Pairs: auth.NewPairStore()}
 	r.POST("/api/register/options", svc.RegisterOptions)
 	r.POST("/api/register/verify", svc.RegisterVerify)
 	r.POST("/api/login/options", svc.LoginOptions)
 	r.POST("/api/login/verify", svc.LoginVerify)
 	r.GET("/api/me", svc.Me)
 	r.POST("/api/logout", svc.Logout)
+	r.POST("/api/pair/create", svc.PairCreate)
+	r.POST("/api/pair/redeem", svc.PairRedeem)
+	r.GET("/api/account/passkeys", svc.PasskeysGet)
+	r.POST("/api/account/passkeys/options", svc.PasskeysOptions)
+	r.POST("/api/account/passkeys/verify", svc.PasskeysVerify)
+	r.DELETE("/api/account/passkeys", svc.PasskeysDelete)
 
 	// 其余端点尚未实现 —— 与 Node 侧 501 stub 同语义。
 	r.NoRoute(func(c *gin.Context) {

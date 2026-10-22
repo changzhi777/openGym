@@ -128,3 +128,25 @@ func decodeB64u(s string) []byte {
 	b, _ := base64.RawURLEncoding.DecodeString(s)
 	return b
 }
+
+// CreationOptionsExclude 加第二把 passkey 的 options:exclude 现有凭据
+// (authenticator 持有时会提示而非再造一把;与 Node moreOptions 同义)。
+func (w *WebAuthn) CreationOptionsExclude(uid []byte, name string, existing []KeyHandle) (any, string, error) {
+	u := &waUser{id: uid, name: name}
+	excl := make([]protocol.CredentialDescriptor, 0, len(existing))
+	for _, k := range existing {
+		id, _ := base64.RawURLEncoding.DecodeString(k.ID)
+		excl = append(excl, protocol.CredentialDescriptor{CredentialID: id})
+	}
+	opts, session, err := w.wa.BeginRegistration(u,
+		webauthn.WithAuthenticatorSelection(protocol.AuthenticatorSelection{
+			ResidentKey:      protocol.ResidentKeyRequirementRequired,
+			UserVerification: protocol.VerificationPreferred,
+		}),
+		webauthn.WithExclusions(excl),
+	)
+	if err != nil {
+		return nil, "", err
+	}
+	return opts.Response, session.Challenge, nil
+}

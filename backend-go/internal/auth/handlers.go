@@ -20,6 +20,7 @@ type Service struct {
 	WA         *WebAuthn
 	Sessions   *Sessions
 	Challenges *ChallengeStore
+	Pairs      *PairStore
 }
 
 type authBody struct {
@@ -193,4 +194,133 @@ func (s *Service) userOf(c *gin.Context) (store.User, bool) {
 		return store.User{}, false
 	}
 	return u, true
+}
+
+/* ---- P2b:pair / passkey 管理 ---- */
+
+// PairCreate POST /api/pair/create — 浏览器登录态签发配对码。
+func (s *Service) PairCreate(c *gin.Context) {
+	u, ok := s.userOf(c)
+	if !ok {
+		jsonFail(c, 401, "not signed in", "")
+		return
+	}
+	c.JSON(200, gin.H{"code": s.Pairs.NewCode(u.ID)})
+}
+
+// PairRedeem POST /api/pair/redeem — 手机兑换;token 与 cookie 同格式(Bearer 用)。
+func (s *Service) PairRedeem(c *gin.Context) {
+	b := readBody(c)
+	code := strings.ToUpper(strings.TrimSpace(b.Code))
+	uid := s.Pairs.Take(code)
+	if uid == "" {
+		jsonFail(c, 400, "invalid or expired code", "pair-invalid")
+		return
+	}
+	u, err := store.UserByID(c.Request.Context(), s.DB, uid)
+	if err != nil || u.Disabled {
+		jsonFail(c, 400, "invalid or expired code", "pair-invalid")
+		return
+	}
+	c.JSON(200, gin.H{"token": s.Sessions.Token(u.ID, u.SV), "user": gin.H{"id": u.ID, "name": u.Name, "admin": false}})
+}
+
+// PasskeysGet GET /api/account/passkeys
+func (s *Service) PasskeysGet(c *gin.Context) {
+	u, ok := s.userOf(c)
+	if !ok {
+		jsonFail(c, 401, "not signed in", "")
+		return
+	}
+	list, err := store.ListPasskeys(c.Request.Context(), s.DB, u.ID)
+	if err != nil {
+		jsonFail(c, 500, "list", "")
+		return
+	}
+	c.JSON(200, gin.H{"passkeys": list, "password": false,
+		"lastWayIn": len(list) <= 1}) // 无密码通道:仅剩最后一把时拒绝删除
+}
+
+// PasskeysOptions POST /api/account/passkeys/options — 加第二把(exclude 现有)。
+func (s *Service) PasskeysOptions(c *gin.Context) {
+	u, ok := s.userOf(c)
+	if !ok {
+		jsonFail(c, 401, "not signed in", "")
+		return
+	}
+	n, _ := store.CountPasskeys(c.Request.Context(), s.DB, u.ID)
+	if n >= 20 {
+		jsonFail(c, 409, "a profile can have at most 20 passkeys", "passkey-limit")
+		return
+	}
+	options, challenge, err := s.WA.CreationOptionsExclude([]byte(u.ID), u.Name, s.exclusionList(c, u.ID))
+	if err != nil {
+		jsonFail(c, 500, "options", "")
+		return
+	}
+	cid := s.Challenges.Put(&Challenge{Kind: "add", Challenge: challenge, UID: u.ID})
+	c.JSON(200, gin.H{"cid": cid, "options": options})
+}
+
+// PasskeysVerify POST /api/account/passkeys/verify
+func (s *Service) PasskeysVerify(c *gin.Context) {
+	u, ok := s.userOf(c)
+	if !ok {
+		jsonFail(c, 401, "not signed in", "")
+		return
+	}
+	b := readBody(c)
+	ch := s.Challenges.Take(b.CID)
+	if ch == nil || ch.Kind != "add" || ch.UID != u.ID {
+		jsonFail(c, 400, "challenge expired, try again", "challenge-expired")
+		return
+	}
+	key, err := s.WA.VerifyRegistration([]byte(u.ID), u.Name, b.Credential, ch.Challenge)
+	if err != nil {
+		jsonFail(c, 400, "verification failed", "")
+		return
+	}
+	if err := store.InsertKey(c.Request.Context(), s.DB, u.ID, store.KeyRow{ID: key.ID, PublicKey: key.PublicKey}); err != nil {
+		jsonFail(c, 409, "credential already registered", "credential-exists")
+		return
+	}
+	c.JSON(200, gin.H{"ok": true})
+}
+
+// PasskeysDelete DELETE /api/account/passkeys — 最后一把不可删(否则锁死)。
+func (s *Service) PasskeysDelete(c *gin.Context) {
+	u, ok := s.userOf(c)
+	if !ok {
+		jsonFail(c, 401, "not signed in", "")
+		return
+	}
+	if n, _ := store.CountPasskeys(c.Request.Context(), s.DB, u.ID); n <= 1 {
+		jsonFail(c, 409, "this is the last way in", "last-way-in")
+		return
+	}
+	var body struct {
+		ID string `json:"id"`
+	}
+	json.NewDecoder(c.Request.Body).Decode(&body)
+	if body.ID == "" {
+		jsonFail(c, 400, "id required", "")
+		return
+	}
+	if err := store.DeletePasskey(c.Request.Context(), s.DB, u.ID, body.ID); err != nil {
+		jsonFail(c, 404, "no such passkey", "not-found")
+		return
+	}
+	c.JSON(200, gin.H{"ok": true})
+}
+
+func (s *Service) exclusionList(c *gin.Context, uid string) []KeyHandle {
+	keys, err := store.KeysOf(c.Request.Context(), s.DB, uid)
+	if err != nil {
+		return nil
+	}
+	out := make([]KeyHandle, len(keys))
+	for i, k := range keys {
+		out[i] = KeyHandle{ID: k.ID}
+	}
+	return out
 }
