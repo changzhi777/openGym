@@ -18,6 +18,7 @@ import (
 	"github.com/changzhi777/openGym/backend-go/internal/testmode"
 	"github.com/changzhi777/openGym/backend-go/internal/data"
 	"github.com/changzhi777/openGym/backend-go/internal/httpx"
+	"github.com/changzhi777/openGym/backend-go/internal/push"
 
 	"github.com/gin-gonic/gin"
 
@@ -130,6 +131,17 @@ func main() {
 	r.PUT("/api/data", dataSvc.Put)
 	cfgSvc := &httpx.ConfigSvc{DB: db, Sessions: sessions}
 	r.GET("/api/config", cfgSvc.Get)
+
+	// P4:Web Push 七端点(VAPID 与 Node 共用 data/vapid.json)。
+	pushSvc := push.New(os.Getenv("DATA_DIR"))
+	ph := &push.Handlers{DB: db, Sessions: sessions, Svc: pushSvc}
+	r.GET("/api/push/public-key", ph.PublicKey)
+	r.POST("/api/push/subscribe", ph.Subscribe)
+	r.GET("/api/push/status", ph.Status)
+	r.POST("/api/push/unsubscribe", ph.Unsubscribe)
+	r.POST("/api/push/test", ph.Test)
+	r.POST("/api/push/rest-timer", ph.RestTimer)
+	r.POST("/api/push/rest-timer/cancel", ph.RestTimerCancel)
 
 	// 其余端点尚未实现 —— 与 Node 侧 501 stub 同语义。
 	r.NoRoute(func(c *gin.Context) {

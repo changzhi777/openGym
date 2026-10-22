@@ -162,3 +162,50 @@ func RenamePasskey(ctx context.Context, db *pgxpool.Pool, uid, credID, name stri
 func DeleteLinksOf(ctx context.Context, db *pgxpool.Pool, uid string) {
 	db.Exec(ctx, `DELETE FROM device_links WHERE user_id=$1`, uid)
 }
+
+// PushSub 一条 Web Push 订阅。
+type PushSub struct {
+	Endpoint, UserID, DeviceID, P256dh, Auth string
+}
+
+func UpsertSub(ctx context.Context, db *pgxpool.Pool, s PushSub) error {
+	_, err := db.Exec(ctx, `INSERT INTO push_subs (endpoint, user_id, device_id, p256dh, auth)
+		VALUES ($1,$2,$3,$4,$5)
+		ON CONFLICT (endpoint) DO UPDATE SET user_id=$2, device_id=$3, p256dh=$4, auth=$5`,
+		s.Endpoint, s.UserID, s.DeviceID, s.P256dh, s.Auth)
+	return err
+}
+
+func SubStatus(ctx context.Context, db *pgxpool.Pool, uid, endpoint string) (deviceID string, ok bool) {
+	var d *string
+	err := db.QueryRow(ctx, `SELECT device_id FROM push_subs WHERE user_id=$1 AND endpoint=$2`, uid, endpoint).Scan(&d)
+	if err != nil {
+		return "", false
+	}
+	if d != nil {
+		return *d, true
+	}
+	return "", true
+}
+
+func DeleteSub(ctx context.Context, db *pgxpool.Pool, uid, endpoint string) error {
+	_, err := db.Exec(ctx, `DELETE FROM push_subs WHERE user_id=$1 AND endpoint=$2`, uid, endpoint)
+	return err
+}
+
+func SubsOf(ctx context.Context, db *pgxpool.Pool, uid string) ([]PushSub, error) {
+	rows, err := db.Query(ctx, `SELECT endpoint, user_id, COALESCE(device_id,''), p256dh, auth FROM push_subs WHERE user_id=$1`, uid)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []PushSub
+	for rows.Next() {
+		var s PushSub
+		if err := rows.Scan(&s.Endpoint, &s.UserID, &s.DeviceID, &s.P256dh, &s.Auth); err != nil {
+			return nil, err
+		}
+		out = append(out, s)
+	}
+	return out, rows.Err()
+}
