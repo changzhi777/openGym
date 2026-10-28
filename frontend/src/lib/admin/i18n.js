@@ -44,6 +44,10 @@ const packs = {
     '清空审计日志': '清空审计日志', '输入"清空"以确认': '输入"清空"以确认', '保留': '保留', '天': '天',
     '搜索操作者、目标或事件': '搜索操作者、目标或事件', '配额将满': '配额将满', '展开详情': '展开详情', '收起': '收起',
     '来源 IP': '来源 IP', '事件': '事件', '目标': '目标', '结果': '结果', '成功': '成功', '失败': '失败',
+    '创建邀请码': '创建邀请码', '邀请制': '邀请制', '已开启': '已开启', '已关闭': '已关闭',
+    '可用': '可用', '已使用': '已使用', '备注': '备注', '创建人': '创建人', '使用者': '使用者',
+    '复制': '复制', '撤销': '撤销', '邀请码已创建并复制': '邀请码已创建并复制', '输入备注（可选）': '输入备注（可选）',
+    '仅未使用的码可撤销': '仅未使用的码可撤销', '营收明细': '营收明细', '营收功能待商业化模块落地': '营收功能待商业化模块落地',
   },
   en: {
     '管理后台': 'Admin console', '概览': 'Overview', '用户': 'Users', '审计': 'Audit',
@@ -85,6 +89,10 @@ const packs = {
     '清空审计日志': 'Clear audit log', '输入"清空"以确认': 'Type "clear" to confirm', '保留': 'Retention', '天': 'd',
     '搜索操作者、目标或事件': 'Search actor, target or event', '配额将满': 'Quota near limit', '展开详情': 'Details', '收起': 'Collapse',
     '来源 IP': 'Source IP', '事件': 'Event', '目标': 'Target', '结果': 'Result', '成功': 'OK', '失败': 'Fail',
+    '创建邀请码': 'Create invite', '邀请制': 'Invite-only', '已开启': 'On', '已关闭': 'Off',
+    '可用': 'Open', '已使用': 'Used', '备注': 'Note', '创建人': 'Created by', '使用者': 'Redeemed by',
+    '复制': 'Copy', '撤销': 'Revoke', '邀请码已创建并复制': 'Invite created & copied', '输入备注（可选）': 'Note (optional)',
+    '仅未使用的码可撤销': 'Only unused codes can be revoked', '营收明细': 'Revenue', '营收功能待商业化模块落地': 'Revenue opens with the billing module',
   },
 }
 const lang = () => {

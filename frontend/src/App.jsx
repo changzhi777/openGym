@@ -41,7 +41,7 @@ import Muscles from './views/Muscles.jsx'
 import StructuralBalance from './views/StructuralBalance.jsx'
 import ProgressPhotos from './views/ProgressPhotos.jsx'
 import { SettingsRoute } from './views/Settings.jsx'
-import Admin from './views/Admin.jsx'
+import AdminInvites from './views/admin/Invites.jsx'
 import AdminShell from './views/admin/AdminShell.jsx'
 import AdminOverview from './views/admin/Overview.jsx'
 import AdminPlaceholder from './views/admin/Placeholder.jsx'
@@ -244,9 +244,9 @@ function Shell() {
                 <Route path="users/:id" element={<AdminUserDetail />} />
                 <Route path="audit" element={<AdminAudit />} />
                 <Route path="roles" element={<AdminRoles />} />
-                <Route path="invites" element={<AdminPlaceholder phase="P1" legacy />} />
+                <Route path="invites" element={<AdminInvites />} />
+                <Route path="revenue" element={<AdminPlaceholder phase="营收功能待商业化模块落地" />} />
                 <Route path="coach" element={<AdminCoach />} />
-                <Route path="legacy" element={<Admin />} />
               </Route>
               <Route path="*" element={<Navigate to="/home" replace />} />
             </Routes>

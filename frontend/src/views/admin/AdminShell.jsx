@@ -20,6 +20,7 @@ const NAV = [
     { to: '/admin/audit', icon: 'list', label: '审计' },
     { to: '/admin/roles', icon: 'key', label: '角色与权限' },
     { to: '/admin/invites', icon: 'plus', label: '邀请码' },
+    { to: '/admin/revenue', icon: 'chart', label: '营收明细', supportHide: true },
   ] },
   { group: '系统', items: [
     { to: '/admin/coach', icon: 'sparkles', label: 'AI 教练' },
@@ -54,7 +55,7 @@ export default function AdminShell() {
         {NAV.map(g => (
           <div key={g.group} role="navigation" aria-label={g.group}>
             <div className="nav-group">{g.group}</div>
-            {g.items.map(it => (
+            {g.items.filter(it => !(it.supportHide && role === 'support')).map(it => (
               <NavLink key={it.to} to={it.to} end={it.end} className="nav-item">
                 <Icon name={it.icon} />{adminT(it.label)}
               </NavLink>

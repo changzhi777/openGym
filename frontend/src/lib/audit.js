@@ -6,7 +6,7 @@
 // a person sees, and as a plain module it is testable without mounting the dashboard.
 //
 // Like the rest of the admin screen this is English-only — the operator surface deliberately
-// stays out of the per-language string packs (see the header of views/Admin.jsx). Times still
+// stays out of the per-language string packs (admin console, views/admin/). Times still
 // follow the UI language, the way numbers and dates already do.
 import { dateLocale } from './i18n-core.js'
 
