@@ -2382,6 +2382,13 @@ paths:
           description: >-
             Filter: `fail` keeps only failed events; any other value keeps events
             whose name starts with `<cat>.` (in practice `auth` or `admin`).
+        - name: q
+          in: query
+          schema: { type: string, maxLength: 80 }
+          description: >-
+            Substring filter over event name, actor and target names
+            (case-insensitive). Implemented by the Go backend; Node answers
+            unfiltered when the parameter is present.
       responses:
         '200':
           description: One page of the log.
@@ -2760,8 +2767,26 @@ paths:
                   users: { type: integer }
                   active_today: { type: integer }
                   workouts: { type: integer }
+                  workouts_today: { type: integer, description: Workouts finished today (Go backend). }
                   live: { type: integer }
                   ai_calls_month: { type: integer, description: Present once the Go billing counters land. }
+                  trend_14d:
+                    type: array
+                    description: Per-day counts for the last 14 days, oldest first (Go backend).
+                    items:
+                      type: object
+                      properties:
+                        date: { type: string, description: 'YYYY-MM-DD.' }
+                        active: { type: integer, description: Profiles with a sync that day. }
+                        workouts: { type: integer }
+                  attention:
+                    type: array
+                    description: Console "needs attention" rows (Go backend).
+                    items:
+                      type: object
+                      properties:
+                        code: { type: string, enum: [quota_near, disabled] }
+                        count: { type: integer }
                   now: { type: number }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
@@ -2899,6 +2924,136 @@ paths:
       responses:
         '200':
           description: First call returns the challenge options; second returns { ok, until }.
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/admin/session:
+    get:
+      tags: [admin]
+      operationId: adminSession
+      summary: 'Admin: the caller''s role and step-up window'
+      description: >-
+        One call for the console shell: resolves the caller's highest active admin
+        role and the current step-up deadline. Signed-in users without any admin
+        role answer `role: null` (the console treats them as plain users).
+      responses:
+        '200':
+          description: Role resolution.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminSession' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/admin/users/{id}/export:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+        description: The user id.
+    get:
+      tags: [admin]
+      operationId: adminUserExport
+      summary: 'Admin: export one user''s data (ops, step-up required)'
+      description: >-
+        Sensitive data access: ops or above with a step-up in the last 5 minutes;
+        every export is written to the admin audit log. The payload is the user's
+        state document (workouts, routines, bodyweight, settings) — the same data
+        a profile owner can download themselves.
+      responses:
+        '200':
+          description: The export bundle.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  export:
+                    type: object
+                    description: The full state document (same shape as GET /api/data state).
+                  exported_at: { type: number, description: Server time (ms). }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/admin/settings:
+    get:
+      tags: [admin]
+      operationId: adminSettingsGet
+      summary: 'Admin: instance settings'
+      description: >-
+        Instance-level switches (fork, Go backend). Only `invite_only` today;
+        unknown keys are rejected on write and absent keys read as defaults.
+      responses:
+        '200':
+          description: Current settings.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminSettings' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    put:
+      tags: [admin]
+      operationId: adminSettingsPut
+      summary: 'Admin: change instance settings (ops, step-up required)'
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AdminSettings' }
+      responses:
+        '200':
+          description: Saved; answers the full settings object.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminSettings' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/alive:
+    post:
+      tags: [data]
+      operationId: aliveHeartbeat
+      summary: Training heartbeat for the console live view
+      description: >-
+        Signed-in clients call this every ~45s while a workout session is on
+        (and once when it ends, with `action: null`). The server keeps a short-TTL
+        presence entry (Redis); consoles subscribe to GET /api/admin/live instead
+        of polling. CSRF rules apply as usual for non-GET routes.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                action:
+                  oneOf: [{ type: string }, { type: 'null' }]
+                  description: Exercise name; null when the session ended.
+                sets_done: { type: integer }
+                sets_total: { type: integer }
+                started_at: { type: number, description: Session start (ms). }
+      responses:
+        '202': { description: 'Accepted; no body.' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/admin/live:
+    get:
+      tags: [admin]
+      operationId: adminLive
+      summary: 'Admin: live training presence (SSE)'
+      description: >-
+        text/event-stream. The server pushes a `live` event with the current
+        presence list whenever it changes, and at most every 15s otherwise;
+        event data is `{ live: [...], now }` with one row per training profile
+        (id, name, action, sets_done, sets_total, started_at). Reconnect with
+        Last-Event-ID is ignored (presence is ephemeral); the stream ends after
+        10 minutes so the client reconnects.
+      responses:
+        '200':
+          description: The event stream.
+          content:
+            text/event-stream:
+              schema:
+                type: object
+                description: SSE frames; see the operation description.
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
 
@@ -3268,7 +3423,38 @@ components:
         custom_exercises: { type: integer }
         media_mb: { type: integer }
         ai_calls_month: { type: integer }
+        used_ai_calls_month:
+          type: integer
+          description: Consumed AI calls in the current period (Go backend; absent when never used).
         updated_at: { type: number }
+
+    AdminSession:
+      type: object
+      description: Role resolution for the console shell (fork, Go backend).
+      properties:
+        role:
+          oneOf:
+            - type: string
+              enum: [super_admin, ops, support]
+            - type: 'null'
+          description: Highest active admin role; null for non-admins.
+        admin_roles:
+          type: array
+          description: All active roles (usually one).
+          items: { type: string, enum: [super_admin, ops, support] }
+        step_up_until:
+          oneOf: [{ type: number }, { type: 'null' }]
+          description: Step-up window deadline (ms), null when no window is open.
+
+    AdminSettings:
+      type: object
+      description: Instance switches (fork, Go backend).
+      properties:
+        invite_only:
+          type: boolean
+          description: >-
+            Sign-up requires a valid invite code. Overrides the INVITE_ONLY env
+            default; PUT persists the value, GET answers the effective one.
 
     AdminRoleRow:
       type: object

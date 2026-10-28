@@ -1920,6 +1920,12 @@ const routes = {
   'POST /api/admin/roles/grant': notYetGo,
   'POST /api/admin/roles/revoke': notYetGo,
   'POST /api/admin/step-up': notYetGo,
+  'GET /api/admin/session': notYetGo,
+  'GET /api/admin/users/{id}/export': notYetGo,
+  'GET /api/admin/settings': notYetGo,
+  'PUT /api/admin/settings': notYetGo,
+  'POST /api/alive': notYetGo,
+  'GET /api/admin/live': notYetGo,
 
   'GET /api/health': async (req, res) => {
     if (!dataWritable()) return json(res, 503, { ok: false, writable: false });
