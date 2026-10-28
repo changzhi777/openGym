@@ -15,10 +15,13 @@ import (
 	"time"
 
 	webauthn "github.com/changzhi777/openGym/backend-go/internal/auth"
+	"github.com/changzhi777/openGym/backend-go/internal/coach"
 	"github.com/changzhi777/openGym/backend-go/internal/data"
 	"github.com/changzhi777/openGym/backend-go/internal/httpx"
 	"github.com/changzhi777/openGym/backend-go/internal/media"
+	"github.com/changzhi777/openGym/backend-go/internal/presence"
 	"github.com/changzhi777/openGym/backend-go/internal/push"
+	"github.com/changzhi777/openGym/backend-go/internal/quota"
 	"github.com/changzhi777/openGym/backend-go/internal/testmode"
 
 	"github.com/gin-gonic/gin"
@@ -131,12 +134,50 @@ func main() {
 	r.GET("/api/data", dataSvc.Get)
 	r.GET("/api/data/rev", dataSvc.GetRev)
 	r.PUT("/api/data", dataSvc.Put)
-	cfgSvc := &httpx.ConfigSvc{DB: db, Sessions: sessions}
-	r.GET("/api/config", cfgSvc.Get)
-
 	// P4:Web Push 七端点(VAPID 与 Node 共用 data/vapid.json)。
 	pushSvc := push.New(os.Getenv("DATA_DIR"))
 	ph := &push.Handlers{DB: db, Sessions: sessions, Svc: pushSvc}
+
+	// P5:AI 教练 sidecar 桥(过渡)——/api/coach/* 反代 Node sidecar,鉴权在此;
+	// /internal/coach/* 是 sidecar 的回读面(INTERNAL_TOKEN 相认,未设 token 不注册)。
+	coachProxy := coach.New(os.Getenv("COACH_SIDECAR_ADDR"), coach.TokenFromEnv(), db, sessions, ph)
+	// P5 瘦尾:计费硬限——coach 月度配额(Redis 周期键 + 60s 落账;限额来自 user_quotas)。
+	quotaSvc := quota.New(db, rdb)
+	quotaSvc.SetLimitSource(func(uid string) int64 {
+		var raw []byte
+		if db.QueryRow(context.Background(),
+			`SELECT limits FROM user_quotas WHERE user_id=$1`, uid).Scan(&raw) != nil {
+			return quota.CoachMonthly
+		}
+		return quota.ParseLimit(raw, quota.CoachMonthly)
+	})
+	coachProxy.Quota = quotaSvc
+	go quotaSvc.Run(context.Background())
+	for _, e := range []struct{ m, p string }{
+		{"GET", "/api/coach/disclosure"}, {"GET", "/api/coach/status"},
+		{"POST", "/api/coach/plan"}, {"POST", "/api/coach/debrief"},
+		{"POST", "/api/coach/review"}, {"POST", "/api/coach/forget"},
+		{"POST", "/api/coach/pending/resolve"}, {"GET", "/api/coach/account"},
+		{"GET", "/api/coach/cohort"}, {"POST", "/api/coach/cohort/share"},
+	} {
+		r.Handle(e.m, e.p, coachProxy.Handle)
+	}
+	for _, e := range []struct{ m, p string }{
+		{"GET", "/api/admin/coach"}, {"POST", "/api/admin/coach/config"},
+		{"POST", "/api/admin/coach/connect"}, {"POST", "/api/admin/coach/disconnect"},
+		{"POST", "/api/admin/coach/models"}, {"POST", "/api/admin/coach/test"},
+	} {
+		r.Handle(e.m, e.p, coachProxy.HandleAdmin)
+	}
+	if tok := coach.TokenFromEnv(); tok != "" {
+		r.GET("/internal/coach/state/:uid", coachProxy.IState)
+		r.GET("/internal/coach/users", coachProxy.IUsers)
+		r.POST("/internal/coach/push", coachProxy.IPush)
+		r.GET("/internal/coach/public-config", coachProxy.IPublicConfig)
+	}
+
+	cfgSvc := &httpx.ConfigSvc{DB: db, Sessions: sessions, Coach: coachProxy}
+	r.GET("/api/config", cfgSvc.Get)
 	r.GET("/api/push/public-key", ph.PublicKey)
 	r.POST("/api/push/subscribe", ph.Subscribe)
 	r.GET("/api/push/status", ph.Status)
@@ -145,17 +186,27 @@ func main() {
 	r.POST("/api/push/rest-timer", ph.RestTimer)
 	r.POST("/api/push/rest-timer/cancel", ph.RestTimerCancel)
 
-	// P4:媒体四端点(文件布局与 Node 兼容:<DATA_DIR>/media/<uid>/<sha>)。
-	mediaSvc := &media.Handlers{DB: db, Sessions: sessions, Svc: media.New(os.Getenv("DATA_DIR"))}
+	// P4/P5:媒体四端点 + 每日引用计数回收(14 天 grace;目录即真相,state 缺失跳过)。
+	mediaStore := media.New(os.Getenv("DATA_DIR"))
+	mediaStore.CleanTmp() // 崩溃残留的上传中转文件(此刻没有上传在途)
+	mediaSvc := &media.Handlers{DB: db, Sessions: sessions, Svc: mediaStore}
+	go func() {
+		for {
+			mediaSvc.SweepAll(14 * 24 * int64(time.Hour/time.Millisecond))
+			time.Sleep(24 * time.Hour)
+		}
+	}()
 	r.PUT("/api/media/:hash", mediaSvc.Put)
 	r.GET("/api/media/:hash", mediaSvc.Get)
 	r.POST("/api/media/missing", mediaSvc.Missing)
 	r.POST("/api/media/sweep", mediaSvc.Sweep)
 
 	// P5:管理后台(角色分层:support 只读/ops 运营/super_admin 全权;敏感操作挂 step-up)。
-	adminSvc := admin.New(db, sessions, wa)
+	adminSvc := admin.New(db, sessions, wa, svc.Challenges)
 	adminSvc.InviteEnvDef = inviteEnvDefault()
+	adminSvc.Rdb = rdb
 	r.GET("/api/admin/session", adminSvc.Session)
+	coachProxy.StepUpOK = adminSvc.StepUpValid // config/connect/disconnect 的 step-up 闸门
 	support := adminSvc.RequireRole(admin.RoleSupport)
 	ops := adminSvc.RequireRole(admin.RoleOps)
 	super := adminSvc.RequireRole(admin.RoleSuperAdmin)
@@ -188,6 +239,11 @@ func main() {
 	r.NoRoute(func(c *gin.Context) {
 		c.JSON(http.StatusNotImplemented, gin.H{"error": "planned for a later phase", "code": "not-implemented"})
 	})
+
+	// P5 瘦尾:训练心跳(契约 /api/activity,Redis presence)+ 管理端在线流(契约 adminLive)。
+	presenceH := &presence.Handlers{Rdb: rdb, Sessions: sessions, DB: db}
+	r.POST("/api/activity", presenceH.Report)
+	r.GET("/api/admin/live", support, presenceH.LiveSSE)
 
 	ln, lerr := net.Listen("tcp", ":"+port)
 	if lerr != nil {

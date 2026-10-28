@@ -24,15 +24,18 @@ import (
 )
 
 // Setup 返回 (该实例的 DATABASE_URL, secret)。dataDir 由测试写入。
+var held *pgx.Conn // 占位连接:建库到 api 真正连接之间,防并发测试的 cleanup 误删;进程退出自动释放
+
 func Setup(adminURL, dataDir string) (string, []byte, string) {
 	ctx := context.Background()
-	// 清理一小时前的残留测试库(测试进程被 SIGKILL,不能自清)
 	cleanup(ctx, adminURL)
 	name := fmt.Sprintf("muhe_t_%d", rand.Int63())
 	conn, err := pgx.Connect(ctx, adminURL)
 	fatal(err)
-	defer conn.Close(ctx)
 	_, err = conn.Exec(ctx, `CREATE DATABASE ` + name)
+	fatal(err)
+	// 指到测试库本身保持一个连接(cleanup 见有连接的库不删),主流程随即由迁移接管。
+	held, err = pgx.Connect(ctx, adminURLTo(adminURL, name))
 	fatal(err)
 	// schema:复用 migrations(internal/store 的 embed 由 api 进程启动迁移,这里只建库)
 	secret, _ := os.ReadFile(filepath.Join(dataDir, "secret"))
@@ -45,8 +48,11 @@ func cleanup(ctx context.Context, adminURL string) {
 		return // 清理失败不阻塞
 	}
 	defer conn.Close(ctx)
-	rows, _ := conn.Query(ctx, `SELECT datname FROM pg_database
-		WHERE datname LIKE 'muhe_t_%' AND pg_postmaster_start_time() < now()`)
+	// 只回收无连接的 muhe_t_*(SIGKILL 残留)。原条件 pg_postmaster_start_time()<now() 恒真,
+	// 并行测试会删掉彼此正在用的库 —— 有连接的库一律不删。
+	rows, _ := conn.Query(ctx, `SELECT d.datname FROM pg_database d
+		WHERE d.datname LIKE 'muhe_t_%'
+		AND NOT EXISTS (SELECT 1 FROM pg_stat_activity a WHERE a.datname = d.datname)`)
 	var names []string
 	for rows.Next() {
 		var n string
@@ -102,10 +108,15 @@ func Seed(dbURL, dataDir string) {
 				Created  string `json:"created"`
 				Disabled bool   `json:"disabled"`
 				SV       int64  `json:"sv"`
+				Admin    bool   `json:"admin"` // 与 muhemigrate 同规则:admin:true → super_admin
 			} `json:"users"`
 			Creds []struct {
-				ID, UserID, PublicKey string `json:"publicKey"`
-				Counter               uint32
+				ID         string   `json:"id"`
+				UserID     string   `json:"userId"` // 逐字段声明:同一行的 tag 会作用于整组字段,userId 将解析为空
+				PublicKey  string   `json:"publicKey"`
+				Counter    uint32   `json:"counter"`
+				Transports []string `json:"transports"`
+				LastUsed   string   `json:"lastUsed"`
 			} `json:"creds"`
 		}
 		if json.Unmarshal(raw, &d) == nil {
@@ -113,11 +124,17 @@ func Seed(dbURL, dataDir string) {
 				_, e := conn.Exec(ctx, `INSERT INTO users (id,name,disabled,sv) VALUES ($1,$2,$3,$4)
 					ON CONFLICT (id) DO UPDATE SET name=$2,disabled=$3,sv=$4`, u.ID, u.Name, u.Disabled, u.SV)
 				fatal(e)
+				if u.Admin {
+					_, e = conn.Exec(ctx, `INSERT INTO admin_roles (user_id, role) VALUES ($1,'super_admin')
+						ON CONFLICT (user_id, role) DO UPDATE SET revoked_at=NULL`, u.ID)
+					fatal(e)
+				}
 			}
 			for _, c := range d.Creds {
 				pk, _ := base64.RawURLEncoding.DecodeString(c.PublicKey)
-				_, e := conn.Exec(ctx, `INSERT INTO passkeys (id,user_id,public_key,counter)
-					VALUES ($1,$2,$3,$4) ON CONFLICT (id) DO NOTHING`, c.ID, c.UserID, pk, c.Counter)
+				_, e := conn.Exec(ctx, `INSERT INTO passkeys (id,user_id,public_key,counter,transports,last_used)
+					VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (id) DO NOTHING`,
+					c.ID, c.UserID, pk, c.Counter, c.Transports, nilIfZero(c.LastUsed))
 				fatal(e)
 			}
 		}
@@ -140,4 +157,12 @@ func Seed(dbURL, dataDir string) {
 			ON CONFLICT (user_id) DO UPDATE SET doc=$2,rev=$3`, uid, doc, rev)
 		fatal(e)
 	}
+}
+
+// nilIfZero 空串 → NULL(让 SQL 的 COALESCE/默认值生效)。
+func nilIfZero(s string) any {
+	if s == "" {
+		return nil
+	}
+	return s
 }

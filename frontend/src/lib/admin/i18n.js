@@ -42,7 +42,7 @@ const packs = {
     '训练明细包含个人健康数据。验证后可查看。': '训练明细包含个人健康数据。验证后可查看。',
     '使用通行密钥查看': '使用通行键查看', '已验证': '已验证', '重新锁定': '重新锁定',
     '清空审计日志': '清空审计日志', '输入"清空"以确认': '输入"清空"以确认', '保留': '保留', '天': '天',
-    '搜索操作者、目标或事件': '搜索操作者、目标或事件', '展开详情': '展开详情', '收起': '收起',
+    '搜索操作者、目标或事件': '搜索操作者、目标或事件', '配额将满': '配额将满', '展开详情': '展开详情', '收起': '收起',
     '来源 IP': '来源 IP', '事件': '事件', '目标': '目标', '结果': '结果', '成功': '成功', '失败': '失败',
   },
   en: {
@@ -83,7 +83,7 @@ const packs = {
     '训练明细包含个人健康数据。验证后可查看。': 'Workout detail is health data. Verify to view.',
     '使用通行密钥查看': 'Verify with passkey', '已验证': 'Verified', '重新锁定': 'Lock again',
     '清空审计日志': 'Clear audit log', '输入"清空"以确认': 'Type "clear" to confirm', '保留': 'Retention', '天': 'd',
-    '搜索操作者、目标或事件': 'Search actor, target or event', '展开详情': 'Details', '收起': 'Collapse',
+    '搜索操作者、目标或事件': 'Search actor, target or event', '配额将满': 'Quota near limit', '展开详情': 'Details', '收起': 'Collapse',
     '来源 IP': 'Source IP', '事件': 'Event', '目标': 'Target', '结果': 'Result', '成功': 'OK', '失败': 'Fail',
   },
 }

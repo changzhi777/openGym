@@ -77,7 +77,8 @@ func InsertKey(ctx context.Context, db *pgxpool.Pool, uid string, k KeyRow) erro
 }
 
 func UpdateKeyCounter(ctx context.Context, db *pgxpool.Pool, credID string, counter uint32) error {
-	_, err := db.Exec(ctx, `UPDATE passkeys SET counter = $2 WHERE id = $1`, credID, counter)
+	// last_used 与 Node 同义:每次成功断言后刷新(登录与 step-up 共用本函数)。
+	_, err := db.Exec(ctx, `UPDATE passkeys SET counter = $2, last_used = now() WHERE id = $1`, credID, counter)
 	return err
 }
 

@@ -90,8 +90,9 @@ func BodyGuard() gin.HandlerFunc {
 			c.Next()
 			return
 		}
-		// 二进制端点(媒体上传)豁免:大小与格式由各自 handler 校验(40MB 视频 > 5MiB 全局帽)。
-		if strings.HasPrefix(c.Request.URL.Path, "/api/media/") {
+		// 二进制端点(媒体上传 PUT)豁免:大小与格式由各自 handler 校验(40MB 视频 > 5MiB 全局帽)。
+		// 同前缀的 missing/sweep 是 JSON 端点,须照常过守卫 — 按 HTTP 方法区分。
+		if strings.HasPrefix(c.Request.URL.Path, "/api/media/") && c.Request.Method != http.MethodPost {
 			c.Next()
 			return
 		}

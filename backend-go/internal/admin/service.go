@@ -12,6 +12,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/redis/go-redis/v9"
 
 	"github.com/changzhi777/openGym/backend-go/internal/auth"
 )
@@ -20,13 +21,15 @@ type Service struct {
 	DB           *pgxpool.Pool
 	Sessions     *auth.Sessions
 	WA           *auth.WebAuthn
-	InviteEnvDef bool // INVITE_ONLY env 兜底;instance_settings 的 invite_only 键可覆盖
+	Challenges   *auth.ChallengeStore // 与 auth 共享:step-up 复用 /api/login/options 的挑战
+	Rdb          *redis.Client        // presence 在线表(users 行 live 字段/概览在线数);nil = 无 Redis
+	InviteEnvDef bool                 // INVITE_ONLY env 兜底;instance_settings 的 invite_only 键可覆盖
 	mu           sync.Mutex
 	stepUps      map[string]time.Time // uid → 窗口截止(5 分钟;内存,重启失效=重新验证)
 }
 
-func New(db *pgxpool.Pool, ss *auth.Sessions, wa *auth.WebAuthn) *Service {
-	return &Service{DB: db, Sessions: ss, WA: wa, stepUps: map[string]time.Time{}}
+func New(db *pgxpool.Pool, ss *auth.Sessions, wa *auth.WebAuthn, ch *auth.ChallengeStore) *Service {
+	return &Service{DB: db, Sessions: ss, WA: wa, Challenges: ch, stepUps: map[string]time.Time{}}
 }
 
 const (

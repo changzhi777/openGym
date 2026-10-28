@@ -5,6 +5,7 @@ package auth
 import (
 	"encoding/base64"
 	"errors"
+	"fmt"
 
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
@@ -119,7 +120,7 @@ func (w *WebAuthn) VerifyAuthentication(uid []byte, name string, keys []KeyHandl
 	}
 	_, err = w.wa.ValidateDiscoverableLogin(handler, session, parsed)
 	if err != nil {
-		return 0, ErrVerify
+		return 0, fmt.Errorf("%w: %v", ErrVerify, err) // 保留原因供日志(调用方仍用 errors.Is 判 ErrVerify)
 	}
 	return parsed.Response.AuthenticatorData.Counter, nil
 }

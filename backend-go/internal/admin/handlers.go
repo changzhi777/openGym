@@ -4,12 +4,11 @@ package admin
 import (
 	"context"
 	"crypto/rand"
-	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
+	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -18,6 +17,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/changzhi777/openGym/backend-go/internal/auth"
+	"github.com/changzhi777/openGym/backend-go/internal/presence"
 	"github.com/changzhi777/openGym/backend-go/internal/store"
 )
 
@@ -31,14 +31,50 @@ func (s *Service) body(c *gin.Context) map[string]any {
 	return m
 }
 
-// Overview GET /api/admin/overview — 聚合 KPI(Go 版无 presence 内存,实时数从 Node 切换后补)。
+// Overview GET /api/admin/overview — 聚合 KPI(契约 adminOverview 扩形,§3.3):
+// 基础计数 + 今日训练/活跃 + 14 天趋势(active=当日有训练的用户数,历史活跃无
+// 独立数据源以此近似)+ 需要关注(停用;quota_near 待 0008 usage_counters 落地)
+// + 在线数(presence)。一次请求服务端聚合,前端不再自拉 users 客户端求和。
 func (s *Service) Overview(c *gin.Context) {
 	ct := c.Request.Context()
-	var users, disabled, workouts int64
+	var users, disabled, workouts, workoutsToday, activeToday int64
 	s.DB.QueryRow(ct, `SELECT count(*) FROM users`).Scan(&users)
 	s.DB.QueryRow(ct, `SELECT count(*) FROM users WHERE disabled`).Scan(&disabled)
 	s.DB.QueryRow(ct, `SELECT count(*) FROM workouts`).Scan(&workouts)
-	c.JSON(200, gin.H{"users": users, "disabled": disabled, "workouts": workouts, "live": 0, "now": time.Now().UnixMilli()})
+	s.DB.QueryRow(ct, `SELECT count(*) FROM workouts WHERE date = to_char(now(),'YYYY-MM-DD')`).Scan(&workoutsToday)
+	s.DB.QueryRow(ct, `SELECT count(DISTINCT user_id) FROM workouts WHERE date = to_char(now(),'YYYY-MM-DD')`).Scan(&activeToday)
+	var aiMonth any // usage_counters 随 0008(批3收编)可用;缺表 → null(契约:落地后出现)
+	s.DB.QueryRow(ct, `SELECT COALESCE(sum(used),0) FROM usage_counters WHERE resource='coach' AND period = to_char(now(),'YYYY-MM')`).Scan(&aiMonth)
+
+	trend := []gin.H{}
+	tr, err := s.DB.Query(ct, `
+		SELECT to_char(g.d,'YYYY-MM-DD'), COALESCE(w.cnt,0), COALESCE(w.u_cnt,0)
+		FROM generate_series(current_date - interval '13 days', current_date, interval '1 day') AS g(d)
+		LEFT JOIN (SELECT date, count(*) cnt, count(DISTINCT user_id) u_cnt FROM workouts
+			WHERE date >= to_char(current_date - interval '13 days','YYYY-MM-DD') GROUP BY date) w
+		ON w.date = to_char(g.d,'YYYY-MM-DD') ORDER BY g.d`)
+	if err == nil {
+		for tr.Next() {
+			var d string
+			var cnt, uc int64
+			tr.Scan(&d, &cnt, &uc)
+			trend = append(trend, gin.H{"date": d, "active": uc, "workouts": cnt})
+		}
+		tr.Close()
+	}
+
+	attention := []gin.H{}
+	if disabled > 0 {
+		attention = append(attention, gin.H{"code": "disabled", "count": disabled})
+	}
+
+	live := 0
+	if s.Rdb != nil {
+		live = len(presence.Index(ct, s.Rdb))
+	}
+	c.JSON(200, gin.H{"users": users, "active_today": activeToday, "workouts": workouts,
+		"workouts_today": workoutsToday, "live": live, "ai_calls_month": aiMonth,
+		"trend_14d": trend, "attention": attention, "now": time.Now().UnixMilli()})
 }
 
 // Users GET /api/admin/users — 列表(契约 adminUsers):搜索/角色/状态筛选 + 排序 +
@@ -103,6 +139,10 @@ func (s *Service) Users(c *gin.Context) {
 		return
 	}
 	defer rows.Close()
+	live := map[string]map[string]any{}
+	if s.Rdb != nil {
+		live = presence.Index(ct, s.Rdb)
+	}
 	out := []gin.H{}
 	for rows.Next() {
 		var id, name, created, role string
@@ -122,7 +162,7 @@ func (s *Service) Users(c *gin.Context) {
 			"id": id, "name": name, "email": maskEmail(email), "created": created,
 			"disabled": disabled, "admin": role != "", "role": nilIfEmpty(role),
 			"workouts": workouts, "lastWorkout": lastWorkout, "lastSync": ls,
-			"hasPush": hasPush, "live": nil, // presence 批 3 接入
+			"hasPush": hasPush, "live": live[id],
 		})
 	}
 	on, _ := store.InviteOnlyEffective(ct, s.DB, s.InviteEnvDef)
@@ -632,9 +672,12 @@ func randCode16() (string, error) {
 }
 
 // StepUp POST /api/admin/step-up — passkey assertion → 5 分钟窗口。
+// 与 Node proveOwner 的 passkey 分支同语义:cid 一次性消费、凭据必须属于当前账号、
+// 验签通过才开窗;任一步失败返回 403(前端 stepUp.js 据此重新验证并重放原请求)。
 func (s *Service) StepUp(c *gin.Context) {
-	uid, _ := c.Get("adminUID")
+	uid := c.GetString("adminUID")
 	var body struct {
+		CID        string          `json:"cid"`
 		Credential json.RawMessage `json:"credential"`
 	}
 	if raw, ok := c.Get("rawBody"); ok {
@@ -642,30 +685,50 @@ func (s *Service) StepUp(c *gin.Context) {
 			json.Unmarshal(b, &body)
 		}
 	}
-	if len(body.Credential) == 0 {
-		c.JSON(400, gin.H{"error": "credential required", "code": "challenge-required"})
+	if body.CID == "" || len(body.Credential) == 0 {
+		c.JSON(403, gin.H{"error": "confirm with your passkey first", "code": "passkey-required"})
 		return
 	}
-	// 复用认证包的凭据校验:取该用户全部 keys 验 assertion(挑战由 /api/login/options 发)。
-	var credID struct {
+	// 挑战由 /api/login/options 签发,一次性消费(Take 即删,重放无效)。
+	ch := s.Challenges.Take(body.CID)
+	if ch == nil || ch.Kind != "login" {
+		c.JSON(403, gin.H{"error": "challenge expired, try again", "code": "challenge-expired"})
+		return
+	}
+	u, err := store.UserByID(c.Request.Context(), s.DB, uid)
+	if err != nil || u.Disabled {
+		c.JSON(403, gin.H{"error": "the passkey could not be verified", "code": "passkey"})
+		return
+	}
+	keys, err := store.KeysOf(c.Request.Context(), s.DB, uid)
+	if err != nil || len(keys) == 0 {
+		c.JSON(403, gin.H{"error": "the passkey could not be verified", "code": "passkey"})
+		return
+	}
+	var ref struct {
 		ID string `json:"id"`
 	}
-	json.Unmarshal(body.Credential, &credID)
-	keys, err := keysOf(c, s, uid.(string))
-	if err != nil || len(keys) == 0 {
-		c.JSON(400, gin.H{"error": "no passkey"})
+	json.Unmarshal(body.Credential, &ref)
+	handles := make([]auth.KeyHandle, len(keys))
+	owned := false
+	for i, k := range keys {
+		if k.ID == ref.ID {
+			owned = true
+		}
+		handles[i] = auth.KeyHandle{ID: k.ID, PublicKey: k.PublicKey, Counter: k.Counter}
+	}
+	if !owned { // 别人的 key 不能给本会话开窗(Node passkeyStepUp 同款归属校验)。
+		c.JSON(403, gin.H{"error": "the passkey could not be verified", "code": "passkey"})
 		return
 	}
-	_ = base64.RawURLEncoding
-	_ = http.StatusOK
-	// step-up 的 challenge 走与登录相同的 /api/login/options(前端 passkeyAssertion 已达此契约);
-	// 这里只验签名由 auth.VerifyAuthentication 完成 —— P5 骨架先信任会话+审计,
-	// 完整 assertion 校验挂接 a 下一迭代(前端已按 stepUp.js 的 403 兜底工作)。
-	s.GrantStepUp(uid.(string))
+	counter, err := s.WA.VerifyAuthentication([]byte(u.ID), u.Name, handles, body.Credential, ch.Challenge)
+	if err != nil {
+		log.Printf("admin.step-up: assertion for %s failed: %v", u.ID, err)
+		c.JSON(403, gin.H{"error": "the passkey could not be verified", "code": "passkey"})
+		return
+	}
+	store.UpdateKeyCounter(c.Request.Context(), s.DB, ref.ID, counter)
+	s.GrantStepUp(uid)
 	s.Audit(c, "admin.step_up", "", "", nil)
 	c.JSON(200, gin.H{"ok": true, "until": time.Now().Add(5 * time.Minute).UnixMilli()})
-}
-
-func keysOf(c *gin.Context, s *Service, uid string) ([]byte, error) {
-	return []byte{1}, nil // P5 骨架占位:完整 assertion 校验下一迭代
 }

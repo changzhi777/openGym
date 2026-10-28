@@ -27,14 +27,17 @@ type dbJSON struct {
 		Disabled  bool    `json:"disabled"`
 		InvitedBy string  `json:"invitedBy"`
 		Email     *string `json:"email"`
+		Admin     bool    `json:"admin"` // Node 侧只有管理员带此键(true) → 迁到 admin_roles
 		SV        int64   `json:"sv"`
 	} `json:"users"`
 	Creds []struct {
-		ID        string `json:"id"`
-		UserID    string `json:"userId"`
-		PublicKey string `json:"publicKey"` // base64url
-		Counter   uint32 `json:"counter"`
-		Created   string `json:"created"`
+		ID         string   `json:"id"`
+		UserID     string   `json:"userId"`
+		PublicKey  string   `json:"publicKey"` // base64url
+		Counter    uint32   `json:"counter"`
+		Created    string   `json:"created"`
+		Transports []string `json:"transports"` // Node 记录认证器类型(internal/hybrid/…);缺失=老数据
+		LastUsed   string   `json:"lastUsed"`   // Node 每次使用后更新;缺失=从未使用
 	} `json:"creds"`
 	Invites []struct {
 		Code      string  `json:"code"`
@@ -86,12 +89,17 @@ func doImport(ctx context.Context, db *pgxpool.Pool, dir string) {
 			ON CONFLICT (id) DO UPDATE SET name=$2, disabled=$3, sv=$4, email=$6, invited_by=NULLIF($7,'')`,
 			u.ID, u.Name, u.Disabled, u.SV, nilIfZero(u.Created), u.Email, u.InvitedBy)
 		die(err)
+		if u.Admin { // Node 的 admin:true → super_admin 角色(否则迁移后后台失去权限)
+			_, err = db.Exec(ctx, `INSERT INTO admin_roles (user_id, role) VALUES ($1,'super_admin')
+				ON CONFLICT (user_id, role) DO UPDATE SET revoked_at=NULL`, u.ID)
+			die(err)
+		}
 	}
 	for _, c := range d.Creds {
 		pk, _ := base64.RawURLEncoding.DecodeString(c.PublicKey)
-		_, err := db.Exec(ctx, `INSERT INTO passkeys (id, user_id, public_key, counter, created_at)
-			VALUES ($1,$2,$3,$4,COALESCE($5,now())) ON CONFLICT (id) DO NOTHING`,
-			c.ID, c.UserID, pk, c.Counter, nilIfZero(c.Created))
+		_, err := db.Exec(ctx, `INSERT INTO passkeys (id, user_id, public_key, counter, transports, created_at, last_used)
+			VALUES ($1,$2,$3,$4,$5,COALESCE($6,now()),COALESCE($7,$6,now())) ON CONFLICT (id) DO NOTHING`,
+			c.ID, c.UserID, pk, c.Counter, c.Transports, nilIfZero(c.Created), nilIfZero(c.LastUsed))
 		die(err)
 	}
 	// 邀请码:此前 export 硬编码空数组会丢码 —— round-trip 修复点(2026-10-28)。
@@ -120,39 +128,53 @@ func doImport(ctx context.Context, db *pgxpool.Pool, dir string) {
 func doExport(ctx context.Context, db *pgxpool.Pool, dir string) {
 	die(os.MkdirAll(dir, 0o700))
 	// db.json
-	rows, err := db.Query(ctx, `SELECT id, name, to_char(created_at,'YYYY-MM-\"T\"HH24:MI:SS\"Z\"'), disabled, email, COALESCE(invited_by,'') FROM users`)
+	rows, err := db.Query(ctx, `SELECT u.id, u.name, to_char(u.created_at,'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'), u.disabled, u.sv,
+		COALESCE(u.email,''), COALESCE(u.invited_by,''),
+		EXISTS (SELECT 1 FROM admin_roles r WHERE r.user_id=u.id AND r.role='super_admin' AND r.revoked_at IS NULL)
+		FROM users u`)
 	die(err)
 	type uRow struct {
 		ID        string  `json:"id"`
 		Name      string  `json:"name"`
 		Created   *string `json:"created"`
 		Disabled  bool    `json:"disabled"`
-		Email     *string `json:"email,omitempty"`
+		SV        int64   `json:"sv,omitempty"`    // Node 只在对 0 之外写这个键
+		Email     *string `json:"email,omitempty"` // 无邮箱不输出(与 Node 同形)
 		InvitedBy string  `json:"invitedBy,omitempty"`
+		Admin     *bool   `json:"admin,omitempty"` // 与 Node 同形:仅管理员带键
 	}
 	var users []uRow
 	for rows.Next() {
 		var r uRow
 		var cr *string
-		die(rows.Scan(&r.ID, &r.Name, &cr, &r.Disabled, &r.Email, &r.InvitedBy))
+		var admin bool
+		die(rows.Scan(&r.ID, &r.Name, &cr, &r.Disabled, &r.SV, &r.Email, &r.InvitedBy, &admin))
 		r.Created = cr
+		if admin {
+			r.Admin = &admin
+		}
 		users = append(users, r)
 	}
 	rows.Close()
-	creds, err := db.Query(ctx, `SELECT id, user_id, public_key, counter, to_char(created_at,'YYYY-MM-\"T\"HH24:MI:SS\"Z\"') FROM passkeys ORDER BY created_at`)
+	creds, err := db.Query(ctx, `SELECT id, user_id, public_key, counter, transports,
+		to_char(created_at,'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
+		to_char(last_used,'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+		FROM passkeys ORDER BY created_at`)
 	die(err)
 	type cRow struct {
-		ID        string `json:"id"`
-		UserID    string `json:"userId"`
-		PublicKey string `json:"publicKey"`
-		Counter   uint32 `json:"counter"`
-		Created   *string `json:"created"`
+		ID         string   `json:"id"`
+		UserID     string   `json:"userId"`
+		PublicKey  string   `json:"publicKey"`
+		Counter    uint32   `json:"counter"`
+		Created    *string  `json:"created"`
+		Transports []string `json:"transports,omitempty"` // 与 Node 同形:无记录则不输出
+		LastUsed   *string  `json:"lastUsed,omitempty"`
 	}
 	var cs []cRow
 	for creds.Next() {
 		var r cRow
 		var pk []byte
-		die(creds.Scan(&r.ID, &r.UserID, &pk, &r.Counter, &r.Created))
+		die(creds.Scan(&r.ID, &r.UserID, &pk, &r.Counter, &r.Transports, &r.Created, &r.LastUsed))
 		r.PublicKey = base64.RawURLEncoding.EncodeToString(pk) // 与 Node 存储同编码
 		cs = append(cs, r)
 	}

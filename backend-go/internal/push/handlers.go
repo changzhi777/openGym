@@ -144,14 +144,19 @@ func (h *Handlers) RestTimerCancel(c *gin.Context) {
 }
 
 func (h *Handlers) fanout(c *gin.Context, uid string, payload []byte) {
-	subs, err := store.SubsOf(nilCtx(c), h.DB, uid)
+	h.Notify(nilCtx(c), uid, payload)
+}
+
+// Notify 按 uid 向全部端点广播(rest-timer 与内部桥共用;尽力而为,410/404 死订阅即删)。
+func (h *Handlers) Notify(ctx context.Context, uid string, payload []byte) {
+	subs, err := store.SubsOf(ctx, h.DB, uid)
 	if err != nil {
 		return
 	}
 	for _, s := range subs {
 		code, err := h.Svc.Send(Endpoint{Endpoint: s.Endpoint, P256dh: s.P256dh, Auth: s.Auth}, payload)
 		if err == nil && (code == http.StatusGone || code == http.StatusNotFound) {
-			store.DeleteSub(nilCtx(c), h.DB, uid, s.Endpoint) // 410 死订阅即删(Node 同义)
+			store.DeleteSub(ctx, h.DB, uid, s.Endpoint) // 410 死订阅即删(Node 同义)
 		}
 	}
 }
