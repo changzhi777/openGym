@@ -17,11 +17,12 @@ import (
 )
 
 type Service struct {
-	DB       *pgxpool.Pool
-	Sessions *auth.Sessions
-	WA       *auth.WebAuthn
-	mu       sync.Mutex
-	stepUps  map[string]time.Time // uid → 窗口截止(5 分钟;内存,重启失效=重新验证)
+	DB           *pgxpool.Pool
+	Sessions     *auth.Sessions
+	WA           *auth.WebAuthn
+	InviteEnvDef bool // INVITE_ONLY env 兜底;instance_settings 的 invite_only 键可覆盖
+	mu           sync.Mutex
+	stepUps      map[string]time.Time // uid → 窗口截止(5 分钟;内存,重启失效=重新验证)
 }
 
 func New(db *pgxpool.Pool, ss *auth.Sessions, wa *auth.WebAuthn) *Service {
@@ -64,6 +65,23 @@ func (s *Service) RoleOf(ctx context.Context, uid string) string {
 		}
 	}
 	return best
+}
+
+// RolesOf 全部活跃角色(通常一个)。
+func (s *Service) RolesOf(ctx context.Context, uid string) []string {
+	rows, err := s.DB.Query(ctx,
+		`SELECT role FROM admin_roles WHERE user_id=$1 AND revoked_at IS NULL`, uid)
+	if err != nil {
+		return []string{}
+	}
+	defer rows.Close()
+	out := []string{}
+	for rows.Next() {
+		var r string
+		rows.Scan(&r)
+		out = append(out, r)
+	}
+	return out
 }
 
 // RequireRole 中间件:低于 min 一律 403(前端也据此渲染 403 面板)。
@@ -114,6 +132,14 @@ func (s *Service) GrantStepUp(uid string) {
 	s.mu.Lock()
 	s.stepUps[uid] = time.Now().Add(5 * time.Minute)
 	s.mu.Unlock()
+}
+
+// StepUpUntil 当前窗口截止;无有效窗口 ok=false。
+func (s *Service) StepUpUntil(uid string) (time.Time, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	until, ok := s.stepUps[uid]
+	return until, ok && until.After(time.Now())
 }
 
 // RequireStepUp 敏感操作闸门:窗口失效 → 403 code=passkey-required(前端 stepUp.js 拦截重放)。

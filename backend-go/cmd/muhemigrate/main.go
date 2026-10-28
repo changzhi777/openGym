@@ -23,10 +23,11 @@ import (
 type dbJSON struct {
 	Users []struct {
 		ID, Name  string
-		Created   string `json:"created"`
-		Disabled  bool   `json:"disabled"`
-		InvitedBy string `json:"invitedBy"`
-		SV        int64  `json:"sv"`
+		Created   string  `json:"created"`
+		Disabled  bool    `json:"disabled"`
+		InvitedBy string  `json:"invitedBy"`
+		Email     *string `json:"email"`
+		SV        int64   `json:"sv"`
 	} `json:"users"`
 	Creds []struct {
 		ID        string `json:"id"`
@@ -35,6 +36,15 @@ type dbJSON struct {
 		Counter   uint32 `json:"counter"`
 		Created   string `json:"created"`
 	} `json:"creds"`
+	Invites []struct {
+		Code      string  `json:"code"`
+		Note      string  `json:"note"`
+		CreatedBy string  `json:"createdBy"`
+		Created   string  `json:"created"`
+		UsedBy    *string `json:"usedBy"`
+		UsedAt    *string `json:"usedAt"`
+		Revoked   bool    `json:"revoked"`
+	} `json:"invites"`
 }
 
 func main() {
@@ -71,10 +81,10 @@ func doImport(ctx context.Context, db *pgxpool.Pool, dir string) {
 	var d dbJSON
 	die(json.Unmarshal(raw, &d))
 	for _, u := range d.Users {
-		_, err := db.Exec(ctx, `INSERT INTO users (id, name, disabled, sv, created_at)
-			VALUES ($1,$2,COALESCE($3,false),$4,COALESCE($5,now()))
-			ON CONFLICT (id) DO UPDATE SET name=$2, disabled=$3, sv=$4`,
-			u.ID, u.Name, u.Disabled, u.SV, nilIfZero(u.Created))
+		_, err := db.Exec(ctx, `INSERT INTO users (id, name, disabled, sv, created_at, email, invited_by)
+			VALUES ($1,$2,COALESCE($3,false),$4,COALESCE($5,now()),$6,NULLIF($7,''))
+			ON CONFLICT (id) DO UPDATE SET name=$2, disabled=$3, sv=$4, email=$6, invited_by=NULLIF($7,'')`,
+			u.ID, u.Name, u.Disabled, u.SV, nilIfZero(u.Created), u.Email, u.InvitedBy)
 		die(err)
 	}
 	for _, c := range d.Creds {
@@ -82,6 +92,13 @@ func doImport(ctx context.Context, db *pgxpool.Pool, dir string) {
 		_, err := db.Exec(ctx, `INSERT INTO passkeys (id, user_id, public_key, counter, created_at)
 			VALUES ($1,$2,$3,$4,COALESCE($5,now())) ON CONFLICT (id) DO NOTHING`,
 			c.ID, c.UserID, pk, c.Counter, nilIfZero(c.Created))
+		die(err)
+	}
+	// 邀请码:此前 export 硬编码空数组会丢码 —— round-trip 修复点(2026-10-28)。
+	for _, i := range d.Invites {
+		_, err := db.Exec(ctx, `INSERT INTO admin_invites (code, note, created_by, created_at, used_by, used_at, revoked)
+			VALUES ($1,$2,$3,COALESCE($4,now()),$5,$6,$7) ON CONFLICT (code) DO NOTHING`,
+			i.Code, i.Note, i.CreatedBy, nilIfZero(i.Created), i.UsedBy, i.UsedAt, i.Revoked)
 		die(err)
 	}
 	// state-<uid>.json:doc 原样入库;表列 rev 从文档 _rev 投影。
@@ -103,19 +120,21 @@ func doImport(ctx context.Context, db *pgxpool.Pool, dir string) {
 func doExport(ctx context.Context, db *pgxpool.Pool, dir string) {
 	die(os.MkdirAll(dir, 0o700))
 	// db.json
-	rows, err := db.Query(ctx, `SELECT id, name, to_char(created_at,'YYYY-MM-\"T\"HH24:MI:SS\"Z\"'), disabled FROM users`)
+	rows, err := db.Query(ctx, `SELECT id, name, to_char(created_at,'YYYY-MM-\"T\"HH24:MI:SS\"Z\"'), disabled, email, COALESCE(invited_by,'') FROM users`)
 	die(err)
 	type uRow struct {
-		ID       string  `json:"id"`
-		Name     string  `json:"name"`
-		Created  *string `json:"created"`
-		Disabled bool    `json:"disabled"`
+		ID        string  `json:"id"`
+		Name      string  `json:"name"`
+		Created   *string `json:"created"`
+		Disabled  bool    `json:"disabled"`
+		Email     *string `json:"email,omitempty"`
+		InvitedBy string  `json:"invitedBy,omitempty"`
 	}
 	var users []uRow
 	for rows.Next() {
 		var r uRow
 		var cr *string
-		die(rows.Scan(&r.ID, &r.Name, &cr, &r.Disabled))
+		die(rows.Scan(&r.ID, &r.Name, &cr, &r.Disabled, &r.Email, &r.InvitedBy))
 		r.Created = cr
 		users = append(users, r)
 	}
@@ -138,7 +157,30 @@ func doExport(ctx context.Context, db *pgxpool.Pool, dir string) {
 		cs = append(cs, r)
 	}
 	creds.Close()
-	out := map[string]any{"users": users, "creds": cs, "subs": []any{}, "invites": []any{}}
+	// 邀请码(与 Node db.invites 同构;revoked/usedBy 仅在存在时输出)。
+	inv, err := db.Query(ctx, `SELECT code, note, created_by, to_char(created_at,'YYYY-MM-\"T\"HH24:MI:SS\"Z\"'), used_by, to_char(used_at,'YYYY-MM-\"T\"HH24:MI:SS\"Z\"'), revoked FROM admin_invites ORDER BY created_at`)
+	die(err)
+	type iRow struct {
+		Code      string  `json:"code"`
+		Note      string  `json:"note"`
+		CreatedBy string  `json:"createdBy"`
+		Created   *string `json:"created"`
+		UsedBy    *string `json:"usedBy,omitempty"`
+		UsedAt    *string `json:"usedAt,omitempty"`
+		Revoked   *bool   `json:"revoked,omitempty"`
+	}
+	var invites []iRow
+	for inv.Next() {
+		var r iRow
+		var rev *bool
+		die(inv.Scan(&r.Code, &r.Note, &r.CreatedBy, &r.Created, &r.UsedBy, &r.UsedAt, &rev))
+		if rev != nil && *rev {
+			r.Revoked = rev
+		}
+		invites = append(invites, r)
+	}
+	inv.Close()
+	out := map[string]any{"users": users, "creds": cs, "subs": []any{}, "invites": invites}
 	b, _ := json.MarshalIndent(out, "", "  ")
 	die(os.WriteFile(filepath.Join(dir, "db.json"), b, 0o600))
 	// state-*.json(doc 原样 = round-trip 的意义:逐字节可比对)

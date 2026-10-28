@@ -19,11 +19,12 @@ import (
 )
 
 type Service struct {
-	DB         *pgxpool.Pool
-	WA         *WebAuthn
-	Sessions   *Sessions
-	Challenges *ChallengeStore
-	Pairs      *PairStore
+	DB           *pgxpool.Pool
+	WA           *WebAuthn
+	Sessions     *Sessions
+	Challenges   *ChallengeStore
+	Pairs        *PairStore
+	InviteEnvDef bool // INVITE_ONLY env 兜底;instance_settings 的 invite_only 键可覆盖
 }
 
 type authBody struct {
@@ -87,6 +88,15 @@ func (s *Service) RegisterVerify(c *gin.Context) {
 	if err != nil {
 		jsonFail(c, 400, "verification failed", "")
 		return
+	}
+	// 邀请制闸门(与 Node register 同语义):实例开启时 challenge 携带的码必须有效,
+	// 用后即毁。码在 options 时已大写化存入 challenge;无效一律 403 code=invite,
+	// 不区分"没填"与"填错"(防枚举)。
+	if on, err := store.InviteOnlyEffective(c.Request.Context(), s.DB, s.InviteEnvDef); err == nil && on {
+		if err := store.ConsumeInvite(c.Request.Context(), s.DB, ch.Code, ch.UID); err != nil {
+			jsonFail(c, 403, "a valid invite code is required", "invite")
+			return
+		}
 	}
 	if err := store.InsertUser(c.Request.Context(), s.DB, ch.UID, ch.Name); err != nil {
 		jsonFail(c, 500, "save", "")

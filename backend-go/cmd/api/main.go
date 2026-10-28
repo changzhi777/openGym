@@ -107,7 +107,7 @@ func main() {
 		log.Fatalf("webauthn: %v", err)
 	}
 	sessions := auth.NewSessions(secret(), sessionDays(), strings.Contains(origin(), "https://"))
-	svc := &auth.Service{DB: db, WA: wa, Sessions: sessions, Challenges: auth.NewChallengeStore(), Pairs: auth.NewPairStore()}
+	svc := &auth.Service{DB: db, WA: wa, Sessions: sessions, Challenges: auth.NewChallengeStore(), Pairs: auth.NewPairStore(), InviteEnvDef: inviteEnvDefault()}
 	r.POST("/api/register/options", svc.RegisterOptions)
 	r.POST("/api/register/verify", svc.RegisterVerify)
 	r.POST("/api/login/options", svc.LoginOptions)
@@ -154,10 +154,18 @@ func main() {
 
 	// P5:管理后台(角色分层:support 只读/ops 运营/super_admin 全权;敏感操作挂 step-up)。
 	adminSvc := admin.New(db, sessions, wa)
+	adminSvc.InviteEnvDef = inviteEnvDefault()
+	r.GET("/api/admin/session", adminSvc.Session)
 	support := adminSvc.RequireRole(admin.RoleSupport)
 	ops := adminSvc.RequireRole(admin.RoleOps)
 	super := adminSvc.RequireRole(admin.RoleSuperAdmin)
 	stepUp := adminSvc.RequireStepUp()
+	// 邀请码三件套 + 实例设置(矩阵:管理 ops 可用 support 隐藏;开关修改挂 step-up)。
+	r.GET("/api/admin/invites", ops, adminSvc.InvitesGet)
+	r.POST("/api/admin/invites/new", ops, adminSvc.InvitesNew)
+	r.POST("/api/admin/invites/revoke", ops, adminSvc.InvitesRevoke)
+	r.GET("/api/admin/settings", ops, adminSvc.SettingsGet)
+	r.PUT("/api/admin/settings", ops, stepUp, adminSvc.SettingsPut)
 	r.GET("/api/admin/overview", support, adminSvc.Overview)
 	r.GET("/api/admin/users", support, adminSvc.Users)
 	r.GET("/api/admin/user", support, adminSvc.User)
@@ -220,4 +228,14 @@ func envOr(k, d string) string {
 		return v
 	}
 	return d
+}
+
+// inviteEnvDefault INVITE_ONLY env 解析(与 Node 同口径:/^(1|true|yes|on)$/i)。
+// instance_settings 的 invite_only 键可覆盖,见 store.InviteOnlyEffective。
+func inviteEnvDefault() bool {
+	switch strings.ToLower(os.Getenv("INVITE_ONLY")) {
+	case "1", "true", "yes", "on":
+		return true
+	}
+	return false
 }

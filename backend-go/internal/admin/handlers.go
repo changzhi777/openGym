@@ -2,12 +2,19 @@
 package admin
 
 import (
+	"crypto/rand"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
+
+	"github.com/changzhi777/openGym/backend-go/internal/auth"
+	"github.com/changzhi777/openGym/backend-go/internal/store"
 )
 
 func (s *Service) body(c *gin.Context) map[string]any {
@@ -226,26 +233,156 @@ func (s *Service) roleChange(c *gin.Context, grant bool) {
 // AuditLog GET /api/admin/audit-log — 审计表查询(super_admin;游标 before)。
 func (s *Service) AuditLog(c *gin.Context) {
 	rows, err := s.DB.Query(c.Request.Context(), `
-		SELECT id, admin_user_id, action, COALESCE(target_type,''), COALESCE(target_id,''), detail, created_at
+		SELECT id, admin_user_id, action, COALESCE(target_type,''), COALESCE(target_id,''), detail, created_at, ip
 		FROM admin_audit_log ORDER BY id DESC LIMIT 50`)
 	if err != nil {
 		c.JSON(500, gin.H{"error": "list"})
 		return
 	}
 	defer rows.Close()
+	// 契约 §3.8:support 永不见 IP —— 行内不渲染该键,而非置 null。
+	role, _ := c.Get("adminRole")
+	hideIP := role == RoleSupport
 	out := []gin.H{}
 	for rows.Next() {
 		var id int64
 		var admin, action, tt, tid string
 		var detail []byte
 		var at time.Time
-		rows.Scan(&id, &admin, &action, &tt, &tid, &detail, &at)
+		var ip *string
+		rows.Scan(&id, &admin, &action, &tt, &tid, &detail, &at, &ip)
 		var d any
 		json.Unmarshal(detail, &d)
-		out = append(out, gin.H{"id": id, "admin": admin, "action": action, "targetType": tt,
-			"targetId": tid, "detail": d, "createdAt": at.UnixMilli()})
+		ev := gin.H{"id": id, "admin": admin, "action": action, "targetType": tt,
+			"targetId": tid, "detail": d, "createdAt": at.UnixMilli()}
+		if !hideIP {
+			ev["ip"] = ip
+		}
+		out = append(out, ev)
 	}
 	c.JSON(200, gin.H{"events": out})
+}
+
+// Session GET /api/admin/session — 壳一次拉角色与 step-up 窗口。任何登录用户可达,
+// 非 admin 返回 role:null(前端据此渲染普通用户态,而非 403 —— 契约 adminSession)。
+func (s *Service) Session(c *gin.Context) {
+	u, ok := auth.UserOf(c, s.DB, s.Sessions)
+	if !ok {
+		c.JSON(401, gin.H{"error": "not signed in"})
+		return
+	}
+	role := s.RoleOf(c.Request.Context(), u.ID)
+	var stepUp any
+	if until, valid := s.StepUpUntil(u.ID); valid {
+		stepUp = until.UnixMilli()
+	}
+	c.JSON(200, gin.H{
+		"role":          nilIfEmpty(role),
+		"admin_roles":   s.RolesOf(c.Request.Context(), u.ID),
+		"step_up_until": stepUp,
+	})
+}
+
+// InvitesGet GET /api/admin/invites — 全量码表 + usedByName 解析 + 生效开关(契约 adminInvites)。
+func (s *Service) InvitesGet(c *gin.Context) {
+	invites, err := store.ListInvites(c.Request.Context(), s.DB)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "list"})
+		return
+	}
+	on, err := store.InviteOnlyEffective(c.Request.Context(), s.DB, s.InviteEnvDef)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "settings"})
+		return
+	}
+	c.JSON(200, gin.H{"invites": invites, "invite_only": on})
+}
+
+// InvitesNew POST /api/admin/invites/new — 16hex 码(64bit,撞码重试;与 Node 同形同语义)。
+func (s *Service) InvitesNew(c *gin.Context) {
+	b := s.body(c)
+	note := []rune(str2(b["note"]))
+	if len(note) > 60 {
+		note = note[:60]
+	}
+	uid, _ := c.Get("adminUID")
+	for range 8 {
+		code, err := randCode16()
+		if err != nil {
+			c.JSON(500, gin.H{"error": "random"})
+			return
+		}
+		if err := store.CreateInvite(c.Request.Context(), s.DB, code, string(note), uid.(string)); err == nil {
+			s.Audit(c, "admin.invite.create", "", "", map[string]any{"msg": code})
+			c.JSON(200, gin.H{"invite": gin.H{"code": code, "note": string(note), "createdBy": uid.(string)}})
+			return
+		}
+	}
+	c.JSON(500, gin.H{"error": "code collision"})
+}
+
+// InvitesRevoke POST /api/admin/invites/revoke — 物理删除;已用不可撤(Node 同语义)。
+func (s *Service) InvitesRevoke(c *gin.Context) {
+	b := s.body(c)
+	code := strings.ToUpper(strings.TrimSpace(str2(b["code"])))
+	err := store.RevokeInvite(c.Request.Context(), s.DB, code)
+	switch {
+	case errors.Is(err, store.ErrNotFound):
+		c.JSON(404, gin.H{"error": "no such code"})
+	case errors.Is(err, store.ErrConflict):
+		c.JSON(400, gin.H{"error": "already used, cannot revoke"})
+	case err != nil:
+		c.JSON(500, gin.H{"error": "revoke"})
+	default:
+		s.Audit(c, "admin.invite.revoke", "", "", map[string]any{"msg": code})
+		c.JSON(200, gin.H{"ok": true})
+	}
+}
+
+// SettingsGet GET /api/admin/settings — 生效值(settings 覆盖 env 兜底)。
+func (s *Service) SettingsGet(c *gin.Context) {
+	on, err := store.InviteOnlyEffective(c.Request.Context(), s.DB, s.InviteEnvDef)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "settings"})
+		return
+	}
+	c.JSON(200, gin.H{"invite_only": on})
+}
+
+// SettingsPut PUT /api/admin/settings — 白名单键;未知键 400(契约 adminSettingsPut)。
+func (s *Service) SettingsPut(c *gin.Context) {
+	b := s.body(c)
+	for k := range b {
+		if k != "invite_only" {
+			c.JSON(400, gin.H{"error": "unknown setting: " + k})
+			return
+		}
+	}
+	on, ok := b["invite_only"].(bool)
+	if !ok {
+		c.JSON(400, gin.H{"error": "invite_only must be a boolean"})
+		return
+	}
+	if err := store.SettingsPut(c.Request.Context(), s.DB, "invite_only", on); err != nil {
+		c.JSON(500, gin.H{"error": "save"})
+		return
+	}
+	s.Audit(c, "admin.settings.update", "", "", map[string]any{"invite_only": on})
+	c.JSON(200, gin.H{"invite_only": on})
+}
+
+func str2(v any) string {
+	s, _ := v.(string)
+	return s
+}
+
+// randCode16 8 字节随机 → 16 位大写 hex(64bit;Node crypto.randomBytes(8).toString('hex'))。
+func randCode16() (string, error) {
+	var b [8]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		return "", err
+	}
+	return strings.ToUpper(hex.EncodeToString(b[:])), nil
 }
 
 // StepUp POST /api/admin/step-up — passkey assertion → 5 分钟窗口。
