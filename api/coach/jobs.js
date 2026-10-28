@@ -84,6 +84,14 @@ export function clearUser(uid) {
 
 /** Every profile with a state file — the population a cohort is drawn from. */
 export function listUserIds() {
+  // Sidecar mode (Go backend): the population lives in PG, not on disk; the Go API serves it
+  // over the internal route. Synchronous on purpose — every caller is sync — at the cost of a
+  // curl; the fork's transitional bridge until the module is rewritten in Go.
+  if (process.env.COACH_STATE_FROM === 'go') {
+    const r = goFetch('/internal/coach/users');
+    if (!r) return [];
+    try { return JSON.parse(r); } catch { return []; }
+  }
   try {
     return fs.readdirSync(DATA).filter(f => /^state-[a-zA-Z0-9_-]+\.json$/.test(f)).map(f => f.slice(6, -5));
   } catch { return []; }
@@ -101,8 +109,28 @@ export function setShare(uid, share) {
 }
 
 export function readState(uid) {
+  // Sidecar mode (Go backend): the state lives in PG; the Go API serves it. Same sync-shape
+  // bridge as listUserIds above.
+  if (process.env.COACH_STATE_FROM === 'go') {
+    const r = goFetch('/internal/coach/state/' + encodeURIComponent(safe(uid)));
+    if (r == null) return null;
+    try { return JSON.parse(r); } catch { return null; }
+  }
   try { return JSON.parse(fs.readFileSync(path.join(DATA, 'state-' + safe(uid) + '.json'), 'utf8')); }
   catch { return null; }
+}
+
+/* The sync HTTP fetch behind the two bridges above: curl via spawnSync, bounded and quiet
+   (spawnSync already imported above). INTERNAL_TOKEN is the same secret the Go API checks on
+   its /internal routes. */
+function goFetch(p) {
+  const r = spawnSync('curl', [
+    '-sf', '--max-time', '5',
+    '-H', `Authorization: Bearer ${process.env.INTERNAL_TOKEN || ''}`,
+    `${process.env.GO_API || 'http://127.0.0.1:3100'}${p}`
+  ], { timeout: 8000, maxBuffer: 32 * 1024 * 1024 });
+  if (r.status !== 0 || !r.stdout) return null;
+  return r.stdout.toString('utf8');
 }
 
 /* ---------- caps ---------- */

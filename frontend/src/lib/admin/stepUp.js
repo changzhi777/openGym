@@ -10,7 +10,12 @@ let verifier = null   // UI 验证器(弹窗),AdminShell 注入;lib 不依赖 Re
 
 export const setStepUpVerifier = fn => { verifier = fn }
 
-const defaultVerify = () => passkeyAssertion()   // 无 UI 时退化为直接弹系统认证器
+// 无 UI 时退化:取挑战 → 系统认证器签名 → 把 assertion 交给后端开窗(Go /api/admin/step-up)。
+// 认证器只签名不下发;不 POST 的话后端无从验签,敏感操作会再次 403。
+const defaultVerify = async () => {
+  const { cid, credential } = await passkeyAssertion()
+  await api('/api/admin/step-up', { method: 'POST', body: JSON.stringify({ cid, credential }) })
+}
 
 // 敏感操作统一入口:非 step-up 403 直接透传;是则验证一次并重放一次(不无限循环)。
 export async function apiAdmin(path, opts = {}, _retried = false) {
