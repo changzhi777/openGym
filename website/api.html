@@ -212,11 +212,13 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   </div>
   <p class="side-label">On this page</p>
   <a class="side-link" href="#overview"><b>Overview</b><span>Auth model, sessions, conventions</span></a>
-  <a class="side-link" href="#meta"><b>Meta</b><span>Health &amp; public config</span></a>
-  <a class="side-link" href="#auth"><b>Auth</b><span>Passkeys &amp; sessions</span></a>
+  <a class="side-link" href="#sms"><b>undefined</b><span>undefined</span></a>
   <a class="side-link" href="#pairing"><b>Pairing</b><span>Connect the mobile app</span></a>
   <a class="side-link" href="#password"><b>Password</b><span>Optional name &amp; password (PASSWORD_LOGIN)</span></a>
   <a class="side-link" href="#passkeys"><b>Passkeys</b><span>More passkeys &amp; device links</span></a>
+  <a class="side-link" href="#wechat"><b>undefined</b><span>undefined</span></a>
+  <a class="side-link" href="#meta"><b>Meta</b><span>Health &amp; public config</span></a>
+  <a class="side-link" href="#auth"><b>Auth</b><span>Passkeys &amp; sessions</span></a>
   <a class="side-link" href="#data"><b>Data</b><span>State sync</span></a>
   <a class="side-link" href="#push"><b>Push</b><span>Notifications &amp; rest timer</span></a>
   <a class="side-link" href="#activity"><b>Activity</b><span>Live presence</span></a>
@@ -245,13 +247,13 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   <p class="api-facts">
     <span>OpenAPI 3.1.0</span>
     <span>openGym v1.4.1</span>
-    <span>86 endpoints</span>
+    <span>92 endpoints</span>
     <span>AGPL-3.0-or-later</span>
   </p>
 
   <section class="api-sec" id="overview">
     <h2>Overview</h2>
-    <p class="sub">Passkey (WebAuthn) auth + per-user state storage for 沐禾健身. One Node file, no framework, JSON-file
+    <p class="sub">手机号+短信验证码 / 微信扫码 auth + per-user state storage for 沐禾健身. One Node file, no framework, JSON-file
        storage, HMAC-signed session cookies.</p>
     <div class="srv">
   <div class="srv-row"><code>/</code><span>Same origin as the openGym web app (the normal deployment)</span></div>
@@ -260,12 +262,12 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
     <div class="ov-grid">
   <div class="ov">
     <h3>Authentication</h3>
-<p>Sign-in is by <b>passkey</b> (WebAuthn, via <code>@simplewebauthn/server</code>). A successful <code>register/verify</code> or <code>login/verify</code> sets the session cookie; every authenticated route then works with that cookie. The paired mobile app has no shared cookie jar, so it redeems a short pairing code (<code>/api/pair/redeem</code>) for the <i>same</i> signed token and sends it as <code>Authorization: Bearer &lt;token&gt;</code> instead.</p>
-<p>An instance started with <code>PASSWORD_LOGIN=1</code> also offers <b>name-and-password sign-in</b> (tag <code>password</code>): opt-in per profile, scrypt-hashed, throttled, with an admin-issued one-time reset code instead of e-mail. A profile may also add an e-mail address to sign in with instead of its name (<code>/api/account/email</code>); no mail is ever sent to it. Its routes set exactly the same cookie. With the flag off (the default) every one of them answers 404.</p>
+<p>Sign-in is by <b>mobile number + SMS code</b> (one step: an unknown number signs up automatically) or by <b>WeChat mini-program QR</b> (the page shows a code, the user scans it into the 沐禾健身 mini program and confirms; the page logs in by polling). Both flows set the same HMAC-signed session cookie. Identities live in <code>auth_identities</code> (<code>phone</code> | <code>wx</code>), so one account can carry both and bind more later (<code>POST /api/auth/bind-phone</code>). Passkeys, passwords and device pairing are retired in this fork: the Go production stack does not implement them (no route), the Node fallback keeps the legacy routes marked <code>deprecated</code>.</p>
+<p>The SMS sender is Tencent Cloud SMS (<code>SMS_*</code> env). Without credentials the API runs in dev mode: the code is logged instead of sent.</p>
   </div>
   <div class="ov">
     <h3>Throttling</h3>
-<p>The <code>password</code> routes are counted per client address: at most 60 requests a minute across them, and wrong answers (a password, a reset code, an invite code on password signup, an e-mail address already in use) pause the address from the 21st on, for 30 s, doubling up to 15 min. Wrong passwords also pause the <i>account</i> they were tried against from the 6th on, for 1 min doubling up to 1 h (the same pause whether the account was named by its name or its e-mail), and an identifier that names no account is paused the same way, as typed. A password check counts from the moment it starts, so checks sent at once get no more tries than checks sent one by one. A paused caller gets <code>429 {&quot;error&quot;: …, &quot;code&quot;: &quot;locked&quot;, &quot;retryAfter&quot;: &lt;s&gt;}</code> with a <code>Retry-After</code> header. Passkey sign-up and sign-in and the pairing routes are not throttled (their failures reach the audit log at most ten a minute per address). The two routes that redeem a one-time device link (tag <code>passkeys</code>) share the per-address budget, and wrong codes pause the address for link redemption only, from the 21st on, the way wrong reset codes do. Adding or removing a passkey in Settings (<code>POST /api/account/passkeys/options</code>, <code>DELETE /api/account/passkeys</code>) and making a device code (<code>POST /api/account/device-link</code>) spend the per-address budget too, and a current password given there as proof counts like one given at sign-in. The address is the socket's, or with <code>TRUST_PROXY=1</code> the one a trusted proxy put in <code>CF-Connecting-IP</code> / the last <code>X-Forwarded-For</code> entry / <code>X-Real-IP</code>; IPv6 clients are counted by /64. Counters live in memory and reset on restart.</p>
+<p>SMS sending is capped per number (10/day) and per address (30/day), with 60 s between sends; wrong or expired codes pause the number after 5 failures for 1 min doubling up to 1 h. Counters live in Redis and survive restarts.</p>
   </div>
   <div class="ov">
     <h3>Sessions</h3>
@@ -273,11 +275,11 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   </div>
   <div class="ov">
     <h3>CSRF</h3>
-<p>State-changing browser requests must come from the app's own origin. The server checks <code>Sec-Fetch-Site</code> (falling back to <code>Origin</code> vs the configured <code>ORIGIN</code>); a mismatch is refused with <code>403 {&quot;error&quot;:&quot;cross-origin request refused&quot;}</code> on any non-GET route. Exempt: passkey sign-up and sign-in (<code>register/options</code>, <code>register/verify</code>, <code>login/options</code>, <code>login/verify</code>) and <code>pair/redeem</code>, each of which carries its own one-shot credential in the body, and any request authenticated with a Bearer token. The password routes are <b>not</b> exempt: a hostile page knows a valid name and password of its own, and could otherwise sign a visitor into it (login CSRF). Neither are the device-link routes: a link is redeemed on the app's own origin, the only one a passkey can be created for.</p>
+<p>State-changing browser requests must come from the app's own origin. The server checks <code>Sec-Fetch-Site</code> (falling back to <code>Origin</code> vs the configured <code>ORIGIN</code>); a mismatch is refused with <code>403 {&quot;error&quot;:&quot;cross-origin request refused&quot;}</code> on any non-GET route. Exempt: <code>POST /api/auth/sms/send</code> (the code goes to the number's owner, not the caller) and <code>POST /api/auth/wechat/confirm</code>, which carries the one-shot ticket bound to the scanning device, and any request authenticated with a Bearer token.</p>
   </div>
   <div class="ov">
     <h3>Environment-dependent behavior</h3>
-<ul><li><code>INVITE_ONLY=1</code>: registration requires a valid invite code (minted by an admin).</li><li><code>ALLOW_GUEST=0</code>: hides the client-side &quot;continue without account&quot; mode; the server merely reports the flag via <code>GET /api/config</code> (guest mode never talks to this API at all).</li><li><code>ADMIN_UIDS=&lt;uid&gt;,&lt;uid&gt;</code>: user ids treated as admins (a <code>&quot;admin&quot;: true</code> flag on the user record in <code>db.json</code> works too). Admins get the <code>/api/admin/*</code> routes.</li><li><code>FIRST_USER_ADMIN</code> (default off; <code>1</code> turns it on): the first profile registered on an instance with no profiles gets that <code>&quot;admin&quot;: true</code> flag. Decided at registration only, never applied to an instance that already has profiles.</li><li><code>AUDIT_LOG</code> (default on), <code>AUDIT_MAX</code> (default 5000 events), <code>AUDIT_DAYS</code> (default 90), <code>AUDIT_IP</code> (<code>off</code> | <code>net</code> | <code>full</code>, default off) shape the audit log served by <code>GET /api/admin/audit</code>.</li><li><code>PASSWORD_LOGIN=1</code>: adds the <code>password</code> routes and <code>password_login: true</code> in <code>GET /api/config</code>. Off by default.</li><li><code>DEFAULT_LANG</code> (e.g. <code>pt-BR</code>; unset by default): <code>default_lang</code> in <code>GET /api/config</code>, the language of the sign-in screen and of every profile that never picked one.</li><li><code>TRUST_PROXY=1</code>: the throttle reads the client address from proxy headers (set by the bundled <code>docker-compose.yml</code>, where only the web container can reach the API).</li><li><code>MEDIA_UPLOADS</code> (default on; <code>0</code> removes the <code>media</code> routes and the <code>media</code> block of <code>GET /api/config</code>), <code>MEDIA_QUOTA_MB</code> (200 per profile, <code>0</code> = no cap), <code>MEDIA_IMAGE_MAX_MB</code> (2), <code>MEDIA_GIF_MAX_MB</code> (8), <code>MEDIA_VIDEO_MAX_MB</code> (40), <code>MEDIA_VIDEO_MAX_SEC</code> (60), <code>MEDIA_GC_GRACE_DAYS</code> (14), <code>MEDIA_UPLOADS_PER_HOUR</code> (600 per profile), <code>MEDIA_MIN_FREE_MB</code> (512, <code>0</code> = no floor): photos and videos of custom exercises (tag <code>media</code>). Every MB here is 2^20 bytes.</li></ul>
+<ul><li><code>INVITE_ONLY=1</code>: registration requires a valid invite code (minted by an admin).</li><li><code>ALLOW_GUEST=0</code>: hides the client-side &quot;continue without account&quot; mode; the server merely reports the flag via <code>GET /api/config</code> (guest mode never talks to this API at all).</li><li><code>ADMIN_UIDS=&lt;uid&gt;,&lt;uid&gt;</code>: user ids treated as admins (a <code>&quot;admin&quot;: true</code> flag on the user record in <code>db.json</code> works too). Admins get the <code>/api/admin/*</code> routes.</li><li><code>FIRST_USER_ADMIN</code> (default off; <code>1</code> turns it on): the first profile registered on an instance with no profiles gets that <code>&quot;admin&quot;: true</code> flag. Decided at registration only, never applied to an instance that already has profiles.</li><li><code>AUDIT_LOG</code> (default on), <code>AUDIT_MAX</code> (default 5000 events), <code>AUDIT_DAYS</code> (default 90), <code>AUDIT_IP</code> (<code>off</code> | <code>net</code> | <code>full</code>, default off) shape the audit log served by <code>GET /api/admin/audit</code>.</li><li><code>SMS_SECRET_ID</code>/<code>SMS_SECRET_KEY</code>/<code>SMS_APP_ID</code>/<code>SMS_SIGN</code>/<code>SMS_TEMPLATE_ID</code>: Tencent Cloud SMS credentials. Unset = dev mode (codes are logged, not sent).</li><li><code>WX_MINI_APPID</code>/<code>WX_MINI_SECRET</code>: the mini program that confirms QR scan logins; unset = QR login answers 503.</li><li><code>DEFAULT_LANG</code> (e.g. <code>pt-BR</code>; unset by default): <code>default_lang</code> in <code>GET /api/config</code>, the language of the sign-in screen and of every profile that never picked one.</li><li><code>TRUST_PROXY=1</code>: the throttle reads the client address from proxy headers (set by the bundled <code>docker-compose.yml</code>, where only the web container can reach the API).</li><li><code>MEDIA_UPLOADS</code> (default on; <code>0</code> removes the <code>media</code> routes and the <code>media</code> block of <code>GET /api/config</code>), <code>MEDIA_QUOTA_MB</code> (200 per profile, <code>0</code> = no cap), <code>MEDIA_IMAGE_MAX_MB</code> (2), <code>MEDIA_GIF_MAX_MB</code> (8), <code>MEDIA_VIDEO_MAX_MB</code> (40), <code>MEDIA_VIDEO_MAX_SEC</code> (60), <code>MEDIA_GC_GRACE_DAYS</code> (14), <code>MEDIA_UPLOADS_PER_HOUR</code> (600 per profile), <code>MEDIA_MIN_FREE_MB</code> (512, <code>0</code> = no floor): photos and videos of custom exercises (tag <code>media</code>). Every MB here is 2^20 bytes.</li></ul>
   </div>
   <div class="ov">
     <h3>Conventions</h3>
@@ -291,163 +293,113 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
     <button data-xall="0">Collapse all</button>
   </div>
 
-<section class="api-sec" id="meta">
-  <h2>Meta</h2>
-  <p class="sub">Health and public configuration</p>
+<section class="api-sec" id="sms">
+  <h2>undefined</h2>
+  <p class="sub">Mobile number + SMS code sign-in (register/login in one step)</p>
   <div class="eps">
 
-<details class="ep" id="op-getHealth">
+<details class="ep" id="op-authSmsSend">
   <summary>
-    <span class="m get">GET</span>
-    <span class="ep-path"><code>/api/health</code><span class="ep-chip public">public</span></span>
+    <span class="m post">POST</span>
+    <span class="ep-path"><code>/api/auth/sms/send</code></span>
     <span class="ep-chev" aria-hidden="true"></span>
-    <span class="ep-sum">Health check</span>
+    <span class="ep-sum">Send a login/signup SMS code to a mobile number</span>
   </summary>
   <div class="ep-body">
-<p>Always public. Also reports how many user accounts exist.</p>
-<p>The check writes: it creates and removes one empty file under <code>DATA_DIR</code>, because a server whose data directory is full or read-only has every write path broken while the port still answers. It is a 503 when that fails — the container healthcheck (<code>wget --spider</code>) reads the status and nothing else.</p>
-<p>The probe runs at most once every five seconds and the answer in between is the last one, so a poll can be that stale. The route is unauthenticated, and one disk write per request is not something to leave open to anyone.</p>
-    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Public: no authentication required.</span></p>
-
-
-    <p class="ep-h">Responses</p>
-    <div class="ptab">
-  <div class="prow rrow">
-    <span class="r-code s2">200</span>
-    <span class="p-desc">The server is up and its data directory is writable.<span class="r-sig">{ ok: always true, users: integer, writable: always true }</span></span>
-  </div>
-  <div class="prow rrow">
-    <span class="r-code s5">503</span>
-    <span class="p-desc">The data directory could not be written — a full disk, or a mount that came back read-only. Nothing that stores anything will work until it is fixed; the reason is in the container log.</span>
-  </div>
-    </div>
-  </div>
-</details>
-
-<details class="ep" id="op-getConfig">
-  <summary>
-    <span class="m get">GET</span>
-    <span class="ep-path"><code>/api/config</code><span class="ep-chip public">public</span></span>
-    <span class="ep-chev" aria-hidden="true"></span>
-    <span class="ep-sum">Instance configuration</span>
-  </summary>
-  <div class="ep-body">
-<p>The flags the login screen needs before anyone is signed in. Both reflect environment variables on the server (<code>INVITE_ONLY</code>, <code>ALLOW_GUEST</code>), and so does <code>password_login</code>, which is there only when <code>PASSWORD_LOGIN=1</code>, and <code>default_lang</code>, which is there only when <code>DEFAULT_LANG</code> is set.</p>
-<p><code>media</code> is there unless the instance runs with <code>MEDIA_UPLOADS=0</code>, for everybody: the caps are not a secret, and its absence is how the app knows this server does not store photos and videos at all.</p>
-<p>A caller with a valid session also gets a <code>coach</code> key: the block when the instance has the AI Coach switched on <b>and</b> a provider connected, and <code>null</code> when it has not. A caller with no session gets no key at all. The block names the provider this instance talks to, which is the same fact <code>GET /api/coach/disclosure</code> will not hand out unauthenticated.</p>
-<p>The key is always present for a session, <code>null</code> included, so a client that caches this answer can tell &quot;no Coach on this instance&quot; from &quot;you were not signed in when you asked&quot; and knows whether asking again would change it.</p>
-    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Public: no authentication required.</span></p>
-
-
-    <p class="ep-h">Responses</p>
-    <div class="ptab">
-  <div class="prow rrow">
-    <span class="r-code s2">200</span>
-    <span class="p-desc">Instance flags, plus the Coach block for a signed-in caller.<span class="r-sig">{ invite_only: boolean, allow_guest: boolean, coach: object | null, password_login: always true, default_lang: string, media: <a href="#schema-MediaConfig">MediaConfig</a> }</span></span>
-  </div>
-    </div>
-  </div>
-</details>
-  </div>
-</section>
-
-<section class="api-sec" id="auth">
-  <h2>Auth</h2>
-  <p class="sub">Passkey (WebAuthn) registration and login, sessions</p>
-  <div class="eps">
-
-<details class="ep" id="op-getMe">
-  <summary>
-    <span class="m get">GET</span>
-    <span class="ep-path"><code>/api/me</code></span>
-    <span class="ep-chev" aria-hidden="true"></span>
-    <span class="ep-sum">Who am I?</span>
-  </summary>
-  <div class="ep-body">
-<p>Resolves the current session to a user. A paired phone (bearer token) whose token is past half of <code>SESSION_DAYS</code> also receives a fresh <code>token</code> to use from now on; it carries the account's current session version, so &quot;sign out everywhere&quot; revokes it like the old one. Cookie sessions never get one.</p>
+<p>One step for both sign-in and sign-up: verifying the code signs the caller in and creates the account when the number is unknown. Rate limits: 60 s between sends per number, 10/day per number, 30/day per address. Codes live 5 minutes.</p>
     <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
 
+<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">phone<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc">Mainland mobile number, 11 digits.</span>
+  </div>
+</div>
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">202</span>
+    <span class="p-desc">Sent; dev mode logs the code and answers dev=true.</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">429</span>
+    <span class="p-desc">Paused by the sign-in throttle (see <i>Throttling</i> in the description). The request was not looked at; try again after <code>Retry-After</code> seconds.<span class="r-sig"><code>{&quot;error&quot;:&quot;too many attempts, try again later&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
 
+<details class="ep" id="op-authSmsVerify">
+  <summary>
+    <span class="m post">POST</span>
+    <span class="ep-path"><code>/api/auth/sms/verify</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Verify the SMS code — signs in or signs up</span>
+  </summary>
+  <div class="ep-body">
+<p>One step for both: a known number signs in, an unknown one creates the account (name <code>健身者####</code> from the number tail). Honors the instance invite gate (<code>invite_only</code>): a valid invite code is required for account creation.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">phone<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">code<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc">6 digits.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">invite</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">Invite code</span>
+  </div>
+</div>
     <p class="ep-h">Responses</p>
     <div class="ptab">
   <div class="prow rrow">
     <span class="r-code s2">200</span>
-    <span class="p-desc">A valid session.<span class="r-sig">{ user: <a href="#schema-SessionUser">SessionUser</a>, token: string }</span></span>
+    <span class="p-desc">Signed in; sets the session cookie.<span class="r-sig">{ user: <a href="#schema-UserInfo">UserInfo</a>, isNew: boolean }</span></span>
   </div>
   <div class="prow rrow">
     <span class="r-code s4">401</span>
-    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
-  </div>
-    </div>
-  </div>
-</details>
-
-<details class="ep" id="op-registerOptions">
-  <summary>
-    <span class="m post">POST</span>
-    <span class="ep-path"><code>/api/register/options</code><span class="ep-chip public">public</span></span>
-    <span class="ep-chev" aria-hidden="true"></span>
-    <span class="ep-sum">Start passkey registration (WebAuthn ceremony, step 1)</span>
-  </summary>
-  <div class="ep-body">
-<p>Returns <code>PublicKeyCredentialCreationOptions</code> (from <code>@simplewebauthn/server</code>'s <code>generateRegistrationOptions</code>) plus a challenge id <code>cid</code>. The client passes <code>options</code> to <code>navigator.credentials.create()</code> (or <code>@simplewebauthn/browser</code>'s <code>startRegistration</code>) and sends the result to <code>/api/register/verify</code> together with the <code>cid</code>. Challenges are one-shot and expire after 5 minutes.</p>
-<p>CSRF-exempt (the challenge is the credential). No session required.</p>
-    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Public: no authentication required.</span></p>
-
-<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
-  <div class="prow">
-    <span class="p-name">name<em class="p-req" title="required">required</em></span>
-    <span class="p-type">string <span class="p-hint">(&le; 40 chars)</span></span>
-    <span class="p-desc">Display name for the new profile (trimmed, max 40 chars).</span>
-  </div>
-  <div class="prow">
-    <span class="p-name">code</span>
-    <span class="p-type">string</span>
-    <span class="p-desc">Invite code, required (and validated) only when the instance runs with INVITE_ONLY. Compared case-insensitively.</span>
-  </div>
-</div>
-<pre><code>{
-  &quot;name&quot;: &quot;Ada&quot;,
-  &quot;code&quot;: &quot;3F9C21A07B54D688&quot;
-}</code></pre>
-    <p class="ep-h">Responses</p>
-    <div class="ptab">
-  <div class="prow rrow">
-    <span class="r-code s2">200</span>
-    <span class="p-desc">Ceremony options.<span class="r-sig">{ cid: string, options: <a href="#schema-WebAuthnRegistrationOptions">WebAuthnRegistrationOptions</a> }</span></span>
-  </div>
-  <div class="prow rrow">
-    <span class="r-code s4">400</span>
-    <span class="p-desc"><code>name</code> missing/empty.<span class="r-sig"><code>{&quot;error&quot;:&quot;name required&quot;}</code></span></span>
+    <span class="p-desc">Wrong or expired code; 5 failures lock the number.</span>
   </div>
   <div class="prow rrow">
     <span class="r-code s4">403</span>
-    <span class="p-desc">Instance is invite-only and the code is missing, used, or revoked.<span class="r-sig"><code>{&quot;error&quot;:&quot;a valid invite code is required&quot;}</code></span></span>
+    <span class="p-desc"><code>invite</code> required to create (invite-only instance).</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">429</span>
+    <span class="p-desc">Paused by the sign-in throttle (see <i>Throttling</i> in the description). The request was not looked at; try again after <code>Retry-After</code> seconds.<span class="r-sig"><code>{&quot;error&quot;:&quot;too many attempts, try again later&quot;}</code></span></span>
   </div>
     </div>
   </div>
 </details>
 
-<details class="ep" id="op-registerVerify">
+<details class="ep" id="op-authBindPhone">
   <summary>
     <span class="m post">POST</span>
-    <span class="ep-path"><code>/api/register/verify</code><span class="ep-chip public">public</span></span>
+    <span class="ep-path"><code>/api/auth/bind-phone</code></span>
     <span class="ep-chev" aria-hidden="true"></span>
-    <span class="ep-sum">Finish passkey registration (WebAuthn ceremony, step 2)</span>
+    <span class="ep-sum">Bind a mobile number to the signed-in account</span>
   </summary>
   <div class="ep-body">
-<p>Verifies the authenticator's attestation response against the stored challenge (<code>verifyRegistrationResponse</code>), creates the user + credential, and signs the caller in (sets the session cookie). On an invite-only instance the invite is re-checked and burned here. CSRF-exempt.</p>
-    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Public: no authentication required.</span></p>
+<p>Verifies a fresh SMS code and attaches the <code>phone</code> identity to the caller. If the number already belongs to another account the request is refused (409) — sign in with that number instead and contact an admin to merge.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
 
 <p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
   <div class="prow">
-    <span class="p-name">cid<em class="p-req" title="required">required</em></span>
+    <span class="p-name">phone<em class="p-req" title="required">required</em></span>
     <span class="p-type">string</span>
-    <span class="p-desc">The challenge id from /api/register/options.</span>
+    <span class="p-desc"></span>
   </div>
   <div class="prow">
-    <span class="p-name">credential<em class="p-req" title="required">required</em></span>
-    <span class="p-type"><a href="#schema-WebAuthnRegistrationCredential">WebAuthnRegistrationCredential</a></span>
+    <span class="p-name">code<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
     <span class="p-desc"></span>
   </div>
 </div>
@@ -455,138 +407,19 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
     <div class="ptab">
   <div class="prow rrow">
     <span class="r-code s2">200</span>
-    <span class="p-desc">Registered and signed in. The session cookie is set.<span class="r-sig">{ user: <a href="#schema-SessionUser">SessionUser</a> } &middot; sets <code>Set-Cookie</code></span></span>
+    <span class="p-desc">Bound.</span>
   </div>
   <div class="prow rrow">
-    <span class="r-code s4">400</span>
-    <span class="p-desc">Challenge expired/replayed, or the attestation did not verify (wrong origin/RP ID, malformed response…). The message is human-readable.<span class="r-sig"><code>{&quot;error&quot;:&quot;challenge expired, try again&quot;}</code></span></span>
-  </div>
-  <div class="prow rrow">
-    <span class="r-code s4">403</span>
-    <span class="p-desc">Invite-only and the code became invalid since step 1.<span class="r-sig"><code>{&quot;error&quot;:&quot;invite code is no longer valid, ask for a new one&quot;}</code></span></span>
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
   </div>
   <div class="prow rrow">
     <span class="r-code s4">409</span>
-    <span class="p-desc">This credential id is already registered.<span class="r-sig"><code>{&quot;error&quot;:&quot;credential already registered&quot;}</code></span></span>
-  </div>
-    </div>
-  </div>
-</details>
-
-<details class="ep" id="op-loginOptions">
-  <summary>
-    <span class="m post">POST</span>
-    <span class="ep-path"><code>/api/login/options</code><span class="ep-chip public">public</span></span>
-    <span class="ep-chev" aria-hidden="true"></span>
-    <span class="ep-sum">Start passkey login (WebAuthn ceremony, step 1)</span>
-  </summary>
-  <div class="ep-body">
-<p>Returns <code>PublicKeyCredentialRequestOptions</code> (<code>generateAuthenticationOptions</code> with an empty <code>allowCredentials</code>; discoverable credentials / resident keys are required at registration, so the browser offers the user their passkeys itself) plus a one-shot challenge id <code>cid</code>. CSRF-exempt. Takes no request body.</p>
-    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Public: no authentication required.</span></p>
-
-
-    <p class="ep-h">Responses</p>
-    <div class="ptab">
-  <div class="prow rrow">
-    <span class="r-code s2">200</span>
-    <span class="p-desc">Ceremony options.<span class="r-sig">{ cid: string, options: <a href="#schema-WebAuthnAuthenticationOptions">WebAuthnAuthenticationOptions</a> }</span></span>
-  </div>
-    </div>
-  </div>
-</details>
-
-<details class="ep" id="op-loginVerify">
-  <summary>
-    <span class="m post">POST</span>
-    <span class="ep-path"><code>/api/login/verify</code><span class="ep-chip public">public</span></span>
-    <span class="ep-chev" aria-hidden="true"></span>
-    <span class="ep-sum">Finish passkey login (WebAuthn ceremony, step 2)</span>
-  </summary>
-  <div class="ep-body">
-<p>Verifies the assertion (<code>verifyAuthenticationResponse</code>), updates the signature counter, and signs the caller in (sets the session cookie). CSRF-exempt.</p>
-    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Public: no authentication required.</span></p>
-
-<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
-  <div class="prow">
-    <span class="p-name">cid<em class="p-req" title="required">required</em></span>
-    <span class="p-type">string</span>
-    <span class="p-desc">The challenge id from /api/login/options.</span>
-  </div>
-  <div class="prow">
-    <span class="p-name">credential<em class="p-req" title="required">required</em></span>
-    <span class="p-type"><a href="#schema-WebAuthnAuthenticationCredential">WebAuthnAuthenticationCredential</a></span>
-    <span class="p-desc"></span>
-  </div>
-</div>
-    <p class="ep-h">Responses</p>
-    <div class="ptab">
-  <div class="prow rrow">
-    <span class="r-code s2">200</span>
-    <span class="p-desc">Signed in. The session cookie is set.<span class="r-sig">{ user: <a href="#schema-SessionUser">SessionUser</a> } &middot; sets <code>Set-Cookie</code></span></span>
+    <span class="p-desc">The number already belongs to another account.</span>
   </div>
   <div class="prow rrow">
-    <span class="r-code s4">400</span>
-    <span class="p-desc">Challenge expired/replayed, or the assertion did not verify.<span class="r-sig"><code>{&quot;error&quot;:&quot;not verified&quot;}</code></span></span>
-  </div>
-  <div class="prow rrow">
-    <span class="r-code s4">403</span>
-    <span class="p-desc">The account has been disabled by an admin.<span class="r-sig"><code>{&quot;error&quot;:&quot;this account has been disabled&quot;}</code></span></span>
-  </div>
-  <div class="prow rrow">
-    <span class="r-code s4">404</span>
-    <span class="p-desc">The passkey's credential id is unknown to this instance.<span class="r-sig"><code>{&quot;error&quot;:&quot;unknown passkey, create a profile first&quot;}</code></span></span>
-  </div>
-  <div class="prow rrow">
-    <span class="r-code s5">500</span>
-    <span class="p-desc">Credential exists but its user record is missing (corrupt db).<span class="r-sig"><code>{&quot;error&quot;:&quot;user missing&quot;}</code></span></span>
-  </div>
-    </div>
-  </div>
-</details>
-
-<details class="ep" id="op-logout">
-  <summary>
-    <span class="m post">POST</span>
-    <span class="ep-path"><code>/api/logout</code><span class="ep-chip public">public</span></span>
-    <span class="ep-chev" aria-hidden="true"></span>
-    <span class="ep-sum">Sign out (this device)</span>
-  </summary>
-  <div class="ep-body">
-<p>Clears the session cookie. Always succeeds: an invalid or missing session is a no-op. The token itself stays cryptographically valid until it expires; use /api/logout/all to revoke tokens.</p>
-    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Public: no authentication required.</span></p>
-
-
-    <p class="ep-h">Responses</p>
-    <div class="ptab">
-  <div class="prow rrow">
-    <span class="r-code s2">200</span>
-    <span class="p-desc">Cookie cleared.<span class="r-sig"><a href="#schema-Ok">Ok</a> &middot; sets <code>Set-Cookie</code></span></span>
-  </div>
-    </div>
-  </div>
-</details>
-
-<details class="ep" id="op-logoutAll">
-  <summary>
-    <span class="m post">POST</span>
-    <span class="ep-path"><code>/api/logout/all</code></span>
-    <span class="ep-chev" aria-hidden="true"></span>
-    <span class="ep-sum">Sign out everywhere</span>
-  </summary>
-  <div class="ep-body">
-<p>Bumps the account's session version, which invalidates <b>every</b> cookie and Bearer token ever issued for it, on every device, including a copy someone walked off with. Passkeys are untouched; signing back in works immediately. Also clears the caller's own cookie. Unredeemed pairing codes for the account are voided too.</p>
-    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
-
-
-    <p class="ep-h">Responses</p>
-    <div class="ptab">
-  <div class="prow rrow">
-    <span class="r-code s2">200</span>
-    <span class="p-desc">All sessions revoked.<span class="r-sig"><a href="#schema-Ok">Ok</a> &middot; sets <code>Set-Cookie</code></span></span>
-  </div>
-  <div class="prow rrow">
-    <span class="r-code s4">401</span>
-    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+    <span class="r-code s4">429</span>
+    <span class="p-desc">Paused by the sign-in throttle (see <i>Throttling</i> in the description). The request was not looked at; try again after <code>Retry-After</code> seconds.<span class="r-sig"><code>{&quot;error&quot;:&quot;too many attempts, try again later&quot;}</code></span></span>
   </div>
     </div>
   </div>
@@ -596,7 +429,7 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
 
 <section class="api-sec" id="pairing">
   <h2>Pairing</h2>
-  <p class="sub">Mobile-app pairing (code from a signed-in browser tab)</p>
+  <p class="sub">Deprecated in this fork: mobile-app pairing (Node fallback only).</p>
   <div class="eps">
 
 <details class="ep" id="op-pairCreate">
@@ -664,7 +497,7 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
 
 <section class="api-sec" id="password">
   <h2>Password</h2>
-  <p class="sub">Optional name-and-password sign-in (<code>PASSWORD_LOGIN=1</code>). Every route here is a 404 while the flag is off.</p>
+  <p class="sub">Deprecated in this fork: name-and-password sign-in (Node fallback only).</p>
   <div class="eps">
 
 <details class="ep" id="op-loginPassword">
@@ -1094,7 +927,7 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
 
 <section class="api-sec" id="passkeys">
   <h2>Passkeys</h2>
-  <p class="sub">More than one passkey on a profile: list, add, rename, remove, plus one-time device links, which let another device of the same person add a passkey of its own.</p>
+  <p class="sub">Deprecated in this fork: passkeys and device links (Node fallback only).</p>
   <div class="eps">
 
 <details class="ep" id="op-listPasskeys">
@@ -1445,6 +1278,411 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   <div class="prow rrow">
     <span class="r-code s4">429</span>
     <span class="p-desc">Paused by the sign-in throttle (see <i>Throttling</i> in the description). The request was not looked at; try again after <code>Retry-After</code> seconds.<span class="r-sig"><code>{&quot;error&quot;:&quot;too many attempts, try again later&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+  </div>
+</section>
+
+<section class="api-sec" id="wechat">
+  <h2>undefined</h2>
+  <p class="sub">WeChat mini-program QR scan login</p>
+  <div class="eps">
+
+<details class="ep" id="op-authWechatQrcode">
+  <summary>
+    <span class="m get">GET</span>
+    <span class="ep-path"><code>/api/auth/wechat/qrcode</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">A mini-program QR for scan login</span>
+  </summary>
+  <div class="ep-body">
+<p>Mints a one-shot ticket (5 min TTL in Redis) and renders the mini-program code for it. The page shows the image and polls <code>GET /api/auth/wechat/poll</code>.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">The ticket and QR image.<span class="r-sig">{ ticket: string, image: string }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s5">503</span>
+    <span class="p-desc">WX_MINI_APPID/SECRET not configured.</span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-authWechatPoll">
+  <summary>
+    <span class="m get">GET</span>
+    <span class="ep-path"><code>/api/auth/wechat/poll</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Poll a scan-login ticket</span>
+  </summary>
+  <div class="ep-body">
+
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+<p class="ep-h">Query parameters</p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">ticket<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+</div>
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc"><code>status</code> pending until the mini program confirms; confirmed sets the cookie.<span class="r-sig">{ status: &quot;pending&quot; | &quot;confirmed&quot; | &quot;expired&quot;, user: <a href="#schema-UserInfo">UserInfo</a> }</span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-authWechatConfirm">
+  <summary>
+    <span class="m post">POST</span>
+    <span class="ep-path"><code>/api/auth/wechat/confirm</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">The mini program confirms a scan-login ticket</span>
+  </summary>
+  <div class="ep-body">
+<p>Called from the 沐禾健身 mini program: <code>wxCode</code> (from <code>wx.login</code>) exchanges for the caller's openid; the bound account signs in, an unknown WeChat identity creates the account, and the ticket flips to <code>confirmed</code>.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">ticket<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">wxCode<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc">From wx.login in the mini program.</span>
+  </div>
+</div>
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">Confirmed.</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">404</span>
+    <span class="p-desc">Unknown or expired ticket.</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s5">503</span>
+    <span class="p-desc">WX_MINI_APPID/SECRET not configured.</span>
+  </div>
+    </div>
+  </div>
+</details>
+  </div>
+</section>
+
+<section class="api-sec" id="meta">
+  <h2>Meta</h2>
+  <p class="sub">Health and public configuration</p>
+  <div class="eps">
+
+<details class="ep" id="op-getHealth">
+  <summary>
+    <span class="m get">GET</span>
+    <span class="ep-path"><code>/api/health</code><span class="ep-chip public">public</span></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Health check</span>
+  </summary>
+  <div class="ep-body">
+<p>Always public. Also reports how many user accounts exist.</p>
+<p>The check writes: it creates and removes one empty file under <code>DATA_DIR</code>, because a server whose data directory is full or read-only has every write path broken while the port still answers. It is a 503 when that fails — the container healthcheck (<code>wget --spider</code>) reads the status and nothing else.</p>
+<p>The probe runs at most once every five seconds and the answer in between is the last one, so a poll can be that stale. The route is unauthenticated, and one disk write per request is not something to leave open to anyone.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Public: no authentication required.</span></p>
+
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">The server is up and its data directory is writable.<span class="r-sig">{ ok: always true, users: integer, writable: always true }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s5">503</span>
+    <span class="p-desc">The data directory could not be written — a full disk, or a mount that came back read-only. Nothing that stores anything will work until it is fixed; the reason is in the container log.</span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-getConfig">
+  <summary>
+    <span class="m get">GET</span>
+    <span class="ep-path"><code>/api/config</code><span class="ep-chip public">public</span></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Instance configuration</span>
+  </summary>
+  <div class="ep-body">
+<p>The flags the login screen needs before anyone is signed in. Both reflect environment variables on the server (<code>INVITE_ONLY</code>, <code>ALLOW_GUEST</code>), and so does <code>password_login</code>, which is there only when <code>PASSWORD_LOGIN=1</code>, and <code>default_lang</code>, which is there only when <code>DEFAULT_LANG</code> is set.</p>
+<p><code>media</code> is there unless the instance runs with <code>MEDIA_UPLOADS=0</code>, for everybody: the caps are not a secret, and its absence is how the app knows this server does not store photos and videos at all.</p>
+<p>A caller with a valid session also gets a <code>coach</code> key: the block when the instance has the AI Coach switched on <b>and</b> a provider connected, and <code>null</code> when it has not. A caller with no session gets no key at all. The block names the provider this instance talks to, which is the same fact <code>GET /api/coach/disclosure</code> will not hand out unauthenticated.</p>
+<p>The key is always present for a session, <code>null</code> included, so a client that caches this answer can tell &quot;no Coach on this instance&quot; from &quot;you were not signed in when you asked&quot; and knows whether asking again would change it.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Public: no authentication required.</span></p>
+
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">Instance flags, plus the Coach block for a signed-in caller.<span class="r-sig">{ invite_only: boolean, allow_guest: boolean, coach: object | null, password_login: always true, default_lang: string, media: <a href="#schema-MediaConfig">MediaConfig</a> }</span></span>
+  </div>
+    </div>
+  </div>
+</details>
+  </div>
+</section>
+
+<section class="api-sec" id="auth">
+  <h2>Auth</h2>
+  <p class="sub">Passkey (WebAuthn) registration and login, sessions</p>
+  <div class="eps">
+
+<details class="ep" id="op-getMe">
+  <summary>
+    <span class="m get">GET</span>
+    <span class="ep-path"><code>/api/me</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Who am I?</span>
+  </summary>
+  <div class="ep-body">
+<p>Resolves the current session to a user. A paired phone (bearer token) whose token is past half of <code>SESSION_DAYS</code> also receives a fresh <code>token</code> to use from now on; it carries the account's current session version, so &quot;sign out everywhere&quot; revokes it like the old one. Cookie sessions never get one.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">A valid session.<span class="r-sig">{ user: <a href="#schema-SessionUser">SessionUser</a>, token: string }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-registerOptions">
+  <summary>
+    <span class="m post">POST</span>
+    <span class="ep-path"><code>/api/register/options</code><span class="ep-chip public">public</span></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Start passkey registration (WebAuthn ceremony, step 1)</span>
+  </summary>
+  <div class="ep-body">
+<p>Returns <code>PublicKeyCredentialCreationOptions</code> (from <code>@simplewebauthn/server</code>'s <code>generateRegistrationOptions</code>) plus a challenge id <code>cid</code>. The client passes <code>options</code> to <code>navigator.credentials.create()</code> (or <code>@simplewebauthn/browser</code>'s <code>startRegistration</code>) and sends the result to <code>/api/register/verify</code> together with the <code>cid</code>. Challenges are one-shot and expire after 5 minutes.</p>
+<p>CSRF-exempt (the challenge is the credential). No session required.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Public: no authentication required.</span></p>
+
+<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">name<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string <span class="p-hint">(&le; 40 chars)</span></span>
+    <span class="p-desc">Display name for the new profile (trimmed, max 40 chars).</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">code</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">Invite code, required (and validated) only when the instance runs with INVITE_ONLY. Compared case-insensitively.</span>
+  </div>
+</div>
+<pre><code>{
+  &quot;name&quot;: &quot;Ada&quot;,
+  &quot;code&quot;: &quot;3F9C21A07B54D688&quot;
+}</code></pre>
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">Ceremony options.<span class="r-sig">{ cid: string, options: <a href="#schema-WebAuthnRegistrationOptions">WebAuthnRegistrationOptions</a> }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">400</span>
+    <span class="p-desc"><code>name</code> missing/empty.<span class="r-sig"><code>{&quot;error&quot;:&quot;name required&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">403</span>
+    <span class="p-desc">Instance is invite-only and the code is missing, used, or revoked.<span class="r-sig"><code>{&quot;error&quot;:&quot;a valid invite code is required&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-registerVerify">
+  <summary>
+    <span class="m post">POST</span>
+    <span class="ep-path"><code>/api/register/verify</code><span class="ep-chip public">public</span></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Finish passkey registration (WebAuthn ceremony, step 2)</span>
+  </summary>
+  <div class="ep-body">
+<p>Verifies the authenticator's attestation response against the stored challenge (<code>verifyRegistrationResponse</code>), creates the user + credential, and signs the caller in (sets the session cookie). On an invite-only instance the invite is re-checked and burned here. CSRF-exempt.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Public: no authentication required.</span></p>
+
+<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">cid<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc">The challenge id from /api/register/options.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">credential<em class="p-req" title="required">required</em></span>
+    <span class="p-type"><a href="#schema-WebAuthnRegistrationCredential">WebAuthnRegistrationCredential</a></span>
+    <span class="p-desc"></span>
+  </div>
+</div>
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">Registered and signed in. The session cookie is set.<span class="r-sig">{ user: <a href="#schema-SessionUser">SessionUser</a> } &middot; sets <code>Set-Cookie</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">400</span>
+    <span class="p-desc">Challenge expired/replayed, or the attestation did not verify (wrong origin/RP ID, malformed response…). The message is human-readable.<span class="r-sig"><code>{&quot;error&quot;:&quot;challenge expired, try again&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">403</span>
+    <span class="p-desc">Invite-only and the code became invalid since step 1.<span class="r-sig"><code>{&quot;error&quot;:&quot;invite code is no longer valid, ask for a new one&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">409</span>
+    <span class="p-desc">This credential id is already registered.<span class="r-sig"><code>{&quot;error&quot;:&quot;credential already registered&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-loginOptions">
+  <summary>
+    <span class="m post">POST</span>
+    <span class="ep-path"><code>/api/login/options</code><span class="ep-chip public">public</span></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Start passkey login (WebAuthn ceremony, step 1)</span>
+  </summary>
+  <div class="ep-body">
+<p>Returns <code>PublicKeyCredentialRequestOptions</code> (<code>generateAuthenticationOptions</code> with an empty <code>allowCredentials</code>; discoverable credentials / resident keys are required at registration, so the browser offers the user their passkeys itself) plus a one-shot challenge id <code>cid</code>. CSRF-exempt. Takes no request body.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Public: no authentication required.</span></p>
+
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">Ceremony options.<span class="r-sig">{ cid: string, options: <a href="#schema-WebAuthnAuthenticationOptions">WebAuthnAuthenticationOptions</a> }</span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-loginVerify">
+  <summary>
+    <span class="m post">POST</span>
+    <span class="ep-path"><code>/api/login/verify</code><span class="ep-chip public">public</span></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Finish passkey login (WebAuthn ceremony, step 2)</span>
+  </summary>
+  <div class="ep-body">
+<p>Verifies the assertion (<code>verifyAuthenticationResponse</code>), updates the signature counter, and signs the caller in (sets the session cookie). CSRF-exempt.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Public: no authentication required.</span></p>
+
+<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">cid<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc">The challenge id from /api/login/options.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">credential<em class="p-req" title="required">required</em></span>
+    <span class="p-type"><a href="#schema-WebAuthnAuthenticationCredential">WebAuthnAuthenticationCredential</a></span>
+    <span class="p-desc"></span>
+  </div>
+</div>
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">Signed in. The session cookie is set.<span class="r-sig">{ user: <a href="#schema-SessionUser">SessionUser</a> } &middot; sets <code>Set-Cookie</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">400</span>
+    <span class="p-desc">Challenge expired/replayed, or the assertion did not verify.<span class="r-sig"><code>{&quot;error&quot;:&quot;not verified&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">403</span>
+    <span class="p-desc">The account has been disabled by an admin.<span class="r-sig"><code>{&quot;error&quot;:&quot;this account has been disabled&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">404</span>
+    <span class="p-desc">The passkey's credential id is unknown to this instance.<span class="r-sig"><code>{&quot;error&quot;:&quot;unknown passkey, create a profile first&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s5">500</span>
+    <span class="p-desc">Credential exists but its user record is missing (corrupt db).<span class="r-sig"><code>{&quot;error&quot;:&quot;user missing&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-logout">
+  <summary>
+    <span class="m post">POST</span>
+    <span class="ep-path"><code>/api/logout</code><span class="ep-chip public">public</span></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Sign out (this device)</span>
+  </summary>
+  <div class="ep-body">
+<p>Clears the session cookie. Always succeeds: an invalid or missing session is a no-op. The token itself stays cryptographically valid until it expires; use /api/logout/all to revoke tokens.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Public: no authentication required.</span></p>
+
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">Cookie cleared.<span class="r-sig"><a href="#schema-Ok">Ok</a> &middot; sets <code>Set-Cookie</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-logoutAll">
+  <summary>
+    <span class="m post">POST</span>
+    <span class="ep-path"><code>/api/logout/all</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Sign out everywhere</span>
+  </summary>
+  <div class="ep-body">
+<p>Bumps the account's session version, which invalidates <b>every</b> cookie and Bearer token ever issued for it, on every device, including a copy someone walked off with. Passkeys are untouched; signing back in works immediately. Also clears the caller's own cookie. Unredeemed pairing codes for the account are voided too.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">All sessions revoked.<span class="r-sig"><a href="#schema-Ok">Ok</a> &middot; sets <code>Set-Cookie</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
   </div>
     </div>
   </div>
@@ -2581,15 +2819,46 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
     <span class="ep-sum">List all users</span>
   </summary>
   <div class="ep-body">
-<p>One row per user with workout counts, last sync, push status and live presence. <code>workouts</code> counts only the entries the drill-down can show. Admin only.</p>
+<p>One row per user with workout counts, last sync, push status and live presence. <code>workouts</code> counts only the entries the drill-down can show. Admin only. Paging/filtering parameters are a Go-backend extension: Node answers page 1 unfiltered with the full list (and totals absent).</p>
     <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Admin only: a signed-in session whose user is an admin (<code>ADMIN_UIDS</code> or <code>admin:true</code>), as the session cookie or a Bearer token.</span></p>
-
+<p class="ep-h">Query parameters</p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">q</span>
+    <span class="p-type">string <span class="p-hint">(&le; 80 chars)</span></span>
+    <span class="p-desc">Substring match over name and email (case-insensitive).</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">role</span>
+    <span class="p-type">&quot;super_admin&quot; | &quot;ops&quot; | &quot;support&quot; | &quot;none&quot;</span>
+    <span class="p-desc">Filter by highest active admin role; <code>none</code> = plain users.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">status</span>
+    <span class="p-type">&quot;active&quot; | &quot;disabled&quot;</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">sort</span>
+    <span class="p-type">&quot;last_sync&quot; | &quot;workouts&quot; | &quot;created&quot;</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">page</span>
+    <span class="p-type">integer <span class="p-hint">(1&ndash;, default 1)</span></span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">per_page</span>
+    <span class="p-type">integer <span class="p-hint">(1&ndash;100, default 25)</span></span>
+    <span class="p-desc"></span>
+  </div>
+</div>
 
     <p class="ep-h">Responses</p>
     <div class="ptab">
   <div class="prow rrow">
     <span class="r-code s2">200</span>
-    <span class="p-desc">All users.<span class="r-sig">{ users: <a href="#schema-AdminUserRow">AdminUserRow</a>[], invite_only: boolean, password_login: boolean, now: number }</span></span>
+    <span class="p-desc">One page of users, with header counters.<span class="r-sig">{ users: <a href="#schema-AdminUserRow">AdminUserRow</a>[], total: integer, today_new: integer, disabled_count: integer, page: integer, per_page: integer, invite_only: boolean, now: number }</span></span>
   </div>
   <div class="prow rrow">
     <span class="r-code s4">401</span>
@@ -4741,6 +5010,11 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
     <span class="p-desc"></span>
   </div>
   <div class="prow">
+    <span class="p-name">email</span>
+    <span class="p-type">string | null</span>
+    <span class="p-desc">Masked, <code>z***@example.com</code> (Go backend; list endpoints never return the full address — that is a step-up capability).</span>
+  </div>
+  <div class="prow">
     <span class="p-name">created</span>
     <span class="p-type">string | null</span>
     <span class="p-desc">ISO timestamp.</span>
@@ -4754,6 +5028,11 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
     <span class="p-name">admin</span>
     <span class="p-type">boolean</span>
     <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">role</span>
+    <span class="p-type">&quot;super_admin&quot; | &quot;ops&quot; | &quot;support&quot; | null</span>
+    <span class="p-desc">Highest active admin role (Go backend); null = plain user.</span>
   </div>
   <div class="prow">
     <span class="p-name">invitedBy</span>
@@ -4789,11 +5068,6 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
     <span class="p-name">password</span>
     <span class="p-type">boolean</span>
     <span class="p-desc">PASSWORD_LOGIN instances only. The profile has a password.</span>
-  </div>
-  <div class="prow">
-    <span class="p-name">email</span>
-    <span class="p-type">string | null</span>
-    <span class="p-desc">PASSWORD_LOGIN instances only. The e-mail the profile signs in with, if any.</span>
   </div>
 </div>
   </div>
@@ -5025,7 +5299,7 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   <div class="prow">
     <span class="p-name">ev<em class="p-req" title="required">required</em></span>
     <span class="p-type">string</span>
-    <span class="p-desc">Event name. Currently one of: <code>auth.register.ok|fail|denied</code>, <code>auth.login.ok|fail</code>, <code>auth.logout</code>, <code>auth.logout.all</code>, <code>auth.pair.create|ok|fail</code>, <code>admin.denied</code>, <code>admin.user.disable|enable</code>, <code>admin.invite.create|revoke</code>, <code>admin.audit.clear</code>.</span>
+    <span class="p-desc">Event name. Currently one of: <code>auth.register.ok|fail|denied</code> (deprecated), <code>auth.login.ok|fail</code> (deprecated), <code>auth.sms.send|verify</code>, <code>auth.wx.bind</code>, <code>auth.logout</code>, <code>auth.logout.all</code>, <code>auth.pair.create|ok|fail</code>, <code>admin.denied</code>, <code>admin.user.disable|enable</code>, <code>admin.invite.create|revoke</code>, <code>admin.audit.clear</code>.</span>
   </div>
   <div class="prow">
     <span class="p-name">ok<em class="p-req" title="required">required</em></span>
@@ -5061,6 +5335,62 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
     <span class="p-name">ip</span>
     <span class="p-type">string</span>
     <span class="p-desc">Only when AUDIT_IP is on: the full address (<code>full</code>) or just the network, /24 or /48 (<code>net</code>).</span>
+  </div>
+</div>
+  </div>
+</details>
+
+<details class="ep sch" id="schema-AuthIdentity">
+  <summary>
+    <span class="sch-name"><code>AuthIdentity</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">One login identity bound to an account (fork; phone | wx).</span>
+  </summary>
+  <div class="ep-body">
+
+<div class="ptab">
+  <div class="prow">
+    <span class="p-name">kind</span>
+    <span class="p-type">&quot;phone&quot; | &quot;wx&quot;</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">identifier</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">Mobile number or WeChat openid.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">created</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">ISO timestamp.</span>
+  </div>
+</div>
+  </div>
+</details>
+
+<details class="ep sch" id="schema-UserInfo">
+  <summary>
+    <span class="sch-name"><code>UserInfo</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum"></span>
+  </summary>
+  <div class="ep-body">
+
+<div class="ptab">
+  <div class="prow">
+    <span class="p-name">id</span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">name</span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">isNew</span>
+    <span class="p-type">boolean</span>
+    <span class="p-desc">Present on first sign-in of a fresh account.</span>
   </div>
 </div>
   </div>

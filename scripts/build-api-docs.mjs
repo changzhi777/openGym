@@ -122,6 +122,11 @@ function ptab (rows) {
 /* ------------------------------------------------------------ endpoint cards */
 
 const TAGS = {
+  sms: 'SMS 验证码登录',
+  pairing: '设备配对（deprecated）',
+  password: '密码登录（deprecated）',
+  passkeys: 'Passkey（deprecated）',
+  wechat: '微信扫码登录',
   meta: { title: 'Meta', side: 'Health &amp; public config' },
   auth: { title: 'Auth', side: 'Passkeys &amp; sessions' },
   pairing: { title: 'Pairing', side: 'Connect the mobile app' },

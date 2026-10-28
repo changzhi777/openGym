@@ -7,47 +7,29 @@ openapi: 3.1.0
 info:
   title: 沐禾健身 API
   version: 1.4.1
-  summary: Passkey (WebAuthn) auth + per-user state storage for 沐禾健身
+  summary: 手机号+短信验证码 / 微信扫码 auth + per-user state storage for 沐禾健身
   description: |
     The backend of 沐禾健身 (a fork of [openGym](https://opengym.ch)), a free, open-source
     gym & body-weight tracker. A plain Node server, no framework, JSON-file storage,
     HMAC-signed session cookies.
 
     ### Authentication
-    Sign-in is by **passkey** (WebAuthn, via `@simplewebauthn/server`). A successful
-    `register/verify` or `login/verify` sets the session cookie; every authenticated
-    route then works with that cookie. The paired mobile app has no shared cookie jar,
-    so it redeems a short pairing code (`/api/pair/redeem`) for the *same* signed token
-    and sends it as `Authorization: Bearer <token>` instead.
+    Sign-in is by **mobile number + SMS code** (one step: an unknown number signs up
+    automatically) or by **WeChat mini-program QR** (the page shows a code, the user scans
+    it into the 沐禾健身 mini program and confirms; the page logs in by polling). Both flows
+    set the same HMAC-signed session cookie. Identities live in `auth_identities`
+    (`phone` | `wx`), so one account can carry both and bind more later
+    (`POST /api/auth/bind-phone`). Passkeys, passwords and device pairing are retired in
+    this fork: the Go production stack does not implement them (no route), the Node
+    fallback keeps the legacy routes marked `deprecated`.
 
-    An instance started with `PASSWORD_LOGIN=1` also offers **name-and-password
-    sign-in** (tag `password`): opt-in per profile, scrypt-hashed, throttled, with an
-    admin-issued one-time reset code instead of e-mail. A profile may also add an e-mail
-    address to sign in with instead of its name (`/api/account/email`); no mail is ever
-    sent to it. Its routes set exactly the same cookie. With the flag off (the default)
-    every one of them answers 404.
+    The SMS sender is Tencent Cloud SMS (`SMS_*` env). Without credentials the API runs
+    in dev mode: the code is logged instead of sent.
 
     ### Throttling
-    The `password` routes are counted per client address: at most 60 requests a minute
-    across them, and wrong answers (a password, a reset code, an invite code on password
-    signup, an e-mail address already in use) pause the address from the 21st on, for 30 s,
-    doubling up to 15 min. Wrong passwords also pause the *account* they were tried
-    against from the 6th on, for 1 min doubling up to 1 h (the same pause whether the account
-    was named by its name or its e-mail), and an identifier that names no account is
-    paused the same way, as typed. A password check counts from the moment it
-    starts, so checks sent at once get no more tries than checks sent one by one. A
-    paused caller gets `429 {"error": …, "code": "locked", "retryAfter": <s>}` with a
-    `Retry-After` header. Passkey sign-up and sign-in and the pairing routes are not
-    throttled (their failures reach the audit log at most ten a minute per address).
-    The two routes that redeem a one-time device link (tag `passkeys`) share
-    the per-address budget, and wrong codes pause the address for link redemption only,
-    from the 21st on, the way wrong reset codes do. Adding or removing a passkey in Settings
-    (`POST /api/account/passkeys/options`, `DELETE /api/account/passkeys`) and making a
-    device code (`POST /api/account/device-link`) spend the per-address budget too, and a
-    current password given there as proof counts like one given at sign-in.
-    The address is the socket's, or with `TRUST_PROXY=1` the one a trusted proxy put in
-    `CF-Connecting-IP` / the last `X-Forwarded-For` entry / `X-Real-IP`; IPv6 clients are
-    counted by /64. Counters live in memory and reset on restart.
+    SMS sending is capped per number (10/day) and per address (30/day), with 60 s between
+    sends; wrong or expired codes pause the number after 5 failures for 1 min doubling up
+    to 1 h. Counters live in Redis and survive restarts.
 
     ### Sessions
     The cookie/bearer value is `<payload>.<hmac>` where the payload is
@@ -60,14 +42,9 @@ info:
     State-changing browser requests must come from the app's own origin. The server
     checks `Sec-Fetch-Site` (falling back to `Origin` vs the configured `ORIGIN`);
     a mismatch is refused with `403 {"error":"cross-origin request refused"}` on any
-    non-GET route. Exempt: passkey sign-up and sign-in (`register/options`,
-    `register/verify`, `login/options`, `login/verify`) and `pair/redeem`, each of which
-    carries its own one-shot credential in the body, and any request authenticated with a
-    Bearer token.
-    The password routes are **not** exempt: a hostile page knows a valid name and
-    password of its own, and could otherwise sign a visitor into it (login CSRF).
-    Neither are the device-link routes: a link is redeemed on the app's own origin,
-    the only one a passkey can be created for.
+    non-GET route. Exempt: `POST /api/auth/sms/send` (the code goes to the number's
+    owner, not the caller) and `POST /api/auth/wechat/confirm`, which carries the one-shot
+    ticket bound to the scanning device, and any request authenticated with a Bearer token.
 
     ### Environment-dependent behavior
     - `INVITE_ONLY=1`: registration requires a valid invite code (minted by an admin).
@@ -82,8 +59,10 @@ info:
     - `AUDIT_LOG` (default on), `AUDIT_MAX` (default 5000 events), `AUDIT_DAYS`
       (default 90), `AUDIT_IP` (`off` | `net` | `full`, default off) shape the audit
       log served by `GET /api/admin/audit`.
-    - `PASSWORD_LOGIN=1`: adds the `password` routes and `password_login: true` in
-      `GET /api/config`. Off by default.
+    - `SMS_SECRET_ID`/`SMS_SECRET_KEY`/`SMS_APP_ID`/`SMS_SIGN`/`SMS_TEMPLATE_ID`:
+      Tencent Cloud SMS credentials. Unset = dev mode (codes are logged, not sent).
+    - `WX_MINI_APPID`/`WX_MINI_SECRET`: the mini program that confirms QR scan logins;
+      unset = QR login answers 503.
     - `DEFAULT_LANG` (e.g. `pt-BR`; unset by default): `default_lang` in `GET /api/config`,
       the language of the sign-in screen and of every profile that never picked one.
     - `TRUST_PROXY=1`: the throttle reads the client address from proxy headers (set by
@@ -130,15 +109,15 @@ tags:
   - name: auth
     description: Passkey (WebAuthn) registration and login, sessions
   - name: pairing
-    description: Mobile-app pairing (code from a signed-in browser tab)
+    description: 'Deprecated in this fork: mobile-app pairing (Node fallback only).'
   - name: password
-    description: >-
-      Optional name-and-password sign-in (`PASSWORD_LOGIN=1`). Every route here is a 404
-      while the flag is off.
+    description: 'Deprecated in this fork: name-and-password sign-in (Node fallback only).'
   - name: passkeys
-    description: >-
-      More than one passkey on a profile: list, add, rename, remove, plus one-time device
-      links, which let another device of the same person add a passkey of its own.
+    description: 'Deprecated in this fork: passkeys and device links (Node fallback only).'
+  - name: sms
+    description: Mobile number + SMS code sign-in (register/login in one step)
+  - name: wechat
+    description: WeChat mini-program QR scan login
   - name: data
     description: Per-user state sync (the whole app state as one JSON blob)
   - name: push
@@ -293,8 +272,151 @@ paths:
                     invite_only: true
                     allow_guest: false
                     coach: { enabled: true, provider: compatible, providerLabel: "OpenAI-compatible endpoint", authMode: instance, community: false }
-                passwordLogin: { value: { invite_only: true, allow_guest: false, password_login: true } }
+                passwordLogin: { value: { invite_only: true, allow_guest: false } }
                 media: { value: { invite_only: false, allow_guest: true, media: { imageMB: 2, gifMB: 8, videoMB: 40, videoSec: 60, quotaMB: 200, workouts: true } } }
+
+  /api/auth/sms/send:
+    post:
+      tags: [sms]
+      operationId: authSmsSend
+      summary: Send a login/signup SMS code to a mobile number
+      description: >-
+        One step for both sign-in and sign-up: verifying the code signs the caller in
+        and creates the account when the number is unknown. Rate limits: 60 s between
+        sends per number, 10/day per number, 30/day per address. Codes live 5 minutes.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone]
+              properties:
+                phone: { type: string, description: 'Mainland mobile number, 11 digits.' }
+      responses:
+        '202': { description: "Sent; dev mode logs the code and answers dev=true." }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/auth/sms/verify:
+    post:
+      tags: [sms]
+      operationId: authSmsVerify
+      summary: Verify the SMS code — signs in or signs up
+      description: >-
+        One step for both: a known number signs in, an unknown one creates the account
+        (name `健身者####` from the number tail). Honors the instance invite gate
+        (`invite_only`): a valid invite code is required for account creation.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone, code]
+              properties:
+                phone: { type: string }
+                code: { type: string, description: 6 digits. }
+                invite: { type: string, description: Invite code, required to create on invite-only instances. }
+      responses:
+        '200':
+          description: Signed in; sets the session cookie.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user: { $ref: '#/components/schemas/UserInfo' }
+                  isNew: { type: boolean }
+        '401': { description: Wrong or expired code; 5 failures lock the number. }
+        '403': { description: '`invite` required to create (invite-only instance).' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/auth/wechat/qrcode:
+    get:
+      tags: [wechat]
+      operationId: authWechatQrcode
+      summary: A mini-program QR for scan login
+      description: >-
+        Mints a one-shot ticket (5 min TTL in Redis) and renders the mini-program code
+        for it. The page shows the image and polls `GET /api/auth/wechat/poll`.
+      responses:
+        '200':
+          description: The ticket and QR image.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ticket: { type: string }
+                  image: { type: string, description: PNG bytes, base64. }
+        '503': { description: WX_MINI_APPID/SECRET not configured. }
+
+  /api/auth/wechat/poll:
+    get:
+      tags: [wechat]
+      operationId: authWechatPoll
+      summary: Poll a scan-login ticket
+      parameters:
+        - name: ticket
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: '`status` pending until the mini program confirms; confirmed sets the cookie.'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, enum: [pending, confirmed, expired] }
+                  user:
+                    $ref: '#/components/schemas/UserInfo'
+
+  /api/auth/wechat/confirm:
+    post:
+      tags: [wechat]
+      operationId: authWechatConfirm
+      summary: The mini program confirms a scan-login ticket
+      description: >-
+        Called from the 沐禾健身 mini program: `wxCode` (from `wx.login`) exchanges for the
+        caller's openid; the bound account signs in, an unknown WeChat identity creates
+        the account, and the ticket flips to `confirmed`.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ticket, wxCode]
+              properties:
+                ticket: { type: string }
+                wxCode: { type: string, description: From wx.login in the mini program. }
+      responses:
+        '200': { description: Confirmed. }
+        '404': { description: Unknown or expired ticket. }
+        '503': { description: WX_MINI_APPID/SECRET not configured. }
+
+  /api/auth/bind-phone:
+    post:
+      tags: [sms]
+      operationId: authBindPhone
+      summary: Bind a mobile number to the signed-in account
+      description: >-
+        Verifies a fresh SMS code and attaches the `phone` identity to the caller. If the
+        number already belongs to another account the request is refused (409) — sign in
+        with that number instead and contact an admin to merge.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone, code]
+              properties:
+                phone: { type: string }
+                code: { type: string }
+      responses:
+        '200': { description: Bound. }
+        '409': { description: The number already belongs to another account. }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /api/me:
     get:
@@ -320,6 +442,7 @@ paths:
 
   /api/register/options:
     post:
+      deprecated: true
       tags: [auth]
       operationId: registerOptions
       summary: 'Start passkey registration (WebAuthn ceremony, step 1)'
@@ -379,6 +502,7 @@ paths:
 
   /api/register/verify:
     post:
+      deprecated: true
       tags: [auth]
       operationId: registerVerify
       summary: 'Finish passkey registration (WebAuthn ceremony, step 2)'
@@ -439,6 +563,7 @@ paths:
 
   /api/login/options:
     post:
+      deprecated: true
       tags: [auth]
       operationId: loginOptions
       summary: 'Start passkey login (WebAuthn ceremony, step 1)'
@@ -463,6 +588,7 @@ paths:
 
   /api/login/verify:
     post:
+      deprecated: true
       tags: [auth]
       operationId: loginVerify
       summary: 'Finish passkey login (WebAuthn ceremony, step 2)'
@@ -567,6 +693,7 @@ paths:
 
   /api/pair/create:
     post:
+      deprecated: true
       tags: [pairing]
       operationId: pairCreate
       summary: Mint a pairing code for the mobile app
@@ -591,6 +718,7 @@ paths:
 
   /api/pair/redeem:
     post:
+      deprecated: true
       tags: [pairing]
       operationId: pairRedeem
       summary: Redeem a pairing code for a Bearer token
@@ -635,6 +763,7 @@ paths:
 
   /api/login/password:
     post:
+      deprecated: true
       tags: [password]
       operationId: loginPassword
       summary: Sign in with a profile name or e-mail and a password
@@ -706,6 +835,7 @@ paths:
 
   /api/register/password:
     post:
+      deprecated: true
       tags: [password]
       operationId: registerPassword
       summary: Create a profile with a name and password
@@ -778,6 +908,7 @@ paths:
 
   /api/login/password-reset:
     post:
+      deprecated: true
       tags: [password]
       operationId: redeemPasswordReset
       summary: Set a new password with an admin's one-time reset code
@@ -836,6 +967,7 @@ paths:
 
   /api/account/password:
     get:
+      deprecated: true
       tags: [password]
       operationId: getAccountPassword
       summary: Whether this profile has a password
@@ -950,6 +1082,7 @@ paths:
 
   /api/account/email:
     post:
+      deprecated: true
       tags: [password]
       operationId: setAccountEmail
       summary: Set, change or remove the e-mail this profile may sign in with
@@ -1038,6 +1171,7 @@ paths:
 
   /api/admin/user/password-reset:
     post:
+      deprecated: true
       tags: [admin, password]
       operationId: adminPasswordReset
       summary: 'Admin: issue a one-time password reset code'
@@ -1089,6 +1223,7 @@ paths:
 
   /api/account/passkeys:
     get:
+      deprecated: true
       tags: [passkeys]
       operationId: listPasskeys
       summary: This profile's passkeys
@@ -1160,6 +1295,7 @@ paths:
 
   /api/account/passkeys/options:
     post:
+      deprecated: true
       tags: [passkeys]
       operationId: addPasskeyOptions
       summary: 'Add a passkey (step 1): prove it is you, get creation options'
@@ -1200,6 +1336,7 @@ paths:
 
   /api/account/passkeys/verify:
     post:
+      deprecated: true
       tags: [passkeys]
       operationId: addPasskeyVerify
       summary: 'Add a passkey (step 2): store the new one'
@@ -1251,6 +1388,7 @@ paths:
 
   /api/account/passkeys/rename:
     post:
+      deprecated: true
       tags: [passkeys]
       operationId: renamePasskey
       summary: Name one passkey
@@ -1286,6 +1424,7 @@ paths:
 
   /api/account/device-link:
     post:
+      deprecated: true
       tags: [passkeys]
       operationId: createDeviceLink
       summary: Make a one-time device link
@@ -1321,6 +1460,7 @@ paths:
 
   /api/device-link/options:
     post:
+      deprecated: true
       tags: [passkeys]
       operationId: deviceLinkOptions
       summary: 'Redeem a device link (step 1): check the code, get creation options'
@@ -1359,6 +1499,7 @@ paths:
 
   /api/device-link/verify:
     post:
+      deprecated: true
       tags: [passkeys]
       operationId: deviceLinkVerify
       summary: 'Redeem a device link (step 2): store the passkey and sign this device in'
@@ -2161,7 +2302,6 @@ paths:
                   page: { type: integer }
                   per_page: { type: integer }
                   invite_only: { type: boolean }
-                  password_login: { type: boolean, description: Present (true) with PASSWORD_LOGIN=1. }
                   now:
                     type: number
                     description: Server time (ms), for rendering relative times.
@@ -3962,9 +4102,6 @@ components:
         password:
           type: boolean
           description: PASSWORD_LOGIN instances only. The profile has a password.
-        email:
-          oneOf: [{ type: string }, { type: 'null' }]
-          description: PASSWORD_LOGIN instances only. The e-mail the profile signs in with, if any.
 
     Presence:
       type: object
@@ -4045,7 +4182,8 @@ components:
           type: string
           description: |
             Event name. Currently one of:
-            `auth.register.ok|fail|denied`, `auth.login.ok|fail`, `auth.logout`,
+            `auth.register.ok|fail|denied` (deprecated), `auth.login.ok|fail` (deprecated),
+            `auth.sms.send|verify`, `auth.wx.bind`, `auth.logout`,
             `auth.logout.all`, `auth.pair.create|ok|fail`,
             `admin.denied`, `admin.user.disable|enable`,
             `admin.invite.create|revoke`, `admin.audit.clear`.
@@ -4072,6 +4210,21 @@ components:
         ok: true
         uid: Zk3q9XyPbA2LmN0v
         name: Ada
+
+    AuthIdentity:
+      type: object
+      description: One login identity bound to an account (fork; phone | wx).
+      properties:
+        kind: { type: string, enum: [phone, wx] }
+        identifier: { type: string, description: Mobile number or WeChat openid. }
+        created: { type: string, description: ISO timestamp. }
+
+    UserInfo:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        isNew: { type: boolean, description: Present on first sign-in of a fresh account. }
 
     # ------------------------------------------------------------------ AI Coach
     CoachCap:

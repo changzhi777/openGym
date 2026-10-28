@@ -1920,6 +1920,13 @@ const routes = {
   'POST /api/admin/roles/grant': notYetGo,
   'POST /api/admin/roles/revoke': notYetGo,
   'POST /api/admin/step-up': notYetGo,
+  // 认证重构(手机号+短信 / 微信扫码):契约已冻结,Go 栈实现中,Node 侧 501。
+  'POST /api/auth/sms/send': notYetGo,
+  'POST /api/auth/sms/verify': notYetGo,
+  'GET /api/auth/wechat/qrcode': notYetGo,
+  'GET /api/auth/wechat/poll': notYetGo,
+  'POST /api/auth/wechat/confirm': notYetGo,
+  'POST /api/auth/bind-phone': notYetGo,
   'GET /api/admin/session': notYetGo,
   'GET /api/admin/users/{id}/export': notYetGo,
   'GET /api/admin/settings': notYetGo,
