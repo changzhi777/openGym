@@ -423,3 +423,32 @@ export async function passwordRegister(name, password, code, email) {
 export async function passwordResetRedeem(name, code, next) {
   return (await post('/api/login/password-reset', { name, code, next })).user
 }
+
+// ── 认证重构(2026-10-29):手机号+短信验证码 / 微信小程序码扫码 ──────────────
+
+/** 发送短信验证码(60s 重发间隔由 UI 倒计;防刷在服务端)。dev 模式应答 { dev: true }。 */
+export async function smsSend(phone) {
+  return api('/api/auth/sms/send', { method: 'POST', body: JSON.stringify({ phone }) })
+}
+
+/** 验证码核验:有号登录、无号建号(一体式);inviteOnly 实例需 invite。 */
+export async function smsVerify(phone, code, invite) {
+  const body = { phone, code }
+  if (invite) body.invite = invite
+  return api('/api/auth/sms/verify', { method: 'POST', body: JSON.stringify(body) })
+}
+
+/** 拉微信扫码登录二维码(ticket + 小程序码 PNG base64)。 */
+export async function wechatQrcode() {
+  return api('/api/auth/wechat/qrcode')
+}
+
+/** 轮询扫码票据:pending / confirmed(应答含 user 且已落 cookie)。 */
+export async function wechatPoll(ticket) {
+  return api('/api/auth/wechat/poll?ticket=' + encodeURIComponent(ticket))
+}
+
+/** 已登录账号绑定手机号(短信验证码确认)。 */
+export async function bindPhone(phone, code) {
+  return api('/api/auth/bind-phone', { method: 'POST', body: JSON.stringify({ phone, code }) })
+}

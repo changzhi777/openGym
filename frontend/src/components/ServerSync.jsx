@@ -13,7 +13,6 @@ import { syncMedia } from '../lib/media-sync.js'
 import { DEMO } from '../lib/demo.js'
 import { askAddDeviceData, menuSheet } from '../sheets.jsx'
 import { ConnectSheet, CfAccessSheet } from '../views/MobileOnboarding.jsx'
-import { passwordOn, openPasswordSignIn } from './PasswordAuth.jsx'
 import { Section, Row, Button } from './ui.jsx'
 
 const ui = () => useUI.getState()
@@ -129,8 +128,8 @@ export function connectServer() {
 // first, with the passkey one tap away on it: which of the two this account has is not
 // something this browser can know.
 export function signInAgain() {
-  if (pwOn()) { openPasswordSignIn(webauthnOK() ? passkeySignIn : undefined); return }
-  return passkeySignIn()
+  // 认证重构:统一走主站登录页(手机号验证码 / 微信扫码)。
+  window.location.assign('/login')
 }
 export async function passkeySignIn() {
   const st = useStore.getState()
