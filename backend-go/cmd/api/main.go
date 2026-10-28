@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	webauthn "github.com/changzhi777/openGym/backend-go/internal/auth"
+	"github.com/changzhi777/openGym/backend-go/internal/auth"
 	"github.com/changzhi777/openGym/backend-go/internal/coach"
 	"github.com/changzhi777/openGym/backend-go/internal/data"
 	"github.com/changzhi777/openGym/backend-go/internal/httpx"
@@ -22,12 +22,13 @@ import (
 	"github.com/changzhi777/openGym/backend-go/internal/presence"
 	"github.com/changzhi777/openGym/backend-go/internal/push"
 	"github.com/changzhi777/openGym/backend-go/internal/quota"
+	"github.com/changzhi777/openGym/backend-go/internal/sms"
 	"github.com/changzhi777/openGym/backend-go/internal/testmode"
+	"github.com/changzhi777/openGym/backend-go/internal/wechat"
 
 	"github.com/gin-gonic/gin"
 
 	"github.com/changzhi777/openGym/backend-go/internal/admin"
-	"github.com/changzhi777/openGym/backend-go/internal/auth"
 	"github.com/changzhi777/openGym/backend-go/internal/cache"
 	"github.com/changzhi777/openGym/backend-go/internal/store"
 )
@@ -104,29 +105,21 @@ func main() {
 		c.JSON(status, gin.H{"ok": pgOK && rdOK, "pg": pgOK, "redis": rdOK, "svc": "muhe-go"})
 	})
 
-	// P2a 认证闭环(register/login ×2 + me + logout)。
-	wa, err := webauthn.NewWebAuthn(rpName(), rpID(), origin())
-	if err != nil {
-		log.Fatalf("webauthn: %v", err)
-	}
+	// 认证重构(2026-10-29):手机号+短信验证码 / 微信小程序码扫码;passkey/密码/配对退役。
 	sessions := auth.NewSessions(secret(), sessionDays(), strings.Contains(origin(), "https://"))
-	svc := &auth.Service{DB: db, WA: wa, Sessions: sessions, Challenges: auth.NewChallengeStore(), Pairs: auth.NewPairStore(), InviteEnvDef: inviteEnvDefault()}
-	r.POST("/api/register/options", svc.RegisterOptions)
-	r.POST("/api/register/verify", svc.RegisterVerify)
-	r.POST("/api/login/options", svc.LoginOptions)
-	r.POST("/api/login/verify", svc.LoginVerify)
+	smsSender := sms.FromEnv()
+	smsStore := sms.Store{Rdb: rdb}
+	wxMini := wechat.New(os.Getenv("WX_MINI_APPID"), os.Getenv("WX_MINI_SECRET"), rdb)
+	svc := &auth.Service{DB: db, Sessions: sessions, Rdb: rdb,
+		Sms: smsSender, SmsStore: smsStore, Wx: wxMini, InviteEnvDef: inviteEnvDefault()}
+	r.POST("/api/auth/sms/send", svc.SmsSend)
+	r.POST("/api/auth/sms/verify", svc.SmsVerify)
+	r.GET("/api/auth/wechat/qrcode", svc.WechatQrcode)
+	r.GET("/api/auth/wechat/poll", svc.WechatPoll)
+	r.POST("/api/auth/wechat/confirm", svc.WechatConfirm)
+	r.POST("/api/auth/bind-phone", svc.BindPhone)
 	r.GET("/api/me", svc.Me)
 	r.POST("/api/logout", svc.Logout)
-	r.POST("/api/pair/create", svc.PairCreate)
-	r.POST("/api/pair/redeem", svc.PairRedeem)
-	r.GET("/api/account/passkeys", svc.PasskeysGet)
-	r.POST("/api/account/passkeys/options", svc.PasskeysOptions)
-	r.POST("/api/account/passkeys/verify", svc.PasskeysVerify)
-	r.DELETE("/api/account/passkeys", svc.PasskeysDelete)
-	r.POST("/api/account/device-link", svc.DeviceLinkCreate)
-	r.POST("/api/device-link/options", svc.DeviceLinkOptions)
-	r.POST("/api/device-link/verify", svc.DeviceLinkVerify)
-	r.POST("/api/account/passkeys/rename", svc.PasskeysRename)
 	r.POST("/api/logout/all", svc.LogoutAll)
 
 	// P3a:数据三端点。
@@ -202,9 +195,11 @@ func main() {
 	r.POST("/api/media/sweep", mediaSvc.Sweep)
 
 	// P5:管理后台(角色分层:support 只读/ops 运营/super_admin 全权;敏感操作挂 step-up)。
-	adminSvc := admin.New(db, sessions, wa, svc.Challenges)
+	adminSvc := admin.New(db, sessions)
 	adminSvc.InviteEnvDef = inviteEnvDefault()
 	adminSvc.Rdb = rdb
+	adminSvc.SmsStore = smsStore
+	adminSvc.SmsSender = smsSender
 	r.GET("/api/admin/session", adminSvc.Session)
 	coachProxy.StepUpOK = adminSvc.StepUpValid // config/connect/disconnect 的 step-up 闸门
 	support := adminSvc.RequireRole(admin.RoleSupport)

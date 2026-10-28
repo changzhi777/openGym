@@ -11,7 +11,6 @@ package testmode
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -130,13 +129,8 @@ func Seed(dbURL, dataDir string) {
 					fatal(e)
 				}
 			}
-			for _, c := range d.Creds {
-				pk, _ := base64.RawURLEncoding.DecodeString(c.PublicKey)
-				_, e := conn.Exec(ctx, `INSERT INTO passkeys (id,user_id,public_key,counter,transports,last_used)
-					VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (id) DO NOTHING`,
-					c.ID, c.UserID, pk, c.Counter, c.Transports, nilIfZero(c.LastUsed))
-				fatal(e)
-			}
+			// passkeys 表随认证重构退役(0012):db.json creds 不再入种子,
+			// 手机号/微信身份由测试用例按需经 auth_identities 直插。
 		}
 	}
 	files, _ := filepath.Glob(filepath.Join(dataDir, "state-*.json"))

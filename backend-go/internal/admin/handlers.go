@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -674,61 +673,30 @@ func randCode16() (string, error) {
 // StepUp POST /api/admin/step-up — passkey assertion → 5 分钟窗口。
 // 与 Node proveOwner 的 passkey 分支同语义:cid 一次性消费、凭据必须属于当前账号、
 // 验签通过才开窗;任一步失败返回 403(前端 stepUp.js 据此重新验证并重放原请求)。
+
+// StepUp POST /api/admin/step-up — 短信码确认(passkey 退役后的一致性口径)。
+// phone 必须已绑定到当前管理员;核验通过开 5 分钟窗口,审计留痕。
 func (s *Service) StepUp(c *gin.Context) {
-	uid := c.GetString("adminUID")
+	uid, _ := c.Get("adminUID")
 	var body struct {
-		CID        string          `json:"cid"`
-		Credential json.RawMessage `json:"credential"`
+		Phone string `json:"phone"`
+		Code  string `json:"code"`
 	}
 	if raw, ok := c.Get("rawBody"); ok {
-		if b, ok2 := raw.([]byte); ok2 {
-			json.Unmarshal(b, &body)
+		if bs, ok2 := raw.([]byte); ok2 {
+			json.Unmarshal(bs, &body)
 		}
 	}
-	if body.CID == "" || len(body.Credential) == 0 {
-		c.JSON(403, gin.H{"error": "confirm with your passkey first", "code": "passkey-required"})
+	owner, bound, err := store.UserByIdentity(c.Request.Context(), s.DB, store.IdPhone, strings.TrimSpace(body.Phone))
+	if err != nil || !bound || owner != uid.(string) {
+		c.JSON(403, gin.H{"error": "this number is not bound to the signed-in admin", "code": "phone"})
 		return
 	}
-	// 挑战由 /api/login/options 签发,一次性消费(Take 即删,重放无效)。
-	ch := s.Challenges.Take(body.CID)
-	if ch == nil || ch.Kind != "login" {
-		c.JSON(403, gin.H{"error": "challenge expired, try again", "code": "challenge-expired"})
+	if !s.SmsStore.Verify(c.Request.Context(), body.Phone, strings.TrimSpace(body.Code)) {
+		c.JSON(403, gin.H{"error": "wrong or expired code", "code": "sms-code"})
 		return
 	}
-	u, err := store.UserByID(c.Request.Context(), s.DB, uid)
-	if err != nil || u.Disabled {
-		c.JSON(403, gin.H{"error": "the passkey could not be verified", "code": "passkey"})
-		return
-	}
-	keys, err := store.KeysOf(c.Request.Context(), s.DB, uid)
-	if err != nil || len(keys) == 0 {
-		c.JSON(403, gin.H{"error": "the passkey could not be verified", "code": "passkey"})
-		return
-	}
-	var ref struct {
-		ID string `json:"id"`
-	}
-	json.Unmarshal(body.Credential, &ref)
-	handles := make([]auth.KeyHandle, len(keys))
-	owned := false
-	for i, k := range keys {
-		if k.ID == ref.ID {
-			owned = true
-		}
-		handles[i] = auth.KeyHandle{ID: k.ID, PublicKey: k.PublicKey, Counter: k.Counter}
-	}
-	if !owned { // 别人的 key 不能给本会话开窗(Node passkeyStepUp 同款归属校验)。
-		c.JSON(403, gin.H{"error": "the passkey could not be verified", "code": "passkey"})
-		return
-	}
-	counter, err := s.WA.VerifyAuthentication([]byte(u.ID), u.Name, handles, body.Credential, ch.Challenge)
-	if err != nil {
-		log.Printf("admin.step-up: assertion for %s failed: %v", u.ID, err)
-		c.JSON(403, gin.H{"error": "the passkey could not be verified", "code": "passkey"})
-		return
-	}
-	store.UpdateKeyCounter(c.Request.Context(), s.DB, ref.ID, counter)
-	s.GrantStepUp(uid)
-	s.Audit(c, "admin.step_up", "", "", nil)
+	s.GrantStepUp(uid.(string))
+	s.Audit(c, "admin.step_up", "", "", gin.H{"via": "sms"})
 	c.JSON(200, gin.H{"ok": true, "until": time.Now().Add(5 * time.Minute).UnixMilli()})
 }
