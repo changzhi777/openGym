@@ -3,8 +3,9 @@
 media/img/
 media/gif/
 
-# Runtime data — users, passkeys, per-user state, session secret
-data/
+# Runtime data — users, passkeys, per-user state, session secret (root-anchored:
+# a bare data/ once swallowed backend-go/internal/data/ — never commit that package by accident)
+/data/
 
 # Local config
 .env
