@@ -176,11 +176,14 @@ func (s *Service) QuotaPut(c *gin.Context) {
 	c.JSON(200, gin.H{"ok": true})
 }
 
-// Roles GET /api/admin/roles — 活跃角色列表(super_admin)。
+// Roles GET /api/admin/roles — 活跃角色列表(super_admin);granted_by 同表解析显示名。
 func (s *Service) Roles(c *gin.Context) {
 	rows, err := s.DB.Query(c.Request.Context(), `
-		SELECT r.user_id, u.name, r.role::text, COALESCE(r.granted_by::text,''), r.granted_at
-		FROM admin_roles r JOIN users u ON u.id = r.user_id
+		SELECT r.user_id, u.name, r.role::text, COALESCE(r.granted_by::text,''),
+		       COALESCE(g.name,''), r.granted_at
+		FROM admin_roles r
+		JOIN users u ON u.id = r.user_id
+		LEFT JOIN users g ON g.id = r.granted_by
 		WHERE r.revoked_at IS NULL ORDER BY r.granted_at`)
 	if err != nil {
 		c.JSON(500, gin.H{"error": "list"})
@@ -189,10 +192,11 @@ func (s *Service) Roles(c *gin.Context) {
 	defer rows.Close()
 	out := []gin.H{}
 	for rows.Next() {
-		var uid, name, role, by string
+		var uid, name, role, by, byName string
 		var at time.Time
-		rows.Scan(&uid, &name, &role, &by, &at)
-		out = append(out, gin.H{"user_id": uid, "name": name, "role": role, "granted_by": by, "granted_at": at.UnixMilli()})
+		rows.Scan(&uid, &name, &role, &by, &byName, &at)
+		out = append(out, gin.H{"user_id": uid, "name": name, "role": role,
+			"granted_by": by, "granted_by_name": byName, "granted_at": at.UnixMilli()})
 	}
 	c.JSON(200, gin.H{"roles": out})
 }

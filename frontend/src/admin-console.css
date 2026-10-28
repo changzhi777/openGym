@@ -120,3 +120,23 @@ button.adm-tr.adm-td:last-child { border-bottom: 0; }
 .adm-tr.adm-audit { grid-template-columns: 1fr 120px; }
 .adm-audit .fail, .adm-rowline .fail { color: var(--bad-text); }
 @media (max-width: 899px) { .adm-tr.adm-audit { grid-template-columns: 1fr; } }
+
+/* ===== 角色与权限(批1,设计 §3.10/§3.12) ===== */
+.adm-role-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
+.adm-role-card { border: 1px solid var(--hair); border-radius: 12px; padding: 12px 14px; font-size: 13px; }
+.adm-role-card h4 { margin: 0 0 6px; font-size: 13.5px; }
+.adm-role-card ul { margin: 0; padding-left: 16px; color: var(--label-2); display: grid; gap: 3px; }
+.adm-role-note { color: var(--label-3); font-size: 12px; margin-top: 6px; }
+.adm-overlay { position: fixed; inset: 0; background: rgb(0 0 0 / 45%); display: grid; place-items: center; z-index: 70; padding: 16px; }
+.adm-modal { background: var(--bg-el); border: 1px solid var(--hair); border-radius: 16px; padding: 18px; width: min(460px, 100%); display: grid; gap: 12px; }
+.adm-modal h3 { margin: 0; font-size: 15.5px; }
+.adm-picklist { border: 1px solid var(--hair); border-radius: 10px; max-height: 180px; overflow: auto; display: grid; }
+.adm-picklist button { display: flex; justify-content: space-between; gap: 8px; padding: 9px 12px; background: none; border: 0; border-bottom: 1px solid var(--hair); color: var(--label); text-align: left; font-size: 13.5px; cursor: pointer; }
+.adm-picklist button:last-child { border-bottom: 0; }
+.adm-picklist button.on { background: var(--label); color: var(--bg-el); }
+.adm-picklist .sub { color: var(--label-3); font-size: 12px; }
+.adm-picklist button.on .sub { color: var(--bg-el); opacity: .7; }
+.adm-rolepick { border: 1px solid var(--hair); background: none; border-radius: 12px; padding: 10px 12px; text-align: left; color: var(--label); cursor: pointer; display: grid; gap: 2px; font-size: 13.5px; }
+.adm-rolepick.on { border-color: var(--label); }
+.adm-rolepick small { color: var(--label-3); font-size: 12px; }
+.adm-rowbtns { display: flex; gap: 6px; justify-content: flex-end; }

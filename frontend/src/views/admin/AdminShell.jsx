@@ -4,8 +4,10 @@
 // 移动顶栏 + 横向页签;权限不足渲染页面内 403 面板而非重定向(§5.1)。
 // 角色现实:后端(P0)只有 user.admin 布尔 —— UI 按设计的三角色建模,
 // 角色来源 user.adminRoles(未来 Go 后端),缺省回落 super_admin,结构就绪。
+import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useStore } from '../../store/useStore.js'
+import { api } from '../../lib/api.js'
 import { adminT } from '../../lib/admin/i18n.js'
 import { MOBILE } from '../../lib/mobile.js'
 import Icon from '../../components/Icon.jsx'
@@ -29,8 +31,13 @@ const ROLE_LABEL = { super_admin: '超级管理员', ops: '运营', support: '�
 export default function AdminShell() {
   const nav = useNavigate()
   const user = useStore(s => s.user)
-  // 后端尚未提供 adminRoles 时,admin 一律视作 super_admin(设计 §5 权限矩阵的临时回落)
-  const role = user?.adminRoles?.[0] || (user?.admin ? 'super_admin' : null)
+  // 真实角色经 /api/admin/session 一次拉取(Go 栈;契约 adminSession)。
+  // Node 侧 501/未就绪 → 回落旧推断(admin 布尔 → super_admin,设计 §2.6 临时映射)。
+  const [sessRole, setSessRole] = useState(undefined)
+  useEffect(() => {
+    api('/api/admin/session').then(r => setSessRole(r.role)).catch(() => setSessRole(null))
+  }, [])
+  const role = sessRole ?? (user?.adminRoles?.[0] || (user?.admin ? 'super_admin' : null))
   const readonly = role === 'support'
 
   if (!role) return (
