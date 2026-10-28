@@ -2121,10 +2121,32 @@ paths:
       description: >-
         One row per user with workout counts, last sync, push status and live
         presence. `workouts` counts only the entries the drill-down can show.
-        Admin only.
+        Admin only. Paging/filtering parameters are a Go-backend extension:
+        Node answers page 1 unfiltered with the full list (and totals absent).
+      parameters:
+        - name: q
+          in: query
+          schema: { type: string, maxLength: 80 }
+          description: Substring match over name and email (case-insensitive).
+        - name: role
+          in: query
+          schema: { type: string, enum: [super_admin, ops, support, none] }
+          description: 'Filter by highest active admin role; `none` = plain users.'
+        - name: status
+          in: query
+          schema: { type: string, enum: [active, disabled] }
+        - name: sort
+          in: query
+          schema: { type: string, enum: [last_sync, workouts, created], default: last_sync }
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: per_page
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 25 }
       responses:
         '200':
-          description: All users.
+          description: One page of users, with header counters.
           content:
             application/json:
               schema:
@@ -2133,6 +2155,11 @@ paths:
                   users:
                     type: array
                     items: { $ref: '#/components/schemas/AdminUserRow' }
+                  total: { type: integer, description: Rows matching the filter (for the pager). }
+                  today_new: { type: integer, description: Accounts created today (Go backend). }
+                  disabled_count: { type: integer, description: Disabled accounts (Go backend). }
+                  page: { type: integer }
+                  per_page: { type: integer }
                   invite_only: { type: boolean }
                   password_login: { type: boolean, description: Present (true) with PASSWORD_LOGIN=1. }
                   now:
@@ -3904,9 +3931,20 @@ components:
       properties:
         id: { type: string }
         name: { type: string }
+        email:
+          oneOf: [{ type: string }, { type: 'null' }]
+          description: >-
+            Masked, `z***@example.com` (Go backend; list endpoints never return
+            the full address — that is a step-up capability).
         created: { oneOf: [{ type: string }, { type: 'null' }], description: ISO timestamp. }
         disabled: { type: boolean }
         admin: { type: boolean }
+        role:
+          oneOf:
+            - type: string
+              enum: [super_admin, ops, support]
+            - type: 'null'
+          description: Highest active admin role (Go backend); null = plain user.
         invitedBy:
           oneOf: [{ type: string }, { type: 'null' }]
           description: The invite code this account was created with.

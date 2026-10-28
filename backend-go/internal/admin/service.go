@@ -33,6 +33,9 @@ const (
 	RoleSupport    = "support"
 	RoleOps        = "ops"
 	RoleSuperAdmin = "super_admin"
+
+	// AuditRetentionDays 审计保留天数(设计 §3.8"保留 90 天";PurgeLoop 每日清)。
+	AuditRetentionDays = 90
 )
 
 // roleRank 越权比较用。

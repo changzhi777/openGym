@@ -7,19 +7,19 @@ package main
 import (
 	"context"
 	"fmt"
-	"net"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"strings"
 	"time"
 
 	webauthn "github.com/changzhi777/openGym/backend-go/internal/auth"
-	"github.com/changzhi777/openGym/backend-go/internal/testmode"
 	"github.com/changzhi777/openGym/backend-go/internal/data"
 	"github.com/changzhi777/openGym/backend-go/internal/httpx"
 	"github.com/changzhi777/openGym/backend-go/internal/media"
 	"github.com/changzhi777/openGym/backend-go/internal/push"
+	"github.com/changzhi777/openGym/backend-go/internal/testmode"
 
 	"github.com/gin-gonic/gin"
 
@@ -93,7 +93,7 @@ func main() {
 		ctx, cancel := context.WithTimeout(c.Request.Context(), 2*time.Second)
 		defer cancel()
 		pgOK := db.Ping(ctx) == nil
-		rdOK := rdb.Ping(ctx).Err() == nil   // Ping 返回 *StatusCmd,判断 .Err()
+		rdOK := rdb.Ping(ctx).Err() == nil // Ping 返回 *StatusCmd,判断 .Err()
 		status := http.StatusOK
 		if !pgOK || !rdOK {
 			status = http.StatusServiceUnavailable
@@ -173,23 +173,28 @@ func main() {
 	r.POST("/api/admin/user/delete", super, stepUp, adminSvc.Delete)
 	r.GET("/api/admin/users/:id/quota", support, adminSvc.QuotaGet)
 	r.PUT("/api/admin/users/:id/quota", ops, stepUp, adminSvc.QuotaPut)
+	r.GET("/api/admin/users/:id/activity", ops, stepUp, adminSvc.Activity)
+	r.GET("/api/admin/users/:id/export", ops, stepUp, adminSvc.Export)
 	r.GET("/api/admin/roles", super, adminSvc.Roles)
 	r.POST("/api/admin/roles/grant", super, stepUp, adminSvc.RoleGrant)
 	r.POST("/api/admin/roles/revoke", super, stepUp, adminSvc.RoleRevoke)
-	r.GET("/api/admin/audit-log", super, adminSvc.AuditLog)
+	// 审计:路径以契约为准(/api/admin/audit;P5 曾误挂 audit-log,前端/契约均为 audit)。
+	r.GET("/api/admin/audit", support, adminSvc.AuditLog)
+	r.POST("/api/admin/audit/clear", super, stepUp, adminSvc.AuditClear)
 	r.POST("/api/admin/step-up", support, adminSvc.StepUp)
+	go adminSvc.PurgeLoop(context.Background()) // 审计 90 天保留(§3.8)
 
 	// 其余端点尚未实现 —— 与 Node 侧 501 stub 同语义。
 	r.NoRoute(func(c *gin.Context) {
 		c.JSON(http.StatusNotImplemented, gin.H{"error": "planned for a later phase", "code": "not-implemented"})
 	})
 
-		ln, lerr := net.Listen("tcp", ":"+port)
+	ln, lerr := net.Listen("tcp", ":"+port)
 	if lerr != nil {
 		log.Fatal(lerr)
 	}
 	if os.Getenv("MUHE_TEST") == "1" {
-		testmode.Seed(_seedURL, _seedDir) // 迁移已随 store.Migrate 跑完,listen 前灌种子
+		testmode.Seed(_seedURL, _seedDir)                             // 迁移已随 store.Migrate 跑完,listen 前灌种子
 		fmt.Println(testmode.BootLine(ln.Addr().(*net.TCPAddr).Port)) // 绑定后打,Node 同序
 	}
 	srv := &http.Server{Handler: r, ReadHeaderTimeout: 5 * time.Second}
@@ -210,6 +215,7 @@ func sessionDays() int {
 	}
 	return n
 }
+
 // secret 会话 HMAC 密钥:env 优先 → DATA_DIR/secret 文件(Node 同语义;灰度切换
 // 两栈必须同钥,cookie 才互通)→ dev 兜底。
 func secret() []byte {
