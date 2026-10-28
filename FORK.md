@@ -9,7 +9,7 @@
 - **跟进策略**：保留完整 git 历史；`upstream` 指向上游原仓库，定期 rebase/merge
   吸收上游 release（上游约两周一个版本）。
 - **改动原则**：修改尽量收敛在独立分支与独立文件，减少与上游合并的冲突面。
-- **本地 remote 布局**：`origin` = 本 fork；`upstream` = DuarteSantos8/openGym。
+- **本地 remote 布局**（2026-10-28 迁移后）：`origin` = **cnb.cool/qingmu2026/muhe-fit**（CNB 私有主仓，沐禾健康组织）；`github` = changzhi777/openGym（GitHub 镜像）；`upstream` = DuarteSantos8/openGym。
 
 ## 2. 许可证义务（AGPL-3.0）
 

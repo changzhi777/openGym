@@ -1,7 +1,7 @@
 # 沐禾健身（Muhe Fit）· CLAUDE.md — AI 上下文文档
 
 > 版本: 3.0 | 最后更新: 2026-10-27 20:52:44 (CST)
-> 仓库: **fork** = github.com/changzhi777/openGym @ `claude/nostalgic-austin-94093b`（HEAD 2e6341af，v1.4.1-41）· 上游 = github.com/DuarteSantos8/openGym
+> 仓库: **fork 主仓 = cnb.cool/qingmu2026/muhe-fit**（CNB 私有，沐禾健康组织，2026-10-28 全量迁移）· GitHub 镜像 = changzhi777/openGym · 上游 = DuarteSantos8/openGym
 > 维护: init-architect（/init-project 增量模式）· 配套索引: [.claude/index.json](./.claude/index.json) · fork 台账: [FORK.md](./FORK.md)
 
 ---
