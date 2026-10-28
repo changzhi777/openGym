@@ -51,6 +51,7 @@
 | 2026-10-22 | `main` (c8832ca3) | 图标全套（PWA 180/192/512 + Android 6 密度） |
 | 2026-10-22 | `main` (8e263b24) | **动作中文说明全量翻译**：5,632 条 description + instructions（DeepSeek 批量，术语表对齐审计口径，74 万 tokens ≈2.2 元）；新建 `exercise-desc/zh.js`、`instr/zh.js` 1,324→5,632 条、AI 教练中文包同步 |
 | 2026-10-22 | `main` | **品牌替换 openGym → 沐禾健身 / Muhe Fit**：`i18n-core.js` t()/tn() 渲染层单点替换（含 `an openGym`→`a Muhe Fit` 冠词与 `Documents/openGym`→`Documents/MuheFit` 目录保护，locale 键零改动）；manifest/index.html/capacitor(appId=com.muhe.fit)/api RP_NAME/备份目录与文件名/分享图水印/.fit 软件名同步；图标暂留上游（待 Logo 资产） |
+| 2026-10-28 | `claude/nostalgic-austin-94093b` → `main` (4ee87a11..008e1ddc3) | **Admin 后台批 1-4 全量落地 + CNB 建仓迁移**：① 主仓迁 CNB `qingmu2026/muhe-fit`（私有，origin 切换，github 降镜像，68 refs 全历史）；② 修 `internal/data` 包缺失（根因 .gitignore 裸 `data/` 吞包，锚根 `/data/`）；③ 契约批 1a：session/export/settings/alive/live-SSE 五端点 + audit q + quota used + overview 扩形（86 端点）；④ Go 批 1b：session 端点 + 邀请码全链路（0011 表/注册闸门/三管理端点）+ 实例设置 + 审计 IP 读出 + 迁移器修丢码；⑤ 批 1c 角色页 `/admin/roles` + 壳接真实角色；⑥ 批 2：Users 端点重写（搜索/筛选/分页/统计/邮箱脱敏）+ activity/export + 配额 used + 审计深化（q/total/名字解析/清空/90 天清理）+ 前端四卡，修 P5 audit 路由 bug；⑦ 批 3：收编主 checkout P5 瘦尾 WIP（coach 桥/quota/媒体 GC/0007-0008）+ coach 放开 ops + presence（Redis）/live SSE + 概览 v2；⑧ 批 4：邀请码页 + 营收占位 + legacy 下线（Admin.jsx 删除） |
 
 > 后续改动在此追加；对外提供网络服务时，本节即 §13 源码可用性的入口之一。
 

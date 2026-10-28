@@ -17,6 +17,7 @@
 | P4 | Web Push 七端点（VAPID 与 Node 共用 `data/vapid.json`）+ 媒体四端点（sha256 校验 + 魔数嗅探 + `<DATA_DIR>/media/<uid>/<sha>` 布局与 Node 兼容） | ✅ |
 | P5 | 管理后台：九端点 + 角色分层（support 只读 / ops 运营 / super_admin 全权）+ 敏感操作 step-up + 审计 | ✅ |
 | P6 | 灰度演练：`scripts/gray-switch.sh`（备份 → 导入 → round-trip 验收 → 切换 → 回滚） | ✅ 已演练 |
+| 批1-3 | 2026-10-28 管理面全量：session/邀请码全链路/实例设置/审计深化(90天)/Users 重写/activity/export/quota used/收编 P5 瘦尾 WIP(coach 桥+quota+媒体 GC,0007-0008)/presence(Redis)+live SSE/coach 放开 ops+step-up/概览 v2 | ✅（FORK.md §5 台账） |
 
 **✅ 编译缺口已修复（2026-10-28）**：`internal/data`（P3a 数据三端点的 `data.Service`）代码早已写完，但被根 `.gitignore` 裸写的 `data/` 规则（无根锚定、任意深度匹配）整包静默吞掉——`git add` 跳过无报错、全历史零踪迹，实体仅存于主 checkout 工作区。已拷回 3 文件（handlers/stamps/stamps_test，592 行）并把规则锚根为 `/data/`；`go build ./...` 与 `go test ./internal/data/` 全绿，2026-10-28 随本仓提交恢复入库。教训：新目录提交前跑 `git check-ignore -v` 或核对 `git status`，ignore 规则一律根锚定。
 
@@ -34,7 +35,10 @@
 | `internal/httpx/` | CORS（预检 204 + Capacitor 源，与 Node `APP_ORIGINS` 同集）、CSRF（Node `csrfOk` 移植，Sec-Fetch-Site 优先）、`BodyGuard`（5MiB cap→413，坏 JSON→400）、`ConfigSvc`（`/api/config`） |
 | `internal/media/` | 媒体四端点：PUT/GET `:hash`、`missing`、`sweep`；sha256 校验 + 魔数嗅探 |
 | `internal/push/` | Web Push 七端点（webpush-go）；休息计时调度 |
-| `internal/store/` | pgx 连接池 + users/states 存取 + `Migrate()`（**`go:embed migrations/*.sql` + golang-migrate，启动自动 up，幂等**，无独立 migrate 容器） |
+| `internal/store/` | pgx 连接池 + users/states/invites/settings 存取 + `Migrate()`（**`go:embed migrations/*.sql` + golang-migrate，启动自动 up，幂等**，无独立 migrate 容器） |
+| `internal/coach/` | 教练 sidecar 桥：/api/coach/* 反代 + admin 六端点（ops+，密钥操作挂 StepUpOK）+ /internal/coach 回读面 + 配额闸 |
+| `internal/quota/` | coach 月配额：Redis 周期键 + 60s 落账 usage_counters（0008），限额来自 user_quotas（自带测试） |
+| `internal/presence/` | 训练在线表：POST /api/activity 心跳（Redis TTL 70s/hidden 45s，Node 同口径）+ /api/admin/live SSE（15s 快照/10 分钟断开） |
 | `internal/testmode/` | Node 测试双跑支撑：`Setup`（每测试独立 PG 库 + secret）/`Seed`/`FreePort`/`BootLine`（启动行与 Node 同序，供测试解析） |
 | `internal/store/migrations/` | 6 个迁移：0001_init / 0002_users_sv / 0003_passkeys_meta / 0004_device_links / 0005_push_subs / 0006_admin_extra（顶层 `migrations/` 为同内容副本） |
 | `compose.go.yml` | **fork 专属本地栈**（上游 `docker-compose.yml` 不动，两栈并存）：pg:16-alpine + redis:7-alpine + api(3100→3110)。`docker compose -f compose.go.yml up -d --build` |
@@ -48,7 +52,7 @@
 - 数据 4：`GET /api/data`、`GET /api/data/rev`、`PUT /api/data`、`GET /api/config`
 - Push 7：public-key / subscribe / status / unsubscribe / test / rest-timer / rest-timer/cancel
 - Media 4：`PUT|GET /api/media/:hash`、missing、sweep
-- Admin 12：overview、users、user、user/disable、user/delete、quota GET/PUT、roles、roles/grant、roles/revoke、audit-log、step-up（角色：support 只读 → ops → super_admin；disable/delete/quota PUT/grant/revoke 挂 step-up）
+- Admin 12+：overview、users(搜索/筛选/分页)、user、user/disable、user/delete、quota GET/PUT(含 used)、user activity/export、roles、roles/grant、roles/revoke、audit-log(q/total/清空)、step-up、session、invites×3、settings×2、live SSE（角色：support 只读 → ops → super_admin；敏感操作挂 step-up）
 - **NoRoute → 501 `{error:"planned for a later phase", code:"not-implemented"}`** —— 与 Node 侧 `notYetGo` stub 同语义
 
 ## 数据模型要点

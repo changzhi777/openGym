@@ -7,7 +7,7 @@
 ## 模块职责
 
 - 计划（周表/轮换 A-B-C）、训练（引导式会话：预填重量、休息计时、PR 检测）、统计（热图/1RM/结构平衡/肌肉图）、历史、设置、管理面板、Coach 对话界面
-- 🆕 **管理后台 `views/admin/`**：AdminShell 布局壳（桌面侧栏/移动顶栏、运营/系统两组导航）+ 概览 + 用户 + 用户详情 + 审计（游标分页）+ 占位页；三角色模型（super_admin / ops / support 只读）+ step-up 框架（`lib/admin/stepUp.js`）；后端未供 adminRoles 时回落 super_admin；手机端只读
+- 🆕 **管理后台 `views/admin/`**（批1-4 后 8 文件）：AdminShell 布局壳（桌面侧栏/移动顶栏、运营/系统两组导航、session 真实角色）+ 概览 v2（Go 聚合 + SSE 实时卡）+ 用户列表（服务端分页）+ 用户详情四卡 + 审计（搜索/展开/清空）+ **Roles 角色页 + Invites 邀请码页** + 占位页；三角色模型 + step-up（`lib/admin/stepUp.js`）；手机端只读；**旧版 views/Admin.jsx 已下线删除（2026-10-28）**
 - **训练域逻辑全部为纯函数**放 `src/lib/`，MCP 服务器也直接复用
 - Zustand 单店状态 + localStorage 持久化 + 登录后防抖推送服务端（字段级合并）
 - 19 语言 i18n + RTL；🆕 动作说明全量中文（`instr/zh.js`、`exercise-desc/zh.js` 各 5,632 条，由 catalogue 构建生成）；动作库 6,554 条
