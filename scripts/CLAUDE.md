@@ -2,7 +2,7 @@
 
 # scripts/ — 仓库级工具链
 
-> 36 个文件：目录库构建/校验/批量中文化、coach 资产构建、API 文档生成、媒体打包、翻译名称源数据，🆕 fork 新增部署与测试门脚本。全部为开发期工具，不进任何运行时镜像。
+> 37 个文件：目录库构建/校验/批量中文化、coach 资产构建、API 文档生成、媒体打包、翻译名称源数据，fork 部署与测试门脚本。全部为开发期工具，不进任何运行时镜像。
 
 ## 目录结构
 
@@ -29,7 +29,8 @@
 | `build-coach-assets.mjs` / `build-coach-library.mjs` | coach 提示词/库资产构建（CI test.yml 盯着；中文动作包 `instructions-zh.js` 随说明中文化同步再生） |
 | `build-hevy-id-map.mjs` | Hevy 导入的 id 映射再生（需 `HEVY_API_KEY`） |
 | 🆕 `test-all.sh` | **fork 测试门**（FORK.md §6 口径）：钉死 Node 22（自动探测 homebrew node@22）+ `TZ=UTC`，三套全跑 `./scripts/test-all.sh [api|frontend|mcp]`。两个钉死变量不是玄学：Node≥24 的实验性全局 localStorage 遮蔽 happy-dom（frontend 大面积红）；UTC+8 时区让 demoSeed 多生成"今天"训练（mcp/frontend 共 7 红）。基线：api 605 / frontend 5060 / mcp 95 全绿 |
-| 🆕 `deploy-ct151.sh` | **fork 生产部署**：从本机更新 PVE CT 151（openGym-allinone @ 10.10.10.151，需在内网）。幂等：tar 打包（排 node_modules/.git/data/dist/.env）→ PVE → CT 解包 → `npm ci` + systemd 重启 → 前端构建 → nginx 首装+站点配置。`--api-only` 跳过前端 |
+| 🆕 `deploy-ct151.sh` | **fork 生产部署（旧）**：从本机更新 PVE CT 151（openGym-allinone @ 10.10.10.151，需在内网）。幂等：tar 打包（排 node_modules/.git/data/dist/.env）→ PVE → CT 解包 → `npm ci` + systemd 重启 → 前端构建 → nginx 首装+站点配置。`--api-only` 跳过前端 |
+| 🆕 `deploy-118.sh` | **fork 生产部署（现行，qingmulife.com @ 43.129.201.118）**：Go 栈 compose build+up + 前端 dist rsync + 双域 health 验证，幂等。`--web-only` 跳过 API。⚠️ bsdtar 坑：exclude 带 `./` 前缀会匹配任意路径段（曾吞 internal/data，见 FORK.md 台账）。数据备份 = 服务器 /opt/muhe-fit/data + pg 卷 |
 | `de-name-rules.mjs` | 德语名称规则处理 |
 | `ci/fork-mr-pipelines.py` | GitLab 侧 fork MR 流水线辅助 |
 
