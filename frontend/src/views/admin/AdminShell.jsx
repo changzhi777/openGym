@@ -7,10 +7,13 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useStore } from '../../store/useStore.js'
+import { useUI } from '../../store/useUI.js'
 import { api } from '../../lib/api.js'
 import { adminT } from '../../lib/admin/i18n.js'
+import { setStepUpVerifier } from '../../lib/admin/stepUp.js'
 import { MOBILE } from '../../lib/mobile.js'
 import Icon from '../../components/Icon.jsx'
+import StepUpSheet from './StepUpSheet.jsx'
 import '../../admin-console.css'
 
 const NAV = [
@@ -37,6 +40,16 @@ export default function AdminShell() {
   const [sessRole, setSessRole] = useState(undefined)
   useEffect(() => {
     api('/api/admin/session').then(r => setSessRole(r.role)).catch(() => setSessRole(null))
+  }, [])
+  // 注入 step-up 验证器:apiAdmin 拦到 403 step-up-required 时弹出短信验证;
+  // done resolve → 原请求重放;取消/关闭 → reject 透传给调用方。
+  useEffect(() => {
+    setStepUpVerifier(() => new Promise((resolve, reject) => {
+      useUI.getState().openSheet(
+        close => <StepUpSheet close={close} onDone={resolve} onCancel={reject} />,
+        { locked: true },
+      )
+    }))
   }, [])
   const role = sessRole ?? (user?.adminRoles?.[0] || (user?.admin ? 'super_admin' : null))
   const readonly = role === 'support'
