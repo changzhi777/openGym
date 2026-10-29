@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -125,11 +126,13 @@ func (s *Service) Users(c *gin.Context) {
 	s.DB.QueryRow(ct, `SELECT count(*) FROM users WHERE disabled`).Scan(&disabledCount)
 
 	rows, err := s.DB.Query(ct, `
-		SELECT u.id, u.name, COALESCE(u.email,''), to_char(u.created_at,'YYYY-MM-"T"HH24:MI:SS"Z"') AS created, u.disabled,
+		SELECT u.id, u.name, COALESCE(u.email,''), to_char(u.created_at,'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS created, u.disabled,
 		       (SELECT count(*) FROM workouts wk WHERE wk.user_id=u.id) AS workouts,
-		       to_char((SELECT max(wk.date) FROM workouts wk WHERE wk.user_id=u.id),'YYYY-MM-DD') AS last_workout,
+		       (SELECT max(wk.date) FROM workouts wk WHERE wk.user_id=u.id) AS last_workout,
 		       (SELECT EXTRACT(epoch FROM st.updated_at)*1000 FROM states st WHERE st.user_id=u.id) AS last_sync,
 		       (SELECT count(*) > 0 FROM push_subs ps WHERE ps.user_id=u.id) AS has_push,
+		       (SELECT count(*) > 0 FROM auth_identities ai WHERE ai.user_id=u.id AND ai.kind='phone') AS has_phone,
+		       (SELECT count(*) > 0 FROM auth_identities ai WHERE ai.user_id=u.id AND ai.kind='wx') AS has_wx,
 		       (SELECT ar.role::text FROM admin_roles ar WHERE ar.user_id=u.id AND ar.revoked_at IS NULL
 		        ORDER BY CASE ar.role::text WHEN 'super_admin' THEN 3 WHEN 'ops' THEN 2 ELSE 1 END DESC LIMIT 1) AS role
 		FROM users u WHERE `+w+` ORDER BY `+order+` LIMIT `+fmt.Sprint(per)+` OFFSET `+fmt.Sprint((page-1)*per), args...)
@@ -149,8 +152,8 @@ func (s *Service) Users(c *gin.Context) {
 		var disabled bool
 		var workouts int64
 		var lastWorkout, lastSync *string
-		var hasPush bool
-		if rows.Scan(&id, &name, &email, &created, &disabled, &workouts, &lastWorkout, &lastSync, &hasPush, &role) != nil {
+		var hasPush, hasPhone, hasWx bool
+		if rows.Scan(&id, &name, &email, &created, &disabled, &workouts, &lastWorkout, &lastSync, &hasPush, &hasPhone, &hasWx, &role) != nil {
 			continue
 		}
 		var ls any
@@ -161,7 +164,7 @@ func (s *Service) Users(c *gin.Context) {
 			"id": id, "name": name, "email": maskEmail(email), "created": created,
 			"disabled": disabled, "admin": role != "", "role": nilIfEmpty(role),
 			"workouts": workouts, "lastWorkout": lastWorkout, "lastSync": ls,
-			"hasPush": hasPush, "live": live[id],
+			"hasPush": hasPush, "hasPhone": hasPhone, "hasWx": hasWx, "live": live[id],
 		})
 	}
 	on, _ := store.InviteOnlyEffective(ct, s.DB, s.InviteEnvDef)
@@ -480,7 +483,7 @@ func (s *Service) AuditLog(c *gin.Context) {
 	rows, err := s.DB.Query(ct, `
 		SELECT l.id, COALESCE(u.name, l.admin_user_id), l.action,
 		       COALESCE(l.target_type,''), COALESCE(l.target_id,''), COALESCE(t.name,''),
-		       l.detail, l.created_at, l.ip
+		       l.detail, l.created_at, l.ip::text
 		FROM admin_audit_log l
 		LEFT JOIN users u ON u.id = l.admin_user_id
 		LEFT JOIN users t ON t.id = l.target_id
@@ -502,6 +505,7 @@ func (s *Service) AuditLog(c *gin.Context) {
 		var at time.Time
 		var ip *string
 		if rows.Scan(&id, &admin, &action, &tt, &tid, &tname, &detail, &at, &ip) != nil {
+			log.Printf("audit row scan: %v", rows.Err())
 			continue
 		}
 		var d any

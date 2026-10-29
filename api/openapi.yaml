@@ -4121,6 +4121,8 @@ components:
           oneOf: [{ type: number }, { type: 'null' }]
           description: The state's `_ts` (ms).
         hasPush: { type: boolean, description: Has at least one push subscription. }
+        hasPhone: { type: boolean, description: Has a bound phone identity. }
+        hasWx: { type: boolean, description: Has a bound WeChat identity. }
         live:
           oneOf: [{ $ref: '#/components/schemas/Presence' }, { type: 'null' }]
           description: Currently training, or null.
