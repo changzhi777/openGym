@@ -120,25 +120,26 @@ export default function AdminCoach() {
     <div className="adm-lead">Force-disabled by <code>COACH_DISABLED</code> in the server's environment. Remove that variable and restart to configure the Coach here.</div>
   </div>
 
-  const meta = d.providers.find(p => p.id === d.provider) || {}
+  const providers = d.providers || []   // 形状异常不崩页(接口挂时 providers 缺失)
+  const meta = providers.find(p => p.id === d.provider) || {}
   const authState = d.auth?.state
   const authed = authState === 'connected' || authState === 'not-required' || authState === 'optional'
   const needsEndpoint = !!meta.baseUrl
   const hasEndpoint = !needsEndpoint || !!d.baseUrl
-  const live = d.enabled && d.runtime.ok && authed && hasEndpoint
+  const live = d.enabled && d.runtime?.ok && authed && hasEndpoint
 
   const status = !d.enabled ? 'Off. Users won’t see the Coach anywhere in the app.'
     : live ? <>On · {meta.label}{d.model ? ' · ' + d.model : ''}</>
       : !hasEndpoint ? 'On, but no endpoint yet. Finish step 2.'
         : !authed ? 'On, but no credential yet. Finish the Credential step.'
-          : !d.runtime.ok ? 'On, but the provider can’t be reached. See the Test step.'
+          : !d.runtime?.ok ? 'On, but the provider can’t be reached. See the Test step.'
             : 'On'
 
   // Chips, grouped.
   const groups = [
-    { title: 'Paste an API key', hint: 'Plain HTTPS to the provider. Works on the default api image, nothing extra to install.', items: d.providers.filter(p => p.http) },
-    { title: 'Runs a local AI runtime', hint: 'Needs the bigger api image built with --target coach.', items: d.providers.filter(p => RUNTIME_IDS.includes(p.id)) },
-    { title: 'Testing', hint: 'A built-in fake that answers instantly, so the whole loop can be tried without an account.', items: d.providers.filter(p => TESTING_IDS.includes(p.id)) }
+    { title: 'Paste an API key', hint: 'Plain HTTPS to the provider. Works on the default api image, nothing extra to install.', items: providers.filter(p => p.http) },
+    { title: 'Runs a local AI runtime', hint: 'Needs the bigger api image built with --target coach.', items: providers.filter(p => RUNTIME_IDS.includes(p.id)) },
+    { title: 'Testing', hint: 'A built-in fake that answers instantly, so the whole loop can be tried without an account.', items: providers.filter(p => TESTING_IDS.includes(p.id)) }
   ]
 
   const hasCredentialStep = !!(meta.setupToken || meta.apiKey)
