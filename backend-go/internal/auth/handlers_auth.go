@@ -235,7 +235,12 @@ func (s *Service) SmsVerify(c *gin.Context) {
 		return
 	}
 	s.setCookie(c, uid, 0)
-	c.JSON(200, gin.H{"user": gin.H{"id": uid, "name": defaultName(b.Phone)}, "isNew": isNew})
+	// 响应名取库中真名(老用户回登显示既有名,勿用手机号派生名覆盖)——新建号刚插入,同一路径可查
+	name := defaultName(b.Phone)
+	if u, err := store.UserByID(ct, s.DB, uid); err == nil && u.Name != "" {
+		name = u.Name
+	}
+	c.JSON(200, gin.H{"user": gin.H{"id": uid, "name": name}, "isNew": isNew})
 }
 
 // BindPhone POST /api/auth/bind-phone — 已登录账号绑手机号(契约 authBindPhone)。
