@@ -43,7 +43,7 @@ rsync -az --delete "$LOCAL_REPO/frontend/dist/" "$HOST:/opt/muhe-fit/web/"
 
 echo "==> [4/5] 验证"
 r bash -c "'curl -s -m 6 http://127.0.0.1:3100/api/health'"
-curl -s -m 8 -o /dev/null && curl -s -m 8 -o /dev/null -w "bare:%{http_code} " https://qingmulife.com/api/health
+curl -s -m 8 -o /dev/null -w "bare:%{http_code} " https://qingmulife.com/api/health
 curl -s -m 8 -o /dev/null -w "api:%{http_code}\n" https://api.qingmulife.com/api/health
 
 echo "==> [5/5] 完成(数据备份 = 服务器 /opt/muhe-fit/data + pg 卷 muhe-fit_pgdata)"

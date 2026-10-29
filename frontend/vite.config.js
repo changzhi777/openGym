@@ -116,5 +116,7 @@ export default defineConfig({
       } : {})
     }
   },
-  build: { chunkSizeWarningLimit: 1500 }
+  // es2020:小米/X5 等旧内核浏览器兼容(2026-10-29 手机端登录页黑屏排查;Vite8 默认
+  // baseline 含新语法旧内核解析崩)。rolldown 会按此 target 转译。
+  build: { chunkSizeWarningLimit: 1500, target: 'es2020' }
 })
