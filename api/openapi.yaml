@@ -275,6 +275,28 @@ paths:
                 passwordLogin: { value: { invite_only: true, allow_guest: false } }
                 media: { value: { invite_only: false, allow_guest: true, media: { imageMB: 2, gifMB: 8, videoMB: 40, videoSec: 60, quotaMB: 200, workouts: true } } }
 
+  /api/auth/captcha:
+    get:
+      tags: [sms]
+      operationId: authCaptcha
+      summary: A digit-image captcha required before sending an SMS
+      description: >-
+        Anti-SMS-bombing gate: an SVG with four distorted digits (noise lines and dots).
+        The answer is stored server-side under `captchaId` for 5 minutes; `POST
+        /api/auth/sms/send` must carry `captchaId` + `captchaCode` and the code is
+        consumed on check. Refresh by re-fetching.
+      responses:
+        '200':
+          description: The captcha image and its id.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  captchaId: { type: string }
+                  svg: { type: string, description: The captcha SVG markup. }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
   /api/auth/sms/send:
     post:
       tags: [sms]
@@ -289,11 +311,14 @@ paths:
           application/json:
             schema:
               type: object
-              required: [phone]
+              required: [phone, captchaId, captchaCode]
               properties:
                 phone: { type: string, description: 'Mainland mobile number, 11 digits.' }
+                captchaId: { type: string, description: Id from GET /api/auth/captcha. }
+                captchaCode: { type: string, description: The 4 digits read from the captcha SVG. }
       responses:
         '202': { description: "Sent; dev mode logs the code and answers dev=true." }
+        '400': { description: '`{"error":"image captcha wrong or expired","code":"captcha"}` when the image code mismatches.' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /api/auth/sms/verify:

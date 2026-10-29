@@ -247,7 +247,7 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   <p class="api-facts">
     <span>OpenAPI 3.1.0</span>
     <span>openGym v1.4.1</span>
-    <span>92 endpoints</span>
+    <span>93 endpoints</span>
     <span>AGPL-3.0-or-later</span>
   </p>
 
@@ -298,6 +298,32 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   <p class="sub">Mobile number + SMS code sign-in (register/login in one step)</p>
   <div class="eps">
 
+<details class="ep" id="op-authCaptcha">
+  <summary>
+    <span class="m get">GET</span>
+    <span class="ep-path"><code>/api/auth/captcha</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">A digit-image captcha required before sending an SMS</span>
+  </summary>
+  <div class="ep-body">
+<p>Anti-SMS-bombing gate: an SVG with four distorted digits (noise lines and dots). The answer is stored server-side under <code>captchaId</code> for 5 minutes; <code>POST /api/auth/sms/send</code> must carry <code>captchaId</code> + <code>captchaCode</code> and the code is consumed on check. Refresh by re-fetching.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">The captcha image and its id.<span class="r-sig">{ captchaId: string, svg: string }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">429</span>
+    <span class="p-desc">Paused by the sign-in throttle (see <i>Throttling</i> in the description). The request was not looked at; try again after <code>Retry-After</code> seconds.<span class="r-sig"><code>{&quot;error&quot;:&quot;too many attempts, try again later&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
 <details class="ep" id="op-authSmsSend">
   <summary>
     <span class="m post">POST</span>
@@ -315,12 +341,26 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
     <span class="p-type">string</span>
     <span class="p-desc">Mainland mobile number, 11 digits.</span>
   </div>
+  <div class="prow">
+    <span class="p-name">captchaId<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc">Id from GET /api/auth/captcha.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">captchaCode<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc">The 4 digits read from the captcha SVG.</span>
+  </div>
 </div>
     <p class="ep-h">Responses</p>
     <div class="ptab">
   <div class="prow rrow">
     <span class="r-code s2">202</span>
     <span class="p-desc">Sent; dev mode logs the code and answers dev=true.</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">400</span>
+    <span class="p-desc"><code>{&quot;error&quot;:&quot;image captcha wrong or expired&quot;,&quot;code&quot;:&quot;captcha&quot;}</code> when the image code mismatches.</span>
   </div>
   <div class="prow rrow">
     <span class="r-code s4">429</span>
