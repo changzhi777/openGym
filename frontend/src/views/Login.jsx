@@ -33,7 +33,7 @@ const fieldErr = msg => <div style={{ color: C.red, fontSize: 12.5, marginTop: 5
 const label = txt => <div style={{ fontSize: 13.5, fontWeight: 600, color: C.ink, margin: '10px 0 5px', textAlign: 'left' }}>{txt}</div>
 
 // ── 6 格分段验证码(自动跳格/回退/粘贴分发;获焦绿边+微放大) ─────────────────
-function SixDigits({ value, onChange }) {
+function SixDigits({ value, onChange, disabled = false }) {
   const refs = useRef([])                    // 稳定容器:重渲染/卸载时 ref 回调不错位
   const [focusIdx, setFocusIdx] = useState(-1)
   const digits = Array.from({ length: 6 }, (_, i) => value[i] || '')
@@ -61,10 +61,12 @@ function SixDigits({ value, onChange }) {
       {digits.map((d, i) => (
         <input key={i} ref={el => (refs.current[i] = el)} value={d} inputMode="numeric" maxLength={1}
           onFocus={() => setFocusIdx(i)} onBlur={() => setFocusIdx(-1)}
-          onChange={e => onInput(i, e)} onKeyDown={e => onKey(i, e)}
+          onChange={e => { if (!disabled) onInput(i, e) }} onKeyDown={e => { if (!disabled) onKey(i, e) }}
+          tabIndex={disabled ? -1 : 0}
           style={{
-            width: '100%', textAlign: 'center', fontSize: 20, fontWeight: 700, color: C.ink,
-            background: C.white, border: `1.5px solid ${focusIdx === i ? C.green : C.hair}`,
+            width: '100%', textAlign: 'center', fontSize: 20, fontWeight: 700,
+            color: disabled ? C.hair : C.ink, background: C.white,
+            border: `1.5px solid ${disabled ? '#e5e5ea' : focusIdx === i ? C.green : C.hair}`,
             borderRadius: 10, padding: '9px 0', outline: 'none', flex: 1,
             transform: focusIdx === i ? 'scale(1.04)' : 'none', transition: 'border-color .12s, transform .12s',
           }} />
@@ -73,14 +75,16 @@ function SixDigits({ value, onChange }) {
   )
 }
 
-// ── 手机号登录(主通道:图形码 → 获取短信 → 6 格 → 登录) ────────────────────
+// ── 手机号登录(主通道:平铺一屏式——图形码/短信码全部常驻可见) ──────────────
+// 逻辑流:①手机号+图形码 → 点『发送验证码』(校验图形码→发短信→倒计) 
+//        ②短信码 6 格常驻(发送前禁用置灰+提示) → 登录/注册(校验短信码)
 function PhoneForm({ config, onSignedIn }) {
   const { setUser, pushState, pullState, loadConfig } = useStore()
   const inviteOnly = !!config?.invite_only
   const [phone, setPhone] = useState('')
   const [cap, setCap] = useState(null)      // {captchaId, svg}
   const [capCode, setCapCode] = useState('')
-  const [sent, setSent] = useState(false)   // 短信已发 → 显示 6 格 + 登录钮
+  const [smsSent, setSmsSent] = useState(false)
   const [countdown, setCountdown] = useState(0)
   const [digits, setDigits] = useState('')
   const [invite, setInvite] = useState('')
@@ -89,7 +93,6 @@ function PhoneForm({ config, onSignedIn }) {
   const phoneRef = useRef(null)
   useEffect(() => { setTimeout(() => phoneRef.current?.focus(), 250) }, [])
   useEffect(() => { loadConfig() }, [loadConfig])
-  // 图形验证码进页即拉(发短信的前置人机闸,决议 Q3)。
   useEffect(() => { refreshCaptcha() }, [])
   useEffect(() => {
     if (countdown <= 0) return
@@ -101,13 +104,14 @@ function PhoneForm({ config, onSignedIn }) {
     setErr(null); setCapCode('')
     try { setCap(await authCaptcha()) } catch (e) { setErr({ msg: e.message, field: 'captcha' }) }
   }
-  const getCode = async () => {
+  // 发送验证码:独立动作钮——校验手机号+图形码后发短信(契约 authSmsSend)。
+  const sendSms = async () => {
     setErr(null)
     if (!PHONE_RE.test(phone)) { setErr({ msg: '请输入有效的中国大陆手机号', field: 'phone' }); return }
     if (capCode.length !== 4) { setErr({ msg: '请输入图形验证码', field: 'captchaCode' }); return }
     try {
       await smsSend(phone, cap.captchaId, capCode)
-      setSent(true); setDigits(''); setCountdown(60)
+      setSmsSent(true); setDigits(''); setCountdown(60)
     } catch (e) {
       const field = e?.data?.code === 'captcha' ? 'captcha' : 'captchaCode'
       setErr({ msg: e.message, field })
@@ -116,7 +120,7 @@ function PhoneForm({ config, onSignedIn }) {
   }
   const signIn = async () => {
     setErr(null)
-    if (digits.length < 6) { setErr({ msg: '请输入 6 位短信验证码', field: 'digits' }); return }
+    if (digits.length < 6) { setErr({ msg: '请先获取并输入短信验证码', field: 'digits' }); return }
     if (inviteOnly && !invite.trim()) { setErr({ msg: '需要邀请码', field: 'invite' }); return }
     setBusy(true)
     try {
@@ -138,14 +142,14 @@ function PhoneForm({ config, onSignedIn }) {
       <input ref={phoneRef} inputMode="numeric" maxLength={11} placeholder="请输入手机号" value={phone}
         onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 11))}
         onFocus={focusInput} onBlur={blurInput}
-        style={{ flex: 1, border: 'none', outline: 'none', fontSize: 16, padding: '13px 14px', background: 'transparent', color: C.ink }} />
+        style={{ flex: 1, border: 'none', outline: 'none', fontSize: 15, padding: '11px 12px', background: 'transparent', color: C.ink }} />
     </div>
     {err?.field === 'phone' && fieldErr(err.msg)}
 
     {label('图形验证码')}
     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
       {cap && <div dangerouslySetInnerHTML={{ __html: cap.svg }}
-        style={{ width: 160, height: 48, borderRadius: 8, overflow: 'hidden', cursor: 'pointer', flexShrink: 0,
+        style={{ width: 150, height: 44, borderRadius: 8, overflow: 'hidden', cursor: 'pointer', flexShrink: 0,
           border: `1.5px solid ${err?.field === 'captcha' ? C.red : C.hair}` }}
         onClick={refreshCaptcha} title="点击刷新" />}
       <input inputMode="numeric" maxLength={4} placeholder="输入 4 位数字" value={capCode}
@@ -155,49 +159,43 @@ function PhoneForm({ config, onSignedIn }) {
     </div>
     {err?.field === 'captcha' && fieldErr(err.msg)}
 
-    {!sent ? <>
-      <div style={{ height: 18 }} />
-      <button onClick={getCode} style={{ width: '100%', padding: '14px 0', border: 'none', borderRadius: 14,
-        background: C.green, color: '#fff', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}
-        onMouseEnter={e => (e.currentTarget.style.background = C.greenDark)}
-        onMouseLeave={e => (e.currentTarget.style.background = C.green)}>
-        获取短信验证码
-      </button>
-    </> : <>
-      {label('短信验证码')}
-      <SixDigits value={digits} onChange={setDigits} />
-      <div style={{ display: 'flex', justifyContent: 'space-between', margin: '8px 0 14px' }}>
-        <span style={{ fontSize: 12.5, color: C.sub }}>
-          {countdown > 0 ? `已发送（${countdown}s 后可重发）` : '没收到？'}
-        </span>
-        {countdown <= 0 && <button style={{ background: 'none', border: 'none', color: C.green,
-          fontWeight: 600, cursor: 'pointer', fontSize: 13 }} onClick={getCode}>重新获取</button>}
-      </div>
+    {label('短信验证码')}
+    <SixDigits value={digits} onChange={setDigits} disabled={!smsSent} />
+    <div style={{ display: 'flex', justifyContent: 'space-between', margin: '6px 0 4px' }}>
+      <span style={{ fontSize: 12.5, color: C.sub }}>
+        {smsSent ? (countdown > 0 ? `已发送（${countdown}s 后可重发）` : '没收到？重新获取')
+                : '先填写图形码并点击发送'}
+      </span>
+    </div>
+
+    {err?.field === 'digits' && fieldErr(err.msg)}
+    {inviteOnly && <>
+      <input className="input" placeholder="邀请码" maxLength={40} value={invite}
+        onChange={e => setInvite(e.target.value.toUpperCase())}
+        onFocus={focusInput} onBlur={blurInput}
+        style={{ ...loginInput, letterSpacing: '.14em', fontWeight: 600, textAlign: 'center', marginTop: 10 }} />
+      <div className="dim small" style={{ marginTop: 6 }}>本应用为邀请制，请输入你收到的邀请码。</div>
     </>}
 
-    {sent && <>
-      {err?.field === 'digits' && fieldErr(err.msg)}
-      {inviteOnly && <>
-        <div style={{ height: 4 }} />
-        <input className="input" placeholder="邀请码" maxLength={40} value={invite}
-          onChange={e => setInvite(e.target.value.toUpperCase())}
-          onFocus={focusInput} onBlur={blurInput}
-          style={{ ...loginInput, letterSpacing: '.14em', fontWeight: 600, textAlign: 'center' }} />
-        <div className="dim small" style={{ marginTop: 6 }}>本应用为邀请制，请输入你收到的邀请码。</div>
-      </>}
-      <div style={{ height: 16 }} />
-      <button onClick={signIn} disabled={busy || digits.length < 6}
-        style={{ width: '100%', padding: '13px 0', border: 'none', borderRadius: 12,
-          background: busy || digits.length < 6 ? '#a8d4b0' : C.green, color: '#fff',
-          fontSize: 16.5, fontWeight: 700, cursor: busy || digits.length < 6 ? 'default' : 'pointer' }}>
-        登录 / 注册
-      </button>
-    </>}
+    <div style={{ height: 16 }} />
+    <button onClick={signIn} disabled={busy || digits.length < 6}
+      style={{ width: '100%', padding: '13px 0', border: 'none', borderRadius: 14,
+        background: busy || digits.length < 6 ? '#a8d4b0' : C.green, color: '#fff',
+        fontSize: 16, fontWeight: 700, cursor: busy || digits.length < 6 ? 'default' : 'pointer' }}>
+      登录 / 注册
+    </button>
 
-    {err && !err.field && fieldErr(err.msg)}
+    <div style={{ height: 14 }} />
+    <button onClick={sendSms} disabled={smsSent && countdown > 0}
+      style={{ width: '100%', padding: '11px 0', borderRadius: 12, cursor: 'pointer',
+        background: 'none', border: `1.5px solid ${C.hair}`, color: C.ink, fontSize: 14, fontWeight: 600 }}>
+      {smsSent ? `重新发送短信验证码${countdown > 0 ? `（${countdown}s）` : ''}` : '发送短信验证码'}
+    </button>
+    <div className="dim small" style={{ marginTop: 6, textAlign: 'left' }}>
+      注册即表示同意本实例的用户协议与隐私条款。
+    </div>
   </>
 }
-
 // ── 微信扫码 tab ─────────────────────────────────────────────────────────
 function WechatForm({ onSwitchBack }) {
   const { setUser } = useStore()
