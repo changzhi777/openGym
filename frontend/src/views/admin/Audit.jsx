@@ -114,14 +114,14 @@ export default function Audit() {
           <div className="adm-tr adm-th adm-day" role="row"><span role="columnheader">{day}</span></div>
           {evs.map(e => {
             const open = expanded === e.id
-            const target = e.targetName || e.tgt || e.targetId || '—'
+            const target = e.targetName || e.tgt || e.targetId || '–'
             return (
               <Fragment key={e.id}>                <button className="adm-tr adm-audit" role="row"
                   onClick={() => setExpanded(open ? null : e.id)} aria-expanded={open}>
                   <span className="adm-ucell">
                     <b className={e.ok === false ? 'fail' : ''}>{e.action}</b>
                     <span className="adm-usub">
-                      {e.admin || '—'} → {target}
+                      {e.admin || '–'} → {target}
                       {e.ip ? ' · ' + e.ip : ''}
                     </span>
                   </span>
@@ -131,7 +131,7 @@ export default function Audit() {
                   <div className="adm-card" style={{ margin: '0 0 8px', fontSize: 13 }}>
                     <div className="adm-rowline"><span className="adm-usub">{adminT('事件')}</span><span>{e.id} · {e.action}</span></div>
                     <div className="adm-rowline"><span className="adm-usub">{adminT('目标')}</span><span>{target}</span></div>
-                    {'ip' in e && <div className="adm-rowline"><span className="adm-usub">{adminT('来源 IP')}</span><span>{e.ip || '—'}</span></div>}
+                    {'ip' in e && <div className="adm-rowline"><span className="adm-usub">{adminT('来源 IP')}</span><span>{e.ip || '–'}</span></div>}
                     {e.detail != null && (
                       <pre style={{ whiteSpace: 'pre-wrap', margin: '6px 0 0', fontSize: 12, color: 'var(--label-2)' }}>
                         {JSON.stringify(e.detail, null, 2)}

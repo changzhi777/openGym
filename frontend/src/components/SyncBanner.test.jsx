@@ -196,7 +196,8 @@ describe('not connected — it says so, and what to do', () => {
     expect(text()).toBe('Your server no longer accepts this browser. Your changes are kept here.')
     expect(label()).toBe('Sign in')
     await act(async () => { button().click() })
-    expect(mocks.passkeyLogin).toHaveBeenCalledTimes(1)
+    // 认证重构:passkey 登录退役,Sign in 统一导航主站登录页(手机/微信),不弹 passkey。
+    expect(mocks.passkeyLogin).toHaveBeenCalledTimes(0)
   })
 
   it('on the sign-in screen after the server ended the session, it says the changes are still here', () => {

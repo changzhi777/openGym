@@ -186,7 +186,7 @@ export default function Roles() {
                 <tr key={r.user_id + ':' + r.role} className="adm-tr">
                   <td><div className="adm-ucell"><span>{r.name}</span></div></td>
                   <td><span className="adm-badge">{adminT(ROLE_KEY[r.role])}</span></td>
-                  <td>{r.granted_by ? (r.granted_by_name || r.granted_by) : '—'}</td>
+                  <td>{r.granted_by ? (r.granted_by_name || r.granted_by) : '–'}</td>
                   <td>{adminWhen(r.granted_at)}</td>
                   <td style={{ textAlign: 'right' }}>{rowBtns(r)}</td>
                 </tr>

@@ -19,8 +19,8 @@ const ui = () => useUI.getState()
 const toast = m => ui().toast(m)
 // Whether this browser has a way to sign in at all: a passkey, or a password on an instance that
 // offers one (#118) — which is also what a browser without passkey support has left.
-const pwOn = () => passwordOn(useStore.getState?.()?.config)
-const canSignIn = () => webauthnOK() || pwOn()
+const pwOn = () => false  // 密码登录退役(认证重构 2026-10-29)
+const canSignIn = () => webauthnOK()  // 横幅快速入口仅 passkey 浏览器;其余走 /login 手机/微信
 
 // "gym.example.com" out of the base URL the store keeps (a subpath stays: it is part of which
 // server this is). Anything unparseable is shown as it is.

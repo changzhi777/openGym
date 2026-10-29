@@ -111,7 +111,7 @@ export default function Invites() {
                 <b style={{ fontFamily: 'monospace' }}>{i.code}</b>
                 <span className="adm-usub">{stateOf(i)}</span>
               </div>
-              <div className="adm-usub">{i.note || '—'} · {adminT('创建人')} {i.createdBy}</div>
+              <div className="adm-usub">{i.note || '–'} · {adminT('创建人')} {i.createdBy}</div>
               {!i.usedBy && !i.revoked && (
                 <span className="adm-rowbtns">
                   <button className="adm-plain" onClick={() => copy(i)}>{adminT('复制')}</button>
@@ -132,7 +132,7 @@ export default function Invites() {
               {filtered.map(i => (
                 <tr key={i.code} className="adm-tr">
                   <td style={{ fontFamily: 'monospace' }}>{i.code}</td>
-                  <td>{i.note || '—'}</td>
+                  <td>{i.note || '–'}</td>
                   <td>{i.createdBy}</td>
                   <td>{stateOf(i)}</td>
                   <td style={{ textAlign: 'right' }}>
