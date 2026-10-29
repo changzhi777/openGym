@@ -9,6 +9,8 @@ import { api } from '../../lib/api.js'
 import { apiAdmin } from '../../lib/admin/stepUp.js'
 import { adminT } from '../../lib/admin/i18n.js'
 import { MOBILE } from '../../lib/mobile.js'
+import { useUI } from '../../store/useUI.js'
+import { confirmSheet } from '../../sheets.jsx'
 
 const FILTERS = [{ k: '', label: '全部' }, { k: 'open', label: '可用' }, { k: 'used', label: '已使用' }]
 

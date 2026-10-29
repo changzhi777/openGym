@@ -219,10 +219,6 @@ export default function UserDetail() {
 
   const del = () => openSheet(close => <DeleteSheet user={u} impact={impact} close={close} onDone={() => nav('/admin/users')} />)
 
-  const showFullEmail = async () => {
-    try { await passkeyAssertion(); setFullEmail(true) } catch { /* 取消验证:保持脱敏 */ }
-  }
-
   return (
     <>
       <div className="adm-toolbar">
@@ -235,7 +231,7 @@ export default function UserDetail() {
           <span className="adm-ucell">
             <b style={{ fontSize: 16 }}>{u.name}</b>
             <span className="adm-usub">
-              {u.created ? adminT('加入时间') + ' ' + fmtDate(u.created) : ''}{u.invitedBy ? ' · ' + adminT('邮箱') + ': ' + u.invitedBy : ''}
+              {u.created ? adminT('加入时间') + ' ' + fmtDate(u.created.slice(0, 10)) : ''}{u.invitedBy ? ' · ' + adminT('邮箱') + ': ' + u.invitedBy : ''}
             </span>
           </span>
           <span className="adm-badges">
@@ -244,14 +240,7 @@ export default function UserDetail() {
           </span>
         </div>
         <div className="adm-rowline">
-          <span className="adm-usub">
-            {u.email
-              ? (fullEmail ? u.email : maskEmail(u.email))
-              : ''}
-            {u.email && !fullEmail && (
-              <> <button className="adm-plain" style={{ fontSize: 12 }} onClick={showFullEmail}>{adminT('显示完整')}</button></>
-            )}
-          </span>
+          <span className="adm-usub">{u.email || ''}</span>
           <span className="adm-usub">{adminT('最近同步')} {d.lastSync ? adminWhen(whenOf(d.lastSync)) : '–'}</span>
         </div>
       </div>

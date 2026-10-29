@@ -220,7 +220,7 @@ func (s *Service) User(c *gin.Context) {
 		rows2.Close()
 	}
 	c.JSON(200, gin.H{
-		"user":     gin.H{"id": id, "name": name, "created": created.UnixMilli(), "disabled": disabled, "admin": false},
+		"user":     gin.H{"id": id, "name": name, "created": created.UTC().Format("2006-01-02T15:04:05Z"), "disabled": disabled, "admin": false},
 		"workouts": workouts, "bodyweight": weights,
 	})
 }
