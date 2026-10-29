@@ -452,3 +452,8 @@ export async function wechatPoll(ticket) {
 export async function bindPhone(phone, code) {
   return api('/api/auth/bind-phone', { method: 'POST', body: JSON.stringify({ phone, code }) })
 }
+
+/** 拉图形验证码(SVG 数字码 + captchaId),发短信的前置人机闸。 */
+export async function authCaptcha() {
+  return api('/api/auth/captcha')
+}

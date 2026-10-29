@@ -20,6 +20,7 @@ import (
 	"github.com/redis/go-redis/v9"
 
 	"github.com/changzhi777/openGym/backend-go/internal/sms"
+	"github.com/changzhi777/openGym/backend-go/internal/captcha"
 	"github.com/changzhi777/openGym/backend-go/internal/store"
 	"github.com/changzhi777/openGym/backend-go/internal/wechat"
 )
@@ -36,11 +37,13 @@ type Service struct {
 }
 
 type authBody struct {
-	Phone  string `json:"phone"`
-	Code   string `json:"code"`
-	Invite string `json:"invite"`
-	Ticket string `json:"ticket"`
-	WxCode string `json:"wxCode"`
+	Phone       string `json:"phone"`
+	Code        string `json:"code"`
+	Invite      string `json:"invite"`
+	Ticket      string `json:"ticket"`
+	WxCode      string `json:"wxCode"`
+	CaptchaID   string `json:"captchaId"`
+	CaptchaCode string `json:"captchaCode"`
 }
 
 func readBody(c *gin.Context) *authBody {
@@ -144,12 +147,27 @@ func validPhone(p string) bool {
 	return p[0] == '1'
 }
 
+// Captcha GET /api/auth/captcha — 发短信前置的数字图形验证码(契约 authCaptcha;决议 Q3)。
+func (s *Service) Captcha(c *gin.Context) {
+	id, svg, err := captcha.New(c.Request.Context(), s.Rdb)
+	if err != nil {
+		jsonFail(c, 500, "captcha", "")
+		return
+	}
+	c.JSON(200, gin.H{"captchaId": id, "svg": svg})
+}
+
 // SmsSend POST /api/auth/sms/send — 发验证码(契约 authSmsSend;频控在 sms.Store)。
+// 防短信轰炸前置:必须先过图形验证码(决议 Q3),错/过期一律 400 code=captcha。
 func (s *Service) SmsSend(c *gin.Context) {
 	b := readBody(c)
 	b.Phone = strings.TrimSpace(b.Phone)
 	if !validPhone(b.Phone) {
 		jsonFail(c, 400, "invalid phone number", "phone")
+		return
+	}
+	if !captcha.Check(c.Request.Context(), s.Rdb, strings.TrimSpace(b.CaptchaID), strings.TrimSpace(b.CaptchaCode)) {
+		jsonFail(c, 400, "image captcha wrong or expired, refresh and retry", "captcha")
 		return
 	}
 	if s.SmsStore.Locked(c.Request.Context(), b.Phone) {

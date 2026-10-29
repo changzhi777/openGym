@@ -40,3 +40,6 @@ docs/superpowers/plans/
 
 # fork backend-go
 backend-go/muhe-api
+
+# Android Studio
+frontend/android/.idea/

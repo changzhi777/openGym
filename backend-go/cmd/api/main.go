@@ -112,6 +112,7 @@ func main() {
 	wxMini := wechat.New(os.Getenv("WX_MINI_APPID"), os.Getenv("WX_MINI_SECRET"), rdb)
 	svc := &auth.Service{DB: db, Sessions: sessions, Rdb: rdb,
 		Sms: smsSender, SmsStore: smsStore, Wx: wxMini, InviteEnvDef: inviteEnvDefault()}
+	r.GET("/api/auth/captcha", svc.Captcha)
 	r.POST("/api/auth/sms/send", svc.SmsSend)
 	r.POST("/api/auth/sms/verify", svc.SmsVerify)
 	r.GET("/api/auth/wechat/qrcode", svc.WechatQrcode)
