@@ -17,6 +17,13 @@ import { Button } from '../components/ui.jsx'
 
 const PHONE_RE = /^1\d{10}$/
 
+// 浅色系登录输入框(白底/深字/深边框——对比度优先,修复深色主题下验证码组件看不清的问题)。
+const loginInput = {
+  width: '100%', background: '#ffffff', color: '#1c1c1e',
+  border: '1.5px solid #c7c7cc', borderRadius: 12,
+  padding: '13px 14px', fontSize: 16, outline: 'none',
+}
+
 // ── 手机验证码 tab ────────────────────────────────────────────────────────
 function PhoneForm({ config, onSignedIn }) {
   const { setUser, pushState, pullState, loadConfig } = useStore()
@@ -39,7 +46,7 @@ function PhoneForm({ config, onSignedIn }) {
 
   const send = async () => {
     setErr(null)
-    if (!PHONE_RE.test(phone)) { useUI.getState().toast(t('Enter a valid mainland mobile number')); return }
+    if (!PHONE_RE.test(phone)) { useUI.getState().toast('请输入有效的中国大陆手机号'); return }
     try {
       const r = await smsSend(phone)
       setCountdown(60)
@@ -49,42 +56,43 @@ function PhoneForm({ config, onSignedIn }) {
   const go = async () => {
     setErr(null)
     if (!PHONE_RE.test(phone)) { useUI.getState().toast(t('Enter a valid mainland mobile number')); return }
-    if (!code.trim()) { useUI.getState().toast(t('Enter the SMS code')); return }
-    if (inviteOnly && !invite.trim()) { useUI.getState().toast(t('An invite code is required')); return }
+    if (!code.trim()) { useUI.getState().toast('请输入短信验证码'); return }
+    if (inviteOnly && !invite.trim()) { useUI.getState().toast('需要邀请码'); return }
     setBusy(true)
     try {
       const r = await smsVerify(phone, code.trim(), invite.trim())
       setUser(r.user, { adopt: r.isNew })
-      if (r.isNew && hasData(useStore.getState().S)) { await pushState(); useUI.getState().toast(t('Profile created, and this device’s data moved into it')) }
-      else if (r.isNew) { await pullState(); useUI.getState().toast(t('Welcome, {0}', r.user.name)) }
-      else { useUI.getState().toast(t('Welcome back, {0}', r.user.name)) }
+      if (r.isNew && hasData(useStore.getState().S)) { await pushState(); useUI.getState().toast('账号已创建，本机数据已并入') }
+      else if (r.isNew) { await pullState(); useUI.getState().toast('欢迎，' + r.user.name) }
+      else { useUI.getState().toast('欢迎回来，' + r.user.name) }
       onSignedIn()
     } catch (e) { setErr(e.message) } finally { setBusy(false) }
   }
   return <>
     <input ref={ref} className="input" inputMode="numeric" maxLength={11}
-      placeholder={t('Mobile number')} value={phone}
-      onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 11))} />
+      placeholder={'手机号'} value={phone}
+      onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 11))}
+      style={loginInput} />
     <div style={{ height: 10 }} />
     <div style={{ display: 'flex', gap: 8 }}>
-      <input className="input" inputMode="numeric" maxLength={6} placeholder={t('SMS code')} value={code}
+      <input className="input" inputMode="numeric" maxLength={6} placeholder={'短信验证码'} value={code}
         onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-        style={{ flex: 1, letterSpacing: '.2em', textAlign: 'center' }} />
+        style={{ ...loginInput, flex: 1, letterSpacing: '.2em', textAlign: 'center' }} />
       <Button className="dim" disabled={countdown > 0 || !PHONE_RE.test(phone)} onClick={send}>
-        {countdown > 0 ? `${countdown}s` : t('Send code')}
+        {countdown > 0 ? `${countdown}s` : '发送验证码'}
       </Button>
     </div>
     {devCode && <div className="dim small" style={{ marginTop: 6 }}>dev: {devCode}</div>}
     {inviteOnly && <>
       <div style={{ height: 10 }} />
-      <input className="input" placeholder={t('Invite code')} maxLength={40} value={invite}
+      <input className="input" placeholder={'邀请码'} maxLength={40} value={invite}
         onChange={e => setInvite(e.target.value.toUpperCase())}
-        style={{ letterSpacing: '.14em', fontWeight: 600, textAlign: 'center' }} />
-      <div className="dim small" style={{ marginTop: 6 }}>{t('This app is invite-only. Enter the code you were given.')}</div>
+        style={{ ...loginInput, letterSpacing: '.14em', fontWeight: 600, textAlign: 'center' }} />
+      <div className="dim small" style={{ marginTop: 6 }}>{'本应用为邀请制，请输入你收到的邀请码。'}</div>
     </>}
     <div style={{ height: 12 }} />
-    {err && <div className="dim small" style={{ color: 'var(--bad-text)', marginBottom: 8 }}>{err}</div>}
-    <Button variant="primary" disabled={busy} onClick={go}>{t('Sign in / Sign up')}</Button>
+    {err && <div className="dim small" style={{ color: '#c62828', marginBottom: 8 }}>{err}</div>}
+    <Button variant="primary" disabled={busy} onClick={go}>{'登录 / 注册'}</Button>
   </>
 }
 
@@ -120,16 +128,16 @@ function WechatForm({ onSignedIn }) {
 
   return <>
     <div className="muted small" style={{ marginBottom: 12 }}>
-      {t('Scan with WeChat, confirm in the 沐禾健身 mini program, and this page signs in.')}
+      {'微信扫描二维码，在「沐禾健身」小程序中确认，网页将自动登录'}
     </div>
     {err && <div className="card small muted" style={{ textAlign: 'start' }}>{err}</div>}
     {qr?.image && <img alt="WeChat QR" src={'data:image/png;base64,' + qr.image}
       style={{ width: 220, height: 220, borderRadius: 12, background: '#fff', padding: 8 }} />}
     {status === 'confirmed'
-      ? <div className="ok" style={{ marginTop: 10 }}>{t('Confirmed on WeChat')}</div>
-      : qr && <div className="dim small" style={{ marginTop: 10 }}>{t('Waiting for scan…')}</div>}
+      ? <div className="ok" style={{ marginTop: 10 }}>{'已在微信中确认 ✓'}</div>
+      : qr && <div className="dim small" style={{ marginTop: 10 }}>{'等待扫码中…'}</div>}
     <div style={{ height: 10 }} />
-    <Button className="dim" onClick={load}>{t('Refresh')}</Button>
+    <Button className="dim" onClick={load}>{'刷新'}</Button>
   </>
 }
 
@@ -139,10 +147,17 @@ export default function Login() {
   const canGuest = guestAllowed(config)
   const [tab, setTab] = useState('phone')
   const head = <>
-    <div style={{ fontSize: 54, display: 'flex', justifyContent: 'center', color: 'var(--acc)' }}><Icon name="dumbbell" /></div>
-    <h1 style={{ fontSize: 34, fontWeight: 700, letterSpacing: '-.028em', margin: '10px 0 4px' }}>{t('openGym')}</h1>
+    <img src="/icon-192.png" alt="沐禾健身" width={88} height={88}
+      style={{ borderRadius: 22, margin: '0 auto', display: 'block', boxShadow: '0 6px 24px rgba(36,138,61,.25)' }} />
+    <h1 style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-.02em', margin: '14px 0 4px', color: '#1c1c1e' }}>沐禾健身</h1>
+    <div style={{ fontSize: 13, fontWeight: 600, letterSpacing: '.22em', color: '#248a3d', textTransform: 'uppercase' }}>MUHE FIT</div>
   </>
-  const wrap = { display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '78vh', textAlign: 'center' }
+  // 登录页浅色系(独立于应用主题;对比度优先)。
+  const wrap = {
+    display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '78vh', textAlign: 'center',
+    minHeight: '100dvh', background: 'linear-gradient(180deg, #f2f2f7 0%, #e8f0e9 100%)', color: '#1c1c1e',
+    ['data-theme']: 'light',
+  }
 
   // Demo build: no backend to sign in against — the only way in is the local guest profile.
   if (DEMO) return (
@@ -164,9 +179,9 @@ export default function Login() {
   return (
     <div className="narrow" style={wrap}>
       {head}
-      <div className="muted" style={{ marginBottom: 24 }}>{t('Your workouts. Your weights. Your profile.')}</div>
+      <div className="muted" style={{ marginBottom: 24 }}>{'你的训练、你的重量、你的档案。'}</div>
       <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 16 }}>
-        {[['phone', t('Mobile sign-in'), 'phone'], ['wechat', t('WeChat scan'), 'qr']].map(([k, label]) => (
+        {[['phone', '手机号登录', 'phone'], ['wechat', '微信扫码登录', 'qr']].map(([k, label]) => (
           <button key={k} onClick={() => setTab(k)}
             style={{
               padding: '8px 18px', borderRadius: 20, fontSize: 14, cursor: 'pointer',
@@ -175,17 +190,19 @@ export default function Login() {
             }}>{label}</button>
         ))}
       </div>
-      <div style={{ textAlign: 'start', maxWidth: 420, margin: '0 auto', width: '100%' }}>
+      <div style={{ textAlign: 'start', maxWidth: 420, margin: '0 auto', width: '100%',
+        background: '#ffffff', borderRadius: 20, padding: '22px 20px',
+        boxShadow: '0 2px 16px rgba(28,28,30,.08)', border: '1px solid #e5e5ea' }}>
         {tab === 'phone'
           ? <PhoneForm config={config} onSignedIn={signedIn} />
           : <WechatForm onSignedIn={signedIn} />}
       </div>
       {canGuest && <>
         <div style={{ height: 14 }} />
-        <Button variant="ghost" className="dim" onClick={() => setGuest(true)}>{t('Continue without account')}</Button>
+        <Button variant="ghost" className="dim" onClick={() => setGuest(true)}>{'暂不登录，随便看看'}</Button>
       </>}
       <div className="dim small" style={{ marginTop: 26, lineHeight: 1.5 }}>
-        {t('Each profile keeps its own plan, workouts & body weight.')}
+        {'每个档案独立保存训练计划、训练记录与身体数据。'}
       </div>
     </div>
   )

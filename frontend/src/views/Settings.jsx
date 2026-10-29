@@ -1382,7 +1382,7 @@ function BindPhoneSheet({ close }) {
         onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
         style={{ flex: 1, letterSpacing: '.2em', textAlign: 'center' }} />
       <Button className="dim" disabled={countdown > 0 || !/^1\d{10}$/.test(phone)} onClick={send}>
-        {countdown > 0 ? `${countdown}s` : t('Send code')}
+        {countdown > 0 ? `${countdown}s` : '发送验证码'}
       </Button>
     </div>
     {err && <div className="dim small" style={{ color: 'var(--bad-text)', margin: '8px 0' }}>{err}</div>}
