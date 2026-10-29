@@ -107,6 +107,11 @@ func (s *Service) isAdmin(ctx context.Context, uid string) bool {
 	return one == 1
 }
 
+// audit 认证事件审计(best-effort,写失败不阻断;见 store.AuditAuth)。
+func (s *Service) audit(c *gin.Context, actor, action string, detail map[string]any) {
+	store.AuditAuth(c.Request.Context(), s.DB, actor, action, detail, c.ClientIP(), c.GetHeader("User-Agent"))
+}
+
 // Logout POST /api/logout。
 func (s *Service) Logout(c *gin.Context) {
 	for _, v := range s.Sessions.ClearValue() {
@@ -182,10 +187,12 @@ func (s *Service) SmsSend(c *gin.Context) {
 	dev, err := s.Sms.SendCode(c.Request.Context(), b.Phone, code)
 	if err != nil {
 		log.Printf("sms send %s***: %v", b.Phone[:3], err)
+		s.audit(c, "phone:"+store.MaskPhone(b.Phone), "auth.sms.send", gin.H{"ok": false})
 		jsonFail(c, 500, "sms send failed", "")
 		return
 	}
 	s.SmsStore.PutCode(c.Request.Context(), b.Phone, code)
+	s.audit(c, "phone:"+store.MaskPhone(b.Phone), "auth.sms.send", gin.H{"ok": true, "dev": dev})
 	out := gin.H{"ok": true}
 	if dev {
 		out["dev"] = true
@@ -227,6 +234,7 @@ func (s *Service) SmsVerify(c *gin.Context) {
 		isNew = true
 	}
 	if !s.SmsStore.Verify(ct, b.Phone, b.Code) {
+		s.audit(c, "phone:"+store.MaskPhone(b.Phone), "auth.sms.verify", gin.H{"ok": false})
 		jsonFail(c, 401, "wrong or expired code", "sms-code")
 		return
 	}
@@ -240,6 +248,7 @@ func (s *Service) SmsVerify(c *gin.Context) {
 	if u, err := store.UserByID(ct, s.DB, uid); err == nil && u.Name != "" {
 		name = u.Name
 	}
+	s.audit(c, uid, "auth.sms.verify", gin.H{"ok": true, "isNew": isNew})
 	c.JSON(200, gin.H{"user": gin.H{"id": uid, "name": name}, "isNew": isNew})
 }
 
@@ -274,6 +283,7 @@ func (s *Service) BindPhone(c *gin.Context) {
 		return
 	}
 	c.JSON(200, gin.H{"ok": true, "phone": b.Phone})
+	s.audit(c, u.ID, "auth.bind.phone", gin.H{"phone": store.MaskPhone(b.Phone)})
 }
 
 // WechatQrcode GET /api/auth/wechat/qrcode — 出小程序码(契约 authWechatQrcode)。
@@ -366,6 +376,7 @@ func (s *Service) WechatConfirm(c *gin.Context) {
 		jsonFail(c, 404, err.Error(), "ticket")
 		return
 	}
+	s.audit(c, uid, "auth.wx.confirm", gin.H{"isNew": isNew})
 	c.JSON(200, gin.H{"ok": true, "user": gin.H{"id": uid, "name": name2(uid, s, ct)}, "isNew": isNew})
 }
 
