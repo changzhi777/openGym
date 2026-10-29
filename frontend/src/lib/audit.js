@@ -139,7 +139,7 @@ export function fmtWhen(ts, now = Date.now()) {
   const time = d.toLocaleTimeString(dateLocale(), { hour: '2-digit', minute: '2-digit' })
   const n = new Date(now)
   const sameDay = d.toDateString() === n.toDateString()
-  if (sameDay) return 'today ' + time
+  if (sameDay) return '今天 ' + time
   if (now - ts < 6 * 86400000 && ts <= now) return d.toLocaleDateString(dateLocale(), { weekday: 'short' }) + ' ' + time
   return d.toLocaleDateString(dateLocale(), { day: 'numeric', month: 'short' }) + ' ' + time
 }
