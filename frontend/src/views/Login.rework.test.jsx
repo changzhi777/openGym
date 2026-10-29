@@ -6,20 +6,27 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
+// api.js 的具名导出逐个 mock —— Login 调 smsSend(phone, captchaId, code),
+// 不能像旧版那样把所有函数都指到同一个 path 判定的 vi.fn 上。
 const mocks = vi.hoisted(() => ({
-  api: vi.fn(),
+  smsSend: vi.fn(),
+  smsVerify: vi.fn(),
+  wechatQrcode: vi.fn(),
+  wechatPoll: vi.fn(),
+  bindPhone: vi.fn(),
+  authCaptcha: vi.fn(),
   user: null,
   config: { invite_only: false },
   toast: vi.fn(),
 }))
 vi.mock('../lib/api.js', () => ({
-  api: mocks.api,
-  smsSend: mocks.api,
-  smsVerify: mocks.api,
-  wechatQrcode: mocks.api,
-  wechatPoll: mocks.api,
-  bindPhone: mocks.api,
-  authCaptcha: mocks.api,
+  api: vi.fn(),
+  smsSend: mocks.smsSend,
+  smsVerify: mocks.smsVerify,
+  wechatQrcode: mocks.wechatQrcode,
+  wechatPoll: mocks.wechatPoll,
+  bindPhone: mocks.bindPhone,
+  authCaptcha: mocks.authCaptcha,
   webauthnOK: () => false,
 }))
 vi.mock('../lib/i18n.js', () => ({ t: k => k }))
@@ -48,9 +55,11 @@ import Login from './Login.jsx'
 
 let host
 beforeEach(() => {
+  vi.clearAllMocks()          // 清跨用例的调用记录(mockClear,不清 implementation)
   host = document.createElement('div')
   document.body.appendChild(host)
-  vi.clearAllMocks()
+  mocks.config.invite_only = false
+  mocks.authCaptcha.mockResolvedValue({ captchaId: 'cp1', svg: '<svg/>' })
 })
 afterEach(() => {
   act(() => {})
@@ -58,6 +67,7 @@ afterEach(() => {
 })
 const renderLogin = async () => {
   await act(async () => { createRoot(host).render(<Login />) })
+  await act(async () => {})   // flush 挂载后的 captcha 拉取
 }
 const btn = label => [...document.querySelectorAll('button')].find(b => b.textContent.trim() === label)
 const click = async el => {
@@ -70,75 +80,50 @@ const type = async (el, v) => await act(async () => {
   setter.call(el, v)
   el.dispatchEvent(new Event('input', { bubbles: true }))
 })
+const fillPhoneCaptcha = async () => {
+  await type(document.querySelector('input[placeholder="请输入手机号"]'), '13800138000')
+  await type(document.querySelector('input[placeholder="输入 4 位数字"]'), '1234')
+  await click(btn('发送短信验证码'))
+}
 
-describe.skip('Login 认证重构(手机/微信)', () => {
-  // SKIP 原因:happy-dom + React 19 受控输入与 act 异步链的组合在测试基建上未打通
-  // (受控 input 的 native setter 触发 onChange 不稳定、点击后异步链 flush 时机),
-  // 三用例断言本身已按新认证流写好,基建完善后去掉 describe.skip 即用。
-  // 交互正确性现由生产 ego 截图走查覆盖(见 FORK 台账批 F)。
+describe('Login 认证重构(手机/微信)', () => {
   it('双 tab 可切换:手机表单 ↔ 微信扫码表单', async () => {
-    mocks.api.mockImplementation(path =>
-      path === '/api/auth/wechat/qrcode' ? Promise.resolve({ ticket: 't1', image: 'AAAA' }) : Promise.resolve({}))
+    mocks.wechatQrcode.mockResolvedValue({ ticket: 't1', image: 'AAAA' })
     await renderLogin()
     expect(document.body.textContent).toContain('图形验证码')
     expect(document.body.textContent).toContain('微信扫码登录')
-    await click(btn('WeChat scan'))
-    await act(async () => {})   // 放行 qrcode 拉取
-    expect(document.body.textContent).toContain('Waiting for scan')
+    await click(btn('微信扫码登录'))
+    expect(document.body.textContent).toContain('等待扫码中…')
   })
 
   it('手机验证码流:发码 → 验证 → setUser 登录', async () => {
-    mocks.api.mockImplementation(path => {
-      if (path === '/api/auth/captcha') return Promise.resolve({ captchaId: 'cp1', svg: '<svg/>' })
-      if (path === '/api/auth/sms/send') return Promise.resolve({ ok: true })
-      if (path === '/api/auth/sms/verify')
-        return Promise.resolve({ user: { id: 'u1', name: '健身者8888' }, isNew: true })
-      return Promise.resolve({})
-    })
+    mocks.smsSend.mockResolvedValue({ ok: true })
+    mocks.smsVerify.mockResolvedValue({ user: { id: 'u1', name: '健身者8888' }, isNew: true })
     await renderLogin()
     // 图形验证码先出(SVG 数字码,发短信的前置人机闸)
     expect(document.body.textContent).toContain('图形验证码')
-    await type(document.querySelector('input[placeholder="输入 4 位数字"]'), '1234')
-    // 获取短信验证码(全宽绿钮)
-    await click([...document.querySelectorAll('button')].find(b => b.textContent === '获取短信验证码'))
-    console.log('CALLS:', JSON.stringify(mocks.api.mock.calls.map(c => c[0])))
-    const sendCall = mocks.api.mock.calls.find(c => c[0] === '/api/auth/sms/send')
-    expect(sendCall).toBeTruthy()
-    expect(JSON.parse(sendCall[1].body)).toEqual({ phone: '13800138000', captchaId: 'cp1', captchaCode: '1234' })
-    // 6 格分段验证码(设 6 格值后登录)
+    await fillPhoneCaptcha()
+    expect(mocks.smsSend).toHaveBeenCalledWith('13800138000', 'cp1', '1234')
+    // 发码成功 → 6 格分段验证码解锁(enabled),填满后登录
     const digitBoxes = [...document.querySelectorAll('input[maxlength="1"]')]
     expect(digitBoxes.length).toBe(6)
     for (let i = 0; i < 6; i++) await type(digitBoxes[i], String(i + 1))
     await click(btn('登录 / 注册'))
-    const verifyCall = mocks.api.mock.calls.find(c => c[0] === '/api/auth/sms/verify')
-    expect(verifyCall).toBeTruthy()
-    expect(JSON.parse(verifyCall[1].body)).toEqual({ phone: '13800138000', code: '123456' })
+    expect(mocks.smsVerify).toHaveBeenCalledWith('13800138000', '123456', '')
   })
 
-  it('邀请制实例:注册需邀请码字段', async () => {
+  it('邀请制实例:邀请码留空被前端拦截', async () => {
     mocks.config.invite_only = true
-    mocks.api.mockImplementation(path =>
-      path === '/api/auth/sms/verify'
-        ? Promise.resolve({ user: { id: 'u2', name: 'n' }, isNew: true })
-        : Promise.resolve({}))
-    mocks.api.mockImplementation(path => {
-      if (path === '/api/auth/captcha') return Promise.resolve({ captchaId: 'cp1', svg: '<svg/>' })
-      if (path === '/api/auth/sms/send') return Promise.resolve({ ok: true })
-      if (path === '/api/auth/sms/verify')
-        return Promise.resolve({ user: { id: 'u2', name: 'n' }, isNew: true })
-      return Promise.resolve({})
-    })
+    mocks.smsSend.mockResolvedValue({ ok: true })
+    mocks.smsVerify.mockResolvedValue({ user: { id: 'u2', name: 'n' }, isNew: true })
     await renderLogin()
-    await act(async () => {})
-    const phoneInput = document.querySelector('input[maxlength="11"]')
-    await type(phoneInput, '13900139000')
-    await type(document.querySelector('input[placeholder="输入 4 位数字"]'), '1234')
-    await click([...document.querySelectorAll('button')].find(b => b.textContent === '获取短信验证码'))
-    await act(async () => {})
+    await fillPhoneCaptcha()
     const boxes = [...document.querySelectorAll('input[maxlength="1"]')]
     for (const [i, b] of boxes.entries()) await type(b, String(i + 1))
-    // 邀请码留空 → 建号闸门拒绝 → toast 提示
+    // 邀请码留空 → 前端闸门拦下:不出 verify 请求,邀请区红字提示
     await click(btn('登录 / 注册'))
-    expect(useUI.getState().toast).toHaveBeenCalledWith('An invite code is required')
+    expect(mocks.smsVerify).not.toHaveBeenCalled()
+    expect(document.body.textContent).toContain('需要邀请码')
+    expect(document.body.textContent).toContain('本应用为邀请制')
   })
 })
