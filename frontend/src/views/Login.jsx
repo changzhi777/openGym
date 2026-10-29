@@ -25,12 +25,12 @@ const C = {
 const loginInput = {
   width: '100%', background: C.white, color: C.ink,
   border: `1.5px solid ${C.hair}`, borderRadius: 12,
-  padding: '13px 14px', fontSize: 16, outline: 'none',
+  padding: '11px 12px', fontSize: 15, outline: 'none',
 }
 const focusInput = e => { e.currentTarget.style.borderColor = C.green }
 const blurInput = e => { e.currentTarget.style.borderColor = C.hair }
 const fieldErr = msg => <div style={{ color: C.red, fontSize: 12.5, marginTop: 5, textAlign: 'left' }}>{msg}</div>
-const label = txt => <div style={{ fontSize: 13.5, fontWeight: 600, color: C.ink, margin: '14px 0 6px', textAlign: 'left' }}>{txt}</div>
+const label = txt => <div style={{ fontSize: 13.5, fontWeight: 600, color: C.ink, margin: '10px 0 5px', textAlign: 'left' }}>{txt}</div>
 
 // ── 6 格分段验证码(自动跳格/回退/粘贴分发;获焦绿边+微放大) ─────────────────
 function SixDigits({ value, onChange }) {
@@ -63,9 +63,9 @@ function SixDigits({ value, onChange }) {
           onFocus={() => setFocusIdx(i)} onBlur={() => setFocusIdx(-1)}
           onChange={e => onInput(i, e)} onKeyDown={e => onKey(i, e)}
           style={{
-            width: '100%', textAlign: 'center', fontSize: 22, fontWeight: 700, color: C.ink,
+            width: '100%', textAlign: 'center', fontSize: 20, fontWeight: 700, color: C.ink,
             background: C.white, border: `1.5px solid ${focusIdx === i ? C.green : C.hair}`,
-            borderRadius: 12, padding: '10px 0', outline: 'none', flex: 1,
+            borderRadius: 10, padding: '9px 0', outline: 'none', flex: 1,
             transform: focusIdx === i ? 'scale(1.04)' : 'none', transition: 'border-color .12s, transform .12s',
           }} />
       ))}
@@ -133,7 +133,7 @@ function PhoneForm({ config, onSignedIn }) {
     {label('手机号')}
     <div style={{ display: 'flex', alignItems: 'stretch', background: C.white,
       border: `1.5px solid ${err?.field === 'phone' ? C.red : C.hair}`, borderRadius: 12, overflow: 'hidden' }}>
-      <span style={{ padding: '13px 12px', background: '#eef1ee', color: C.sub, fontSize: 15,
+      <span style={{ padding: '11px 10px', background: '#eef1ee', color: C.sub, fontSize: 14,
         borderRight: `1.5px solid ${C.hair}`, userSelect: 'none' }}>+86</span>
       <input ref={phoneRef} inputMode="numeric" maxLength={11} placeholder="请输入手机号" value={phone}
         onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 11))}
@@ -158,7 +158,7 @@ function PhoneForm({ config, onSignedIn }) {
     {!sent ? <>
       <div style={{ height: 18 }} />
       <button onClick={getCode} style={{ width: '100%', padding: '14px 0', border: 'none', borderRadius: 14,
-        background: C.green, color: '#fff', fontSize: 16, fontWeight: 700, cursor: 'pointer' }}
+        background: C.green, color: '#fff', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}
         onMouseEnter={e => (e.currentTarget.style.background = C.greenDark)}
         onMouseLeave={e => (e.currentTarget.style.background = C.green)}>
         获取短信验证码
@@ -187,7 +187,7 @@ function PhoneForm({ config, onSignedIn }) {
       </>}
       <div style={{ height: 16 }} />
       <button onClick={signIn} disabled={busy || digits.length < 6}
-        style={{ width: '100%', padding: '15px 0', border: 'none', borderRadius: 14,
+        style={{ width: '100%', padding: '13px 0', border: 'none', borderRadius: 12,
           background: busy || digits.length < 6 ? '#a8d4b0' : C.green, color: '#fff',
           fontSize: 16.5, fontWeight: 700, cursor: busy || digits.length < 6 ? 'default' : 'pointer' }}>
         登录 / 注册
@@ -248,14 +248,14 @@ export default function Login() {
   const canGuest = guestAllowed(config)
   const [channel, setChannel] = useState('phone')   // phone | wechat 双按钮平级(Q7)
   const head = <>
-    <img src="/icon-192.png" alt="沐禾健身" width={88} height={88}
-      style={{ borderRadius: 22, margin: '0 auto', display: 'block', boxShadow: '0 6px 24px rgba(36,138,61,.25)' }} />
-    <h1 style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-.02em', margin: '14px 0 4px', color: '#1c1c1e' }}>沐禾健身</h1>
-    <div style={{ fontSize: 13, fontWeight: 600, letterSpacing: '.22em', color: '#248a3d', textTransform: 'uppercase' }}>MUHE FIT</div>
+    <img src="/icon-192.png" alt="沐禾健身" width={56} height={56}
+      style={{ borderRadius: 14, margin: '0 auto', display: 'block', boxShadow: '0 4px 16px rgba(36,138,61,.22)' }} />
+    <h1 style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-.02em', margin: '8px 0 2px', color: '#1c1c1e' }}>沐禾健身</h1>
+    <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '.22em', color: '#248a3d', textTransform: 'uppercase' }}>MUHE FIT</div>
   </>
   const wrap = {
     display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'center',
-    minHeight: '100dvh', background: 'linear-gradient(180deg, #f2f2f7 0%, #e9efe9 100%)', color: '#1c1c1e',
+    minHeight: '100dvh', padding: '24px 20px 40px', background: 'linear-gradient(180deg, #f2f2f7 0%, #e9efe9 100%)', color: '#1c1c1e', justifyContent: 'flex-start', paddingTop: '9dvh',
     ['data-theme']: 'light',
   }
 
@@ -279,7 +279,7 @@ export default function Login() {
   return (
     <div className="narrow" style={wrap}>
       {head}
-      <div style={{ margin: '18px 0 26px', fontSize: 16, color: '#3a3a3c' }}>你的训练、你的重量、你的档案。</div>
+      <div style={{ margin: '8px 0 14px', fontSize: 13.5, color: '#6e6e73' }}>你的训练、你的重量、你的档案。</div>
       <div style={{ textAlign: 'start', maxWidth: 420, margin: '0 auto', width: '100%' }}>
         {channel === 'phone' ? <>
           <PhoneForm config={config} onSignedIn={signedIn} />
