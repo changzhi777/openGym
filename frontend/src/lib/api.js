@@ -427,8 +427,11 @@ export async function passwordResetRedeem(name, code, next) {
 // ── 认证重构(2026-10-29):手机号+短信验证码 / 微信小程序码扫码 ──────────────
 
 /** 发送短信验证码(60s 重发间隔由 UI 倒计;防刷在服务端)。dev 模式应答 { dev: true }。 */
-export async function smsSend(phone) {
-  return api('/api/auth/sms/send', { method: 'POST', body: JSON.stringify({ phone }) })
+export async function smsSend(phone, captchaId, captchaCode) {
+  return api('/api/auth/sms/send', {
+    method: 'POST',
+    body: JSON.stringify({ phone, captchaId, captchaCode }),
+  })
 }
 
 /** 验证码核验:有号登录、无号建号(一体式);inviteOnly 实例需 invite。 */

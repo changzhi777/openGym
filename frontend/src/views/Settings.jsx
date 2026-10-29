@@ -16,7 +16,7 @@ import { unlock, chime, playOnSilentSupported, vibrateSupported, appleTouchDevic
 import { REST_SOUND_IDS, restSoundOf } from '../lib/rest-sounds.js'
 import { scheduleModeOf, chooseFixedWeek, chooseRotation } from '../lib/rotation.js'
 import { queueOf } from '../lib/queue.js'
-import { api, webauthnOK, IS_ANDROID, smsSend, bindPhone } from '../lib/api.js'
+import { api, webauthnOK, IS_ANDROID, smsSend, bindPhone, authCaptcha } from '../lib/api.js'
 import { pushSupported, enablePush, disablePush, sendTestPush, syncPushSubscription } from '../lib/push.js'
 import { wakeLockSupported } from '../lib/wakelock.js'
 import { t, tn, LANGS, INSTR_LANGS, EXERCISE_NAME_LANGS, baseLang, dateLocale } from '../lib/i18n.js'
@@ -1351,6 +1351,8 @@ function BindPhoneSheet({ close }) {
   const [phone, setPhone] = useState('')
   const [code, setCode] = useState('')
   const [invite, setInvite] = useState('')
+  const [cap, setCap] = useState(null)
+  const [capCode, setCapCode] = useState('')
   const [countdown, setCountdown] = useState(0)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState(null)
@@ -1359,10 +1361,12 @@ function BindPhoneSheet({ close }) {
     const t = setTimeout(() => setCountdown(c => c - 1), 1000)
     return () => clearTimeout(t)
   }, [countdown])
+  useEffect(() => { authCaptcha().then(setCap).catch(() => setCap(null)) }, [])
   const send = async () => {
     setErr(null)
     if (!/^1\d{10}$/.test(phone)) { toast(t('Enter a valid mainland mobile number')); return }
-    try { await smsSend(phone); setCountdown(60) } catch (e) { setErr(e.message) }
+    if (!capCode || capCode.length < 4) { toast(t('图形验证码')); return }
+    try { await smsSend(phone, cap?.captchaId, capCode); setCountdown(60) } catch (e) { setErr(e.message) }
   }
   const go = async () => {
     setBusy(true); setErr(null)
@@ -1376,6 +1380,15 @@ function BindPhoneSheet({ close }) {
     <h3>{t('Bind mobile number')}</h3>
     <input className="input" inputMode="numeric" maxLength={11} placeholder={t('Mobile number')} value={phone}
       onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 11))} />
+    <div style={{ height: 10 }} />
+    <div style={{ fontSize: 13.5, fontWeight: 600, margin: '10px 0 5px' }}>图形验证码</div>
+    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+      {cap && <div dangerouslySetInnerHTML={{ __html: cap.svg }}
+        style={{ width: 150, height: 44, borderRadius: 8, overflow: 'hidden', cursor: 'pointer', flexShrink: 0 }}
+        onClick={() => authCaptcha().then(setCap).catch(() => {})} title="点击刷新" />}
+      <input className="input" inputMode="numeric" maxLength={4} placeholder="输入 4 位数字" value={capCode}
+        onChange={e => setCapCode(e.target.value.replace(/\D/g, '').slice(0, 4))} />
+    </div>
     <div style={{ height: 10 }} />
     <div style={{ display: 'flex', gap: 8 }}>
       <input className="input" inputMode="numeric" maxLength={6} placeholder={t('SMS code')} value={code}
