@@ -5,5 +5,9 @@
   "backgroundColor": "#0c0e12",
   "android": {
     "allowMixedContent": true
+  },
+  "server": {
+    "url": "https://app.qingmulife.com",
+    "cleartext": false
   }
 }
