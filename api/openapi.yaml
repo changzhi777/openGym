@@ -3100,22 +3100,24 @@ paths:
     post:
       tags: [admin]
       operationId: adminStepUp
-      summary: 'Admin: start a step-up passkey ceremony'
+      summary: 'Admin: confirm a sensitive action with an SMS code'
       description: >-
-        Hands out a challenge bound to the admin session; the assertion is
-        verified by the same call with `credential` present, which then grants
-        a 5-minute step-up window written to the audit log.
+        Verifies {phone, code} against the phone identity bound to the signed-in
+        admin; on success grants a 5-minute step-up window written to the audit
+        log. Codes are sent via /api/auth/sms/send (image captcha gated).
       requestBody:
-        required: false
+        required: true
         content:
           application/json:
             schema:
               type: object
+              required: [phone, code]
               properties:
-                credential: { type: object, description: 'Second call: the WebAuthn assertion.' }
+                phone: { type: string, description: The admin's bound phone number. }
+                code: { type: string, description: The 6-digit SMS code. }
       responses:
         '200':
-          description: First call returns the challenge options; second returns { ok, until }.
+          description: '{ ok, until } — the window end (epoch ms).'
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
 

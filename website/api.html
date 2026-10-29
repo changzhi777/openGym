@@ -3473,24 +3473,29 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
     <span class="m post">POST</span>
     <span class="ep-path"><code>/api/admin/step-up</code><span class="ep-chip admin">admin</span></span>
     <span class="ep-chev" aria-hidden="true"></span>
-    <span class="ep-sum">Start a step-up passkey ceremony</span>
+    <span class="ep-sum">Confirm a sensitive action with an SMS code</span>
   </summary>
   <div class="ep-body">
-<p>Hands out a challenge bound to the admin session; the assertion is verified by the same call with <code>credential</code> present, which then grants a 5-minute step-up window written to the audit log.</p>
+<p>Verifies {phone, code} against the phone identity bound to the signed-in admin; on success grants a 5-minute step-up window written to the audit log. Codes are sent via /api/auth/sms/send (image captcha gated).</p>
     <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Admin only: a signed-in session whose user is an admin (<code>ADMIN_UIDS</code> or <code>admin:true</code>), as the session cookie or a Bearer token.</span></p>
 
-<p class="ep-h">Request body <span class="p-hint">(JSON)</span> <span class="p-hint">(optional)</span></p><div class="ptab">
+<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
   <div class="prow">
-    <span class="p-name">credential</span>
-    <span class="p-type">object</span>
-    <span class="p-desc">Second call: the WebAuthn assertion.</span>
+    <span class="p-name">phone<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc">The admin's bound phone number.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">code<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc">The 6-digit SMS code.</span>
   </div>
 </div>
     <p class="ep-h">Responses</p>
     <div class="ptab">
   <div class="prow rrow">
     <span class="r-code s2">200</span>
-    <span class="p-desc">First call returns the challenge options; second returns { ok, until }.</span>
+    <span class="p-desc">{ ok, until } — the window end (epoch ms).</span>
   </div>
   <div class="prow rrow">
     <span class="r-code s4">401</span>
