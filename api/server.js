@@ -2167,7 +2167,6 @@ const routes = {
     const renew = s.bearer && s.kind !== 'c' && s.exp - Date.now() < SESSION_DAYS * 86400000 / 2;
     // roles(fork 契约):Node 栈无 coach 体系,恒 []——Go 栈回答真实角色,前端按栈消费。
     json(res, 200, { user: { id: user.id, name: user.name, admin: isAdmin(user), roles: [] }, ...(renew ? { token: makeSession(user) } : {}) });
->>>>>>> upstream/main
   },
 
   'POST /api/register/options': async (req, res) => {

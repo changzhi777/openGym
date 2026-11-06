@@ -776,6 +776,10 @@ export function build(S, opts = {}) {
     if (zs) p.exerciseSteps = zs;
   } else {
     p.library = librarySlice(S, p.coachProfile?.equipment, { keep: trainedIds(S, S.workouts || []), focus: focusTexts(p.coachProfile, opts.refine) });
+    // Creation has no window to read; the steps cover everything the plan and history name,
+    // so a first cue for a newly proposed exercise is quotable too.
+    const zs = exerciseSteps(p.meta.lang, trainedIds(S, S.workouts || []));
+    if (zs) p.exerciseSteps = zs;
     // Creation for a returning user: what they have actually handled, so proposed baselines
     // start from evidence rather than optimism (B2/FR-20).
     const best = {};
