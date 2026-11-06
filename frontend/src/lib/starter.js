@@ -52,6 +52,11 @@ export const starterRoutines = () => build(PPL)
 
 // [{ id, days }] for the chooser. The day count is read off the schedule rather than stored
 // beside it, so the two can never disagree.
+// 教练工作台模板下发用:全部内置模板的 routines(build() 新 id),按模板 id 索引。
+// (fork;PLANS 未导出,此函数是模板 routines 的唯一出口。)
+export const starterPlanTemplates = () =>
+  Object.fromEntries(Object.entries(PLANS).map(([id, { routines }]) => [id, build(routines)]))
+
 export const starterPlanOptions = () =>
   Object.entries(PLANS).map(([id, { schedule }]) => ({ id, days: schedule.length }))
 

@@ -460,3 +460,30 @@ export async function bindPhone(phone, code) {
 export async function authCaptcha() {
   return api('/api/auth/captcha')
 }
+
+/** 教练工作台:绑定学员列表(白名单摘要+在线态)。 */
+export const coachStudents = () => api('/api/coach-console/students')
+
+/** 教练工作台:按手机号绑定学员(未注册 404)。 */
+export async function coachBindStudent(phone) {
+  return api('/api/coach-console/bindings', { method: 'POST', body: JSON.stringify({ phone }) })
+}
+
+/** 教练工作台:解绑学员。 */
+export async function coachUnbindStudent(id) {
+  return api('/api/coach-console/bindings/' + encodeURIComponent(id), { method: 'DELETE' })
+}
+
+/** 教练工作台:学员白名单详情(routines/week/workouts/bodyweight)。 */
+export const coachStudentDetail = id => api('/api/coach-console/students/' + encodeURIComponent(id))
+
+/** 教练工作台:下发计划(routines+week 整体替换;expect 乐观并发;notify 推送学员)。 */
+export async function coachPutStudentPlan(id, routines, week, expect, notify = true) {
+  return api('/api/coach-console/students/' + encodeURIComponent(id) + '/plan', {
+    method: 'PUT', body: JSON.stringify({ routines, week, expect, notify }),
+  })
+}
+
+/** 教练工作台:学员白名单数据导出(下载地址,浏览器直接打开即下载)。 */
+export const coachStudentExportUrl = id =>
+  '/api/coach-console/students/' + encodeURIComponent(id) + '/export'

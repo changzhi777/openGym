@@ -49,6 +49,9 @@ import AdminUserDetail from './views/admin/UserDetail.jsx'
 import AdminAudit from './views/admin/Audit.jsx'
 import AdminRoles from './views/admin/Roles.jsx'
 import AdminCoach from './views/AdminCoach.jsx'
+import CoachShell from './views/coach-console/CoachShell.jsx'
+import CoachStudents from './views/coach-console/Students.jsx'
+import CoachStudentDetail from './views/coach-console/StudentDetail.jsx'
 import CoachChat from './views/CoachChat.jsx'
 import Measurements from './views/Measurements.jsx'
 import CoachIntake from './views/CoachIntake.jsx'
@@ -239,6 +242,11 @@ function Shell() {
                 <Route path="invites" element={<AdminInvites />} />
                 <Route path="revenue" element={<AdminPlaceholder phase="营收功能待商业化模块落地" />} />
                 <Route path="coach" element={<AdminCoach />} />
+              </Route>
+              {/* 教练工作台(fork):roles 含 coach 的账号入口;闸门在 Shell 内做一次路由外兜底。 */}
+              <Route path="/coach-console" element={<CoachShell />}>
+                <Route index element={<CoachStudents />} />
+                <Route path="students/:id" element={<CoachStudentDetail />} />
               </Route>
               <Route path="*" element={<Navigate to="/home" replace />} />
             </Routes>

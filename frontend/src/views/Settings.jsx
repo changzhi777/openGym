@@ -857,6 +857,7 @@ export default function Settings({ page = null, find = null, via = null }) {
             onClick={() => window.open(REPO, '_blank', 'noopener')} />
         </> : user ? <>
           {user.admin && <Row icon="crown" iconTint="var(--indigo)" title={t('Admin dashboard')} accessory="chevron" onClick={() => nav('/admin')} />}
+          {user.roles?.includes('coach') && <Row icon="dumbbell" iconTint="var(--green)" title={t('教练工作台')} accessory="chevron" onClick={() => nav('/coach-console')} />}
           <Row icon="phone" iconTint="var(--blue)" title={t('Bind mobile number')} accessory="chevron"
             onClick={() => useUI.getState().openSheet(close => <BindPhoneSheet close={close} />)} />
           <Row icon="signOut" iconTint="var(--red)" title={t('Sign out')} danger onClick={signOutHere} />
