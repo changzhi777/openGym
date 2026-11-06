@@ -116,6 +116,8 @@ tags:
     description: 'Deprecated in this fork: passkeys and device links (Node fallback only).'
   - name: sms
     description: Mobile number + SMS code sign-in (register/login in one step)
+  - name: coach-console
+    description: 'Coach console (fork): bound students, whitelisted data, plan push'
   - name: wechat
     description: WeChat mini-program QR scan login
   - name: data
@@ -3464,6 +3466,201 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
 
+  # ---------------------------------------------------------------- coach console
+  # 教练工作台(fork,Go backend):coach 角色绑定学员、查看白名单数据、下发计划。
+  # 健康数据最小化:所有学员端点走白名单投影(plan/训练史/体重/在线态),
+  # 围度、进度照片、测量记录对教练不可见。
+  /api/coach-console/students:
+    get:
+      tags: [coach-console]
+      operationId: coachStudents
+      summary: 'Coach: the bound students, with summaries'
+      description: >-
+        Students bound to the signed-in coach (coach_assignments), each with a
+        whitelist summary: presence, workout count, newest workout day, current
+        plan name, last sync. Requires the `coach` role (super_admin also passes).
+      responses:
+        '200':
+          description: The bound students.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  students:
+                    type: array
+                    items: { $ref: '#/components/schemas/CoachStudentSummary' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/coach-console/bindings:
+    post:
+      tags: [coach-console]
+      operationId: coachBindStudent
+      summary: 'Coach: bind a student by phone number'
+      description: >-
+        Looks the account up by its bound phone identity and creates the
+        coach-student assignment. The student must already be registered
+        (phone login); unknown numbers answer 404 with a hint.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone]
+              properties:
+                phone: { type: string, description: The student's 11-digit mainland mobile number. }
+      responses:
+        '200':
+          description: Bound; answers the student summary.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CoachStudentSummary' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404':
+          description: No account with that phone number (the student must register first).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /api/coach-console/bindings/{studentId}:
+    delete:
+      tags: [coach-console]
+      operationId: coachUnbindStudent
+      summary: 'Coach: unbind a student'
+      description: Removes the assignment; the student's own data is untouched.
+      parameters:
+        - name: studentId
+          in: path
+          required: true
+          schema: { type: string }
+          description: The student user id.
+      responses:
+        '200':
+          description: Unbound.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { description: Not bound to this coach. }
+
+  /api/coach-console/students/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+        description: The student user id (must be bound to this coach).
+    get:
+      tags: [coach-console]
+      operationId: coachStudentDetail
+      summary: 'Coach: one student''s whitelisted data'
+      description: >-
+        The student's current plan, workout history, bodyweight curve and
+        presence — nothing else. Measurements, progress photos and other
+        sensitive state fields are never included.
+      responses:
+        '200':
+          description: The whitelisted detail.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CoachStudentDetail' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { description: Not bound to this coach. }
+
+  /api/coach-console/students/{id}/plan:
+    put:
+      tags: [coach-console]
+      operationId: coachPutStudentPlan
+      summary: 'Coach: push a weekly plan to the student'
+      description: >-
+        Replaces the `routines` and `week` fields of the student's state document
+        (the exact shape the app's Plan screen consumes — the student's next sync
+        shows the coach's plan and the progression engine takes it from there) and
+        bumps `_rev`; workouts and bodyweight history are untouched. Conflicts with
+        a concurrent student sync answer 409 with the current document — refetch,
+        rebase, resend. Optionally notifies the student via Web Push (silently
+        skipped when the student has no subscription).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [routines, week]
+              properties:
+                routines:
+                  type: array
+                  description: Routine templates (same shape as `state.routines`).
+                week:
+                  type: object
+                  description: Week schedule mapping day numbers ("1".."7") to routine ids.
+                  additionalProperties: { type: string }
+                expect:
+                  type: number
+                  description: The student state `_rev` this edit was based on (optimistic concurrency).
+                notify:
+                  type: boolean
+                  description: Send a Web Push to the student (default true).
+      responses:
+        '200':
+          description: Pushed; answers the new revision.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  rev: { type: number, description: The student state `_rev` after the write. }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { description: Not bound to this coach. }
+        '409':
+          description: The student synced meanwhile; the current document is returned for a rebase.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error: { type: string }
+                  code: { type: string }
+                  doc: { type: object, description: The student's current state document. }
+
+  /api/coach-console/students/{id}/export:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+        description: The student user id (must be bound to this coach).
+    get:
+      tags: [coach-console]
+      operationId: coachStudentExport
+      summary: 'Coach: export a student''s whitelisted data'
+      description: >-
+        The same whitelist as the detail endpoint (plan, workouts, bodyweight),
+        as a downloadable bundle. No admin step-up involved — the coach-student
+        assignment is the authorization.
+      responses:
+        '200':
+          description: The export bundle (whitelisted fields only).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  export:
+                    type: object
+                    description: '{ plan, workouts, bodyweight } — whitelisted.'
+                  exported_at: { type: number, description: Server time (ms). }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { description: Not bound to this coach. }
+
 components:
   securitySchemes:
     cookieAuth:
@@ -3721,6 +3918,60 @@ components:
         credential: { $ref: '#/components/schemas/WebAuthnAuthenticationCredential' }
         current: { type: string }
 
+    CoachStudentSummary:
+      type: object
+      description: Whitelist summary of a bound student (coach console list).
+      properties:
+        id: { type: string, description: The student user id. }
+        name: { type: string }
+        phoneTail: { type: string, description: 'Masked phone, e.g. "138****8884".' }
+        live:
+          oneOf: [{ $ref: '#/components/schemas/Presence' }, { type: 'null' }]
+          description: Currently training, or null.
+        workouts: { type: integer, description: Total logged workouts. }
+        lastWorkout:
+          oneOf: [{ type: string }, { type: 'null' }]
+          description: ISO day of the newest workout.
+        lastSync:
+          oneOf: [{ type: number }, { type: 'null' }]
+          description: The state's `_ts` (ms).
+        planDays:
+          type: integer
+          description: How many days a week the student's current schedule plans (len of `week`).
+        boundAt: { type: string, description: ISO timestamp of the assignment. }
+
+    CoachStudentDetail:
+      type: object
+      description: Whitelist detail of a bound student — routines/week plan, workouts,
+        bodyweight. No measurements, progress photos or other sensitive state fields.
+      properties:
+        student: { $ref: '#/components/schemas/CoachStudentSummary' }
+        routines:
+          oneOf: [{ type: array }, { type: 'null' }]
+          description: The student's routine templates (same shape as `state.routines`).
+        week:
+          oneOf: [{ type: object }, { type: 'null' }]
+          description: Week schedule mapping day numbers to routine ids (same as `state.week`).
+        workouts:
+          type: array
+          description: Full workout history, newest first.
+          items: { $ref: '#/components/schemas/Workout' }
+        bodyweight:
+          type: array
+          description: Bodyweight curve, oldest first.
+          items:
+            type: object
+            properties:
+              d: { type: string, format: date }
+              kg: { type: number }
+        unit: { type: string, enum: [kg, lb] }
+        lastSync:
+          oneOf: [{ type: number }, { type: 'null' }]
+          description: The state's `_ts` (ms).
+        rev:
+          type: number
+          description: The state `_rev` — the `expect` base for the plan push.
+
     SessionUser:
       type: object
       description: The caller's identity, as returned by /api/me and the sign-in routes.
@@ -3728,7 +3979,14 @@ components:
         id: { type: string, description: Stable user id (16 base64url chars). }
         name: { type: string }
         admin: { type: boolean }
-      example: { id: "Zk3q9XyPbA2LmN0v", name: "Ada", admin: false }
+        roles:
+          type: array
+          items: { type: string }
+          description: >-
+            Business roles beyond the admin console, e.g. `coach` (the coach
+            console at /coach-console). Empty for plain members. (Fork, Go backend;
+            Node answers `[]`.)
+      example: { id: "Zk3q9XyPbA2LmN0v", name: "Ada", admin: false, roles: [] }
 
     # ------------------------------------------------------------------ WebAuthn
     # These mirror @simplewebauthn/server v13's JSON shapes (themselves the W3C

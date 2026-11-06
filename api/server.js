@@ -1932,6 +1932,13 @@ const routes = {
   'GET /api/admin/users/{id}/export': notYetGo,
   'GET /api/admin/settings': notYetGo,
   'PUT /api/admin/settings': notYetGo,
+  // 教练工作台(fork):coach 角色绑定学员/看数据/下发计划,Go 栈实现,Node 侧 501。
+  'GET /api/coach-console/students': notYetGo,
+  'POST /api/coach-console/bindings': notYetGo,
+  'DELETE /api/coach-console/bindings/{studentId}': notYetGo,
+  'GET /api/coach-console/students/{id}': notYetGo,
+  'PUT /api/coach-console/students/{id}/plan': notYetGo,
+  'GET /api/coach-console/students/{id}/export': notYetGo,
   'POST /api/alive': notYetGo,
   'GET /api/admin/live': notYetGo,
 
@@ -1984,7 +1991,8 @@ const routes = {
     if (!s) return json(res, 401, { error: 'not signed in' });
     const { user } = s;
     const renew = s.bearer && s.exp - Date.now() < SESSION_DAYS * 86400000 / 2;
-    json(res, 200, { user: { id: user.id, name: user.name, admin: isAdmin(user) }, ...(renew ? { token: makeSession(user) } : {}) });
+    // roles(fork 契约):Node 栈无 coach 体系,恒 []——Go 栈回答真实角色,前端按栈消费。
+    json(res, 200, { user: { id: user.id, name: user.name, admin: isAdmin(user), roles: [] }, ...(renew ? { token: makeSession(user) } : {}) });
   },
 
   'POST /api/register/options': async (req, res) => {

@@ -98,7 +98,11 @@ func (s *Service) Me(c *gin.Context) {
 		return
 	}
 	ids, _ := store.IdentitiesOf(c.Request.Context(), s.DB, u.ID)
-	c.JSON(200, gin.H{"user": gin.H{"id": u.ID, "name": u.Name, "admin": s.isAdmin(c, u.ID)}, "identities": ids})
+	roles, _ := store.RolesOf(c.Request.Context(), s.DB, u.ID)
+	if roles == nil {
+		roles = []string{}
+	}
+	c.JSON(200, gin.H{"user": gin.H{"id": u.ID, "name": u.Name, "admin": s.isAdmin(c, u.ID), "roles": roles}, "identities": ids})
 }
 
 func (s *Service) isAdmin(ctx context.Context, uid string) bool {
@@ -299,6 +303,7 @@ func (s *Service) WechatQrcode(c *gin.Context) {
 	}
 	png, err := s.Wx.QRCodePNG(c.Request.Context(), ticket)
 	if err != nil {
+		log.Printf("wechat qrcode render: %v", err)
 		jsonFail(c, 502, "qrcode render failed", "")
 		return
 	}

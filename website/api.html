@@ -224,6 +224,7 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   <a class="side-link" href="#activity"><b>Activity</b><span>Live presence</span></a>
   <a class="side-link" href="#media"><b>Media</b><span>Photos &amp; videos of your exercises &amp; workouts</span></a>
   <a class="side-link" href="#coach"><b>AI Coach</b><span>Plans, reviews, debriefs</span></a>
+  <a class="side-link" href="#coach-console"><b>Coach Console</b><span>Students, plans, whitelisted data</span></a>
   <a class="side-link" href="#admin"><b>Admin</b><span>Users, invites, audit log, Coach</span></a>
   <a class="side-link" href="#schemas"><b>Schemas</b><span>The state blob, the error shape &amp; co.</span></a>
   <p class="side-label">More</p>
@@ -247,7 +248,7 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   <p class="api-facts">
     <span>OpenAPI 3.1.0</span>
     <span>openGym v1.4.1</span>
-    <span>93 endpoints</span>
+    <span>101 endpoints</span>
     <span>AGPL-3.0-or-later</span>
   </p>
 
@@ -2798,6 +2799,250 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   </div>
 </section>
 
+<section class="api-sec" id="coach-console">
+  <h2>Coach Console</h2>
+  <p class="sub">Coach console (fork): bound students, whitelisted data, plan push</p>
+  <div class="eps">
+
+<details class="ep" id="op-coachStudents">
+  <summary>
+    <span class="m get">GET</span>
+    <span class="ep-path"><code>/api/coach-console/students</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Coach: the bound students, with summaries</span>
+  </summary>
+  <div class="ep-body">
+<p>Students bound to the signed-in coach (coach_assignments), each with a whitelist summary: presence, workout count, newest workout day, current plan name, last sync. Requires the <code>coach</code> role (super_admin also passes).</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">The bound students.<span class="r-sig">{ students: <a href="#schema-CoachStudentSummary">CoachStudentSummary</a>[] }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">403</span>
+    <span class="p-desc">Signed in, but not an admin. The attempt is recorded in the audit log.<span class="r-sig"><code>{&quot;error&quot;:&quot;forbidden&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-coachBindStudent">
+  <summary>
+    <span class="m post">POST</span>
+    <span class="ep-path"><code>/api/coach-console/bindings</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Coach: bind a student by phone number</span>
+  </summary>
+  <div class="ep-body">
+<p>Looks the account up by its bound phone identity and creates the coach-student assignment. The student must already be registered (phone login); unknown numbers answer 404 with a hint.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">phone<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc">The student's 11-digit mainland mobile number.</span>
+  </div>
+</div>
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">Bound; answers the student summary.<span class="r-sig"><a href="#schema-CoachStudentSummary">CoachStudentSummary</a></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">403</span>
+    <span class="p-desc">Signed in, but not an admin. The attempt is recorded in the audit log.<span class="r-sig"><code>{&quot;error&quot;:&quot;forbidden&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">404</span>
+    <span class="p-desc">No account with that phone number (the student must register first).</span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-coachUnbindStudent">
+  <summary>
+    <span class="m delete">DELETE</span>
+    <span class="ep-path"><code>/api/coach-console/bindings/{studentId}</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Coach: unbind a student</span>
+  </summary>
+  <div class="ep-body">
+<p>Removes the assignment; the student's own data is untouched.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+<p class="ep-h">Query parameters</p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">studentId <span class="p-hint">(path)</span><em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc">The student user id.</span>
+  </div>
+</div>
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">Unbound.<span class="r-sig"><a href="#schema-Ok">Ok</a></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">403</span>
+    <span class="p-desc">Signed in, but not an admin. The attempt is recorded in the audit log.<span class="r-sig"><code>{&quot;error&quot;:&quot;forbidden&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">404</span>
+    <span class="p-desc">Not bound to this coach.</span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-coachStudentDetail">
+  <summary>
+    <span class="m get">GET</span>
+    <span class="ep-path"><code>/api/coach-console/students/{id}</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Coach: one student's whitelisted data</span>
+  </summary>
+  <div class="ep-body">
+<p>The student's current plan, workout history, bodyweight curve and presence — nothing else. Measurements, progress photos and other sensitive state fields are never included.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">The whitelisted detail.<span class="r-sig"><a href="#schema-CoachStudentDetail">CoachStudentDetail</a></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">403</span>
+    <span class="p-desc">Signed in, but not an admin. The attempt is recorded in the audit log.<span class="r-sig"><code>{&quot;error&quot;:&quot;forbidden&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">404</span>
+    <span class="p-desc">Not bound to this coach.</span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-coachPutStudentPlan">
+  <summary>
+    <span class="m put">PUT</span>
+    <span class="ep-path"><code>/api/coach-console/students/{id}/plan</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Coach: push a weekly plan to the student</span>
+  </summary>
+  <div class="ep-body">
+<p>Replaces the <code>routines</code> and <code>week</code> fields of the student's state document (the exact shape the app's Plan screen consumes — the student's next sync shows the coach's plan and the progression engine takes it from there) and bumps <code>_rev</code>; workouts and bodyweight history are untouched. Conflicts with a concurrent student sync answer 409 with the current document — refetch, rebase, resend. Optionally notifies the student via Web Push (silently skipped when the student has no subscription).</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">routines<em class="p-req" title="required">required</em></span>
+    <span class="p-type">any[]</span>
+    <span class="p-desc">Routine templates (same shape as <code>state.routines</code>).</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">week<em class="p-req" title="required">required</em></span>
+    <span class="p-type">object</span>
+    <span class="p-desc">Week schedule mapping day numbers (&quot;1&quot;..&quot;7&quot;) to routine ids.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">expect</span>
+    <span class="p-type">number</span>
+    <span class="p-desc">The student state <code>_rev</code> this edit was based on (optimistic concurrency).</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">notify</span>
+    <span class="p-type">boolean</span>
+    <span class="p-desc">Send a Web Push to the student (default true).</span>
+  </div>
+</div>
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">Pushed; answers the new revision.<span class="r-sig">{ ok: boolean, rev: number }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">403</span>
+    <span class="p-desc">Signed in, but not an admin. The attempt is recorded in the audit log.<span class="r-sig"><code>{&quot;error&quot;:&quot;forbidden&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">404</span>
+    <span class="p-desc">Not bound to this coach.</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">409</span>
+    <span class="p-desc">The student synced meanwhile; the current document is returned for a rebase.</span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-coachStudentExport">
+  <summary>
+    <span class="m get">GET</span>
+    <span class="ep-path"><code>/api/coach-console/students/{id}/export</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Coach: export a student's whitelisted data</span>
+  </summary>
+  <div class="ep-body">
+<p>The same whitelist as the detail endpoint (plan, workouts, bodyweight), as a downloadable bundle. No admin step-up involved — the coach-student assignment is the authorization.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">The export bundle (whitelisted fields only).<span class="r-sig">{ export: object, exported_at: number }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">403</span>
+    <span class="p-desc">Signed in, but not an admin. The attempt is recorded in the audit log.<span class="r-sig"><code>{&quot;error&quot;:&quot;forbidden&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">404</span>
+    <span class="p-desc">Not bound to this coach.</span>
+  </div>
+    </div>
+  </div>
+</details>
+  </div>
+</section>
+
 <section class="api-sec" id="admin">
   <h2>Admin</h2>
   <p class="sub">Admin dashboard. Requires an admin session (<code>ADMIN_UIDS</code> or <code>admin:true</code>)</p>
@@ -4200,6 +4445,122 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   </div>
 </details>
 
+<details class="ep sch" id="schema-CoachStudentSummary">
+  <summary>
+    <span class="sch-name"><code>CoachStudentSummary</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Whitelist summary of a bound student (coach console list).</span>
+  </summary>
+  <div class="ep-body">
+
+<div class="ptab">
+  <div class="prow">
+    <span class="p-name">id</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">The student user id.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">name</span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">phoneTail</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">Masked phone, e.g. &quot;138****8884&quot;.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">live</span>
+    <span class="p-type"><a href="#schema-Presence">Presence</a> | null</span>
+    <span class="p-desc">Currently training, or null.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">workouts</span>
+    <span class="p-type">integer</span>
+    <span class="p-desc">Total logged workouts.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">lastWorkout</span>
+    <span class="p-type">string | null</span>
+    <span class="p-desc">ISO day of the newest workout.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">lastSync</span>
+    <span class="p-type">number | null</span>
+    <span class="p-desc">The state's <code>_ts</code> (ms).</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">planDays</span>
+    <span class="p-type">integer</span>
+    <span class="p-desc">How many days a week the student's current schedule plans (len of <code>week</code>).</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">boundAt</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">ISO timestamp of the assignment.</span>
+  </div>
+</div>
+  </div>
+</details>
+
+<details class="ep sch" id="schema-CoachStudentDetail">
+  <summary>
+    <span class="sch-name"><code>CoachStudentDetail</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Whitelist detail of a bound student — routines/week plan, workouts, bodyweight.</span>
+  </summary>
+  <div class="ep-body">
+<p>No measurements, progress photos or other sensitive state fields.</p>
+<div class="ptab">
+  <div class="prow">
+    <span class="p-name">student</span>
+    <span class="p-type"><a href="#schema-CoachStudentSummary">CoachStudentSummary</a></span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">routines</span>
+    <span class="p-type">any[] | null</span>
+    <span class="p-desc">The student's routine templates (same shape as <code>state.routines</code>).</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">week</span>
+    <span class="p-type">object | null</span>
+    <span class="p-desc">Week schedule mapping day numbers to routine ids (same as <code>state.week</code>).</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">workouts</span>
+    <span class="p-type"><a href="#schema-Workout">Workout</a>[]</span>
+    <span class="p-desc">Full workout history, newest first.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">bodyweight</span>
+    <span class="p-type">object[]</span>
+    <span class="p-desc">Bodyweight curve, oldest first.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">bodyweight[].d</span>
+    <span class="p-type">string <span class="p-hint">(date)</span></span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">bodyweight[].kg</span>
+    <span class="p-type">number</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">unit</span>
+    <span class="p-type">&quot;kg&quot; | &quot;lb&quot;</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">lastSync</span>
+    <span class="p-type">number | null</span>
+    <span class="p-desc">The state's <code>_ts</code> (ms).</span>
+  </div>
+</div>
+  </div>
+</details>
+
 <details class="ep sch" id="schema-SessionUser">
   <summary>
     <span class="sch-name"><code>SessionUser</code></span>
@@ -4223,6 +4584,11 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
     <span class="p-name">admin</span>
     <span class="p-type">boolean</span>
     <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">roles</span>
+    <span class="p-type">string[]</span>
+    <span class="p-desc">Business roles beyond the admin console, e.g. <code>coach</code> (the coach console at /coach-console). Empty for plain members. (Fork, Go backend; Node answers <code>[]</code>.)</span>
   </div>
 </div>
   </div>

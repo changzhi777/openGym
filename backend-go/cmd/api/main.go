@@ -16,6 +16,7 @@ import (
 
 	"github.com/changzhi777/openGym/backend-go/internal/auth"
 	"github.com/changzhi777/openGym/backend-go/internal/coach"
+	"github.com/changzhi777/openGym/backend-go/internal/coachconsole"
 	"github.com/changzhi777/openGym/backend-go/internal/data"
 	"github.com/changzhi777/openGym/backend-go/internal/httpx"
 	"github.com/changzhi777/openGym/backend-go/internal/media"
@@ -109,7 +110,7 @@ func main() {
 	sessions := auth.NewSessions(secret(), sessionDays(), strings.Contains(origin(), "https://"))
 	smsSender := sms.FromEnv()
 	smsStore := sms.Store{Rdb: rdb}
-	wxMini := wechat.New(os.Getenv("WX_MINI_APPID"), os.Getenv("WX_MINI_SECRET"), rdb)
+	wxMini := wechat.New(os.Getenv("WX_MINI_APPID"), os.Getenv("WX_MINI_SECRET"), os.Getenv("WX_MINI_ENV"), rdb)
 	svc := &auth.Service{DB: db, Sessions: sessions, Rdb: rdb,
 		Sms: smsSender, SmsStore: smsStore, Wx: wxMini, InviteEnvDef: inviteEnvDefault()}
 	r.GET("/api/auth/captcha", svc.Captcha)
@@ -230,6 +231,16 @@ func main() {
 	r.POST("/api/admin/audit/clear", super, stepUp, adminSvc.AuditClear)
 	r.POST("/api/admin/step-up", support, adminSvc.StepUp)
 	go adminSvc.PurgeLoop(context.Background()) // 审计 90 天保留(§3.8)
+
+	// 教练工作台(fork):coach 角色绑定学员/白名单数据/计划下发;不走 admin step-up。
+	ccSvc := coachconsole.New(db, rdb, sessions, ph)
+	cc := r.Group("/api/coach-console", ccSvc.RequireCoach())
+	cc.GET("/students", ccSvc.Students)
+	cc.POST("/bindings", ccSvc.Bind)
+	cc.DELETE("/bindings/:studentId", ccSvc.Unbind)
+	cc.GET("/students/:id", ccSvc.StudentDetail)
+	cc.PUT("/students/:id/plan", ccSvc.PutPlan)
+	cc.GET("/students/:id/export", ccSvc.Export)
 
 	// 其余端点尚未实现 —— 与 Node 侧 501 stub 同语义。
 	r.NoRoute(func(c *gin.Context) {
