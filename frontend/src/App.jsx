@@ -59,13 +59,12 @@ import PermissionSteps from './views/PermissionSteps.jsx'
 import Home from './views/Home.jsx'
 import Plan from './views/Plan.jsx'
 import Workout from './views/Workout.jsx'
-import Stats from './views/Stats.jsx'
-import History from './views/History.jsx'
-import Library from './views/Library.jsx'
-import Muscles from './views/Muscles.jsx'
-import StructuralBalance from './views/StructuralBalance.jsx'
-import ProgressPhotos from './views/ProgressPhotos.jsx'
-import { SettingsRoute } from './views/Settings.jsx'
+
+
+
+
+
+
 import AdminInvites from './views/admin/Invites.jsx'
 import AdminShell from './views/admin/AdminShell.jsx'
 import AdminOverview from './views/admin/Overview.jsx'
@@ -78,10 +77,54 @@ import AdminCoach from './views/AdminCoach.jsx'
 import CoachShell from './views/coach-console/CoachShell.jsx'
 import CoachStudents from './views/coach-console/Students.jsx'
 import CoachStudentDetail from './views/coach-console/StudentDetail.jsx'
-import CoachChat from './views/CoachChat.jsx'
-import Measurements from './views/Measurements.jsx'
-import CoachIntake from './views/CoachIntake.jsx'
-import CoachSetup from './views/CoachSetup.jsx'
+
+// Screens most sessions never open (the Coach, the admin dashboard, photos, measurements, the
+// balance check) are their own chunks rather than part of the code every start parses: ~200 KB
+// of the main bundle. They are fetched once the app is idle after the start (the service worker
+// and the phone build hold them locally anyway), so by the time one is opened it renders at once,
+// in the same frame, as before; only a tap within the first moments can see one empty frame.
+const views = []
+function lazyView(load) {
+  let View = null
+  const fetchIt = () => load().then(m => { View = m.default; return m })
+  const Lazy = lazy(fetchIt)
+  views.push(fetchIt)
+  return function LazyView(props) {
+    return View ? <View {...props} /> : <Suspense fallback={null}><Lazy {...props} /></Suspense>
+  }
+}
+const CoachChat = lazyView(() => import('./views/CoachChat.jsx'))
+const Measurements = lazyView(() => import('./views/Measurements.jsx'))
+const CoachIntake = lazyView(() => import('./views/CoachIntake.jsx'))
+const CoachSetup = lazyView(() => import('./views/CoachSetup.jsx'))
+const StructuralBalance = lazyView(() => import('./views/StructuralBalance.jsx'))
+const ProgressPhotos = lazyView(() => import('./views/ProgressPhotos.jsx'))
+// The tabs and screens past Home (Stats, History, the Library, Settings, ...) as well: a start
+// only needs Home, and these are fetched right behind it the same way.
+const CheckIn = lazyView(() => import('./views/CheckIn.jsx'))
+const RoutineEdit = lazyView(() => import('./views/RoutineEdit.jsx'))
+const Programmes = lazyView(() => import('./views/Programmes.jsx'))
+const ProgrammeEdit = lazyView(() => import('./views/Programmes.jsx').then(m => ({ default: m.ProgrammeEdit })))
+const Stats = lazyView(() => import('./views/Stats.jsx'))
+const History = lazyView(() => import('./views/History.jsx'))
+const Library = lazyView(() => import('./views/Library.jsx'))
+const Muscles = lazyView(() => import('./views/Muscles.jsx'))
+const SettingsRoute = lazyView(() => import('./views/Settings.jsx').then(m => ({ default: m.SettingsRoute })))
+// The app tour's overlay (components/Tour.jsx): fetched when it opens, never before.
+const Tour = lazy(() => import('./components/Tour.jsx'))
+let viewsPrefetched = false
+const prefetchViews = () => {
+  if (viewsPrefetched) return
+  viewsPrefetched = true
+  const run = () => { for (const f of views) f().catch(() => {}) }
+  if (typeof globalThis.requestIdleCallback === 'function') globalThis.requestIdleCallback(run, { timeout: 4000 })
+  else setTimeout(run, 1500)
+}
+
+
+
+
+
 
 // last known scrollY per route, so back-navigation can put the page where it was
 const scrollPositions = new Map()

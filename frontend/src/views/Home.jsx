@@ -128,7 +128,7 @@ export default function Home() {
       <SeasonDeco spot="header-bats" />
       <div><h1>{user ? t('Hi {0}', user.name) : t('openGym')}</h1><div className="sub">{today.toLocaleDateString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long' })}</div></div>
       <button className="iconbtn" data-tour="settings-gear" onClick={() => nav('/settings')} aria-label={trouble ? t('Settings') + ', ' + t('Connection problem') : t('Settings')}><Icon name="gear" />{trouble && <span className="tab-dot" aria-hidden="true" />}</button>
-today row below stays as it is: the queue's
+      {/* The today row below stays as it is: the queue's
           next session reaches it through effectiveRoutineIds like any planned routine. */}
       {rotating ? (queue ? <QueueRow S={S} today={todayISO()} onStart={onQueueStart} managed={managedQueue} /> : <div className="empty">
         {t('No rotation yet. Add routines to it in Plan.')}
