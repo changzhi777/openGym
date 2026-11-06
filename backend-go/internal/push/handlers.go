@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -19,6 +20,39 @@ type Handlers struct {
 	DB       *pgxpool.Pool
 	Sessions *auth.Sessions
 	Svc      *Service
+	// 限频(安全对齐,上游 febb2b2b3):rest-timer 60 次/分、测试推送 10 次/10 分,按账号。
+	RestSets  *rateWindow
+	PushTests *rateWindow
+}
+
+// rateWindow 固定窗口限频(按账号;内存态,重启清零——与限流器同口径)。
+type rateWindow struct {
+	mu   sync.Mutex
+	hits map[string][]time.Time
+	max  int
+	win  time.Duration
+}
+
+func newRateWindow(max int, win time.Duration) *rateWindow {
+	return &rateWindow{hits: map[string][]time.Time{}, max: max, win: win}
+}
+
+func (w *rateWindow) allow(user string) bool {
+	now := time.Now()
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	fresh := w.hits[user][:0]
+	for _, t := range w.hits[user] {
+		if now.Sub(t) < w.win {
+			fresh = append(fresh, t)
+		}
+	}
+	if len(fresh) >= w.max {
+		w.hits[user] = fresh
+		return false
+	}
+	w.hits[user] = append(fresh, now)
+	return true
 }
 
 func (h *Handlers) body(c *gin.Context) map[string]any {
@@ -98,6 +132,10 @@ func (h *Handlers) Test(c *gin.Context) {
 		c.JSON(401, gin.H{"error": "not signed in"})
 		return
 	}
+	if h.PushTests != nil && !h.PushTests.allow(u.ID) {
+		c.JSON(429, gin.H{"error": "too many test pushes", "code": "rate"})
+		return
+	}
 	payload, _ := json.Marshal(map[string]any{"title": "沐禾健身", "body": "推送测试成功", "tag": "test"})
 	h.fanout(c, u.ID, payload)
 	c.JSON(200, gin.H{"ok": true})
@@ -124,6 +162,10 @@ func (h *Handlers) RestTimer(c *gin.Context) {
 		c.JSON(400, gin.H{"error": "seconds required"})
 		return
 	}
+	if h.RestSets != nil && !h.RestSets.allow(u.ID) {
+		c.JSON(429, gin.H{"error": "too many rest timers", "code": "rate"})
+		return
+	}
 	sec := int(min(3600, n+0.5))
 	dev, _ := h.body(c)["deviceId"].(string)
 	payload, _ := json.Marshal(map[string]any{"title": "休息结束", "body": "下一组", "tag": "rest", "urgency": "high"})
@@ -148,7 +190,13 @@ func (h *Handlers) fanout(c *gin.Context, uid string, payload []byte) {
 }
 
 // Notify 按 uid 向全部端点广播(rest-timer 与内部桥共用;尽力而为,410/404 死订阅即删)。
+// 停用账号不投递(安全对齐,上游 febb2b2b3:停用账号收不到提醒/推送)。
 func (h *Handlers) Notify(ctx context.Context, uid string, payload []byte) {
+	var disabled bool
+	h.DB.QueryRow(ctx, `SELECT disabled FROM users WHERE id=$1`, uid).Scan(&disabled)
+	if disabled {
+		return
+	}
 	subs, err := store.SubsOf(ctx, h.DB, uid)
 	if err != nil {
 		return

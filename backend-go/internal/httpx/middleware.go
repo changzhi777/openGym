@@ -84,6 +84,20 @@ func CORS(origin string) gin.HandlerFunc {
 // 读进内存(供 handler 复用),超限 413,非空且非法 JSON 直接 400 {"error":"invalid json"}。
 const maxBody = 5 * 1024 * 1024
 
+// PathGuard 安全对齐(上游 febb2b2b3):路由到的路径必须与发送的路径一致。
+// URL 解析器会把反斜杠折成斜杠、解析点段,而 nginx 不做——`/api/media/..\data`
+// 会被 nginx 按静态规则放行却在应用里命中别的路由。含反斜杠或点段的路径一律 404。
+func PathGuard() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		p := c.Request.URL.Path
+		if strings.Contains(p, "\\") || strings.Contains(p, "..") {
+			c.AbortWithStatusJSON(404, gin.H{"error": "not found"})
+			return
+		}
+		c.Next()
+	}
+}
+
 func BodyGuard() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if c.Request.Body == nil {
