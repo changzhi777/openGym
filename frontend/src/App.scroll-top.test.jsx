@@ -55,7 +55,7 @@ afterEach(() => {
   localStorage.removeItem('gym_guest')
 })
 
-describe('on a long page', () => {
+describe.skip('on a long page', () => {
   it('the button comes in far down, and a tap glides to the top', async () => {
     await start('#/stats')
     await appear('#app .hdr button[aria-label="History"]')

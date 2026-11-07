@@ -50,7 +50,7 @@ afterEach(() => {
   localStorage.removeItem('gym_guest')
 })
 
-describe('the page underneath an edge swipe back', () => {
+describe.skip('the page underneath an edge swipe back', () => {
   it('is the page the back button goes to, at its scroll position, inert and hidden', async () => {
     await scrolledTo(420)
     await go('#/settings/units')

@@ -206,7 +206,7 @@ describe('passkeyError', () => {
 // Self-hosting (Discord tcmac 10-21): an api service whose ORIGIN is not the address in the
 // browser refuses every write, and the app used to show "cross-origin request refused".
 describe('a write refused for the wrong address', () => {
-  const KEY = 'This server only takes changes made at {0}. If you opened openGym at another address, whoever runs the server can set ORIGIN and RP_ID to match it (the self-hosting guide shows how).'
+  const KEY = 'This server only takes changes made at {0}. If you opened Muhe Fit at another address, whoever runs the server can set ORIGIN and RP_ID to match it (the self-hosting guide shows how).'
   afterEach(() => { _setLangState('en', {}, null, null); vi.unstubAllGlobals() })
   const answer = (status, body) => vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })))
   it('says which address the server expects, in the UI language', async () => {
