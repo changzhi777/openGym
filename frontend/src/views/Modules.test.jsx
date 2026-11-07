@@ -54,7 +54,7 @@ describe('the Modules page', () => {
     expect([...host.querySelectorAll('.sect-t')].map(h => h.textContent)).toEqual(expect.arrayContaining(['Training', 'Body and health', 'Extras']))
     for (const m of MODULES) {
       expect(row(m.title), m.id).toBeTruthy()
-      expect(row(m.title).querySelector('.lrow-s').textContent).toBe(m.desc)
+      expect(row(m.title).querySelector('.lrow-s').textContent).toBe(m.desc.replace('openGym', 'Muhe Fit'))  // BRAND 单点替换适配
       expect(sw(m.title).getAttribute('aria-checked')).toBe('true')
     }
     expect(row('Start from').querySelector('.lrow-v').textContent).toBe('Everything')
