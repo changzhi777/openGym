@@ -247,7 +247,7 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   <p class="api-facts">
     <span>OpenAPI 3.1.0</span>
     <span>openGym v1.4.1</span>
-    <span>93 endpoints</span>
+    <span>107 endpoints</span>
     <span>AGPL-3.0-or-later</span>
   </p>
 
@@ -2795,6 +2795,275 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
     </div>
   </div>
 </details>
+
+<details class="ep" id="op-postCoachChat">
+  <summary>
+    <span class="m post">POST</span>
+    <span class="ep-path"><code>/api/coach/chat</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Start or continue a chat with the Coach</span>
+  </summary>
+  <div class="ep-body">
+<p>Opens a chat session when no <code>id</code> is given, or appends a turn to the session named by <code>id</code>. The reply does not arrive here: it streams through <code>GET /api/coach/chat/{id}/events</code>. A turn may end with proposals — memory the Coach suggests keeping, or a change to the plan — and nothing is written until the profile answers them through <code>POST /api/coach/chat/{id}/confirm</code>. Nothing is ever written without that confirmation.</p>
+<p>The daily quota a turn spends covers the review pass as well; the same <code>cap</code> refusal answers when it is spent.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">id</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">The chat session to continue. Absent, a new session opens.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">message<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string <span class="p-hint">(&le; 4000 chars)</span></span>
+    <span class="p-desc">One user turn. Cut to the instance's <code>maxMessageLen</code> (1000 unless the admin changed it; 200–4000).</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">lang</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">The language the app is showing, which the Coach writes in. Absent or not a language tag, the profile's stored <code>lang</code> is used.</span>
+  </div>
+</div>
+<pre><code>{
+  &quot;id&quot;: &quot;c7a1b2d3e4f50617&quot;,
+  &quot;message&quot;: &quot;今天膝盖有点不舒服,计划要调整吗?&quot;
+}</code></pre>
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">The turn is queued; the session handle comes back at once.<span class="r-sig"><a href="#schema-CoachChatSession">CoachChatSession</a></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">403</span>
+    <span class="p-desc">The Coach will not take this job, and says which reason in <code>code</code>: - <code>busy</code> (409): a job for this profile is already running. - <code>shared</code> (409): instance mode, and the credential belongs to another profile. - <code>cap</code> (429): this profile's or the instance's daily limit is spent. - <code>consent</code> (403): no consent recorded for this profile. - <code>unprivileged</code> (503): the privilege drop cannot be performed, so no job runs. The message is the one to show; the raw provider detail never reaches the user.<span class="r-sig"><code>{&quot;error&quot;:&quot;the Coach is already thinking about your training&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">409</span>
+    <span class="p-desc">The Coach will not take this job, and says which reason in <code>code</code>: - <code>busy</code> (409): a job for this profile is already running. - <code>shared</code> (409): instance mode, and the credential belongs to another profile. - <code>cap</code> (429): this profile's or the instance's daily limit is spent. - <code>consent</code> (403): no consent recorded for this profile. - <code>unprivileged</code> (503): the privilege drop cannot be performed, so no job runs. The message is the one to show; the raw provider detail never reaches the user.<span class="r-sig"><code>{&quot;error&quot;:&quot;the Coach is already thinking about your training&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">429</span>
+    <span class="p-desc">The Coach will not take this job, and says which reason in <code>code</code>: - <code>busy</code> (409): a job for this profile is already running. - <code>shared</code> (409): instance mode, and the credential belongs to another profile. - <code>cap</code> (429): this profile's or the instance's daily limit is spent. - <code>consent</code> (403): no consent recorded for this profile. - <code>unprivileged</code> (503): the privilege drop cannot be performed, so no job runs. The message is the one to show; the raw provider detail never reaches the user.<span class="r-sig"><code>{&quot;error&quot;:&quot;the Coach is already thinking about your training&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s5">503</span>
+    <span class="p-desc">The Coach is not set up on this instance (switched off, or no provider connected). Every Coach route answers this rather than pretending, so an unconfigured instance renders exactly the app it was before the feature existed. <code>code</code> is <code>off</code>, the class a job refused at enqueue for the same reason carries; the app shows its own line for it.<span class="r-sig"><code>{&quot;error&quot;:&quot;the Coach is not set up on this instance&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-getCoachChatEvents">
+  <summary>
+    <span class="m get">GET</span>
+    <span class="ep-path"><code>/api/coach/chat/{id}/events</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Stream one chat turn's progress as server-sent events</span>
+  </summary>
+  <div class="ep-body">
+<p>One connection per turn; it closes when the turn is done (or refused). Events, each a JSON line after its <code>event:</code> name:</p>
+<ul><li><code>token</code> — a piece of the reply text, in order.</li><li><code>tool_call</code> — the Coach consulted a tool (plan, history, bodyweight, knowledge). Only that it looked, and at what; arguments are not echoed. When the result carried reference ids (e.g. catalogue action ids from a knowledge search) they ride along as <code>refs</code> (string array), so the client can render source cards.</li><li><code>proposal</code> — the Coach suggests remembering something or changing the plan. Carries the proposal id and its change-list; nothing is applied until confirmed.</li><li><code>confirm_result</code> — the outcome of a confirmation the profile just made.</li><li><code>blocked</code> — the reply failed review (<code>sensitive</code> after the word filter, <code>llm</code> after re-check) and will not be delivered; <code>reason</code> names which gate.</li><li><code>done</code> — the turn is over; the stream closes after it.</li></ul>
+<p>Every delivered reply passed review before its first token streamed, so a blocked reply streams nothing at all.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">The event stream for the turn now running (or just finished).</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">404</span>
+    <span class="p-desc">No such chat session for this profile.<span class="r-sig"><code>{&quot;error&quot;:&quot;no such chat&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s5">503</span>
+    <span class="p-desc">The Coach is not set up on this instance (switched off, or no provider connected). Every Coach route answers this rather than pretending, so an unconfigured instance renders exactly the app it was before the feature existed. <code>code</code> is <code>off</code>, the class a job refused at enqueue for the same reason carries; the app shows its own line for it.<span class="r-sig"><code>{&quot;error&quot;:&quot;the Coach is not set up on this instance&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-postCoachChatConfirm">
+  <summary>
+    <span class="m post">POST</span>
+    <span class="ep-path"><code>/api/coach/chat/{id}/confirm</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Answer a proposal — the only gate through which the Coach writes anything</span>
+  </summary>
+  <div class="ep-body">
+<p>Accepts or rejects one proposal the Coach raised in this session. Accepting a memory proposal stores the entry, and it shows in <code>GET /api/coach/memory</code> at once; accepting a plan proposal applies its change-list. Rejecting records the refusal and nothing else. The session returns to <code>active</code> either way.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">proposalId<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">decision<em class="p-req" title="required">required</em></span>
+    <span class="p-type">&quot;accept&quot; | &quot;reject&quot;</span>
+    <span class="p-desc"></span>
+  </div>
+</div>
+<pre><code>{
+  &quot;proposalId&quot;: &quot;p3f8a1c2&quot;,
+  &quot;decision&quot;: &quot;accept&quot;
+}</code></pre>
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">The decision is recorded.<span class="r-sig"><a href="#schema-CoachChatSession">CoachChatSession</a></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">404</span>
+    <span class="p-desc">No such session or proposal.<span class="r-sig"><code>{&quot;error&quot;:&quot;no such proposal&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s5">503</span>
+    <span class="p-desc">The Coach is not set up on this instance (switched off, or no provider connected). Every Coach route answers this rather than pretending, so an unconfigured instance renders exactly the app it was before the feature existed. <code>code</code> is <code>off</code>, the class a job refused at enqueue for the same reason carries; the app shows its own line for it.<span class="r-sig"><code>{&quot;error&quot;:&quot;the Coach is not set up on this instance&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-getCoachMemory">
+  <summary>
+    <span class="m get">GET</span>
+    <span class="ep-path"><code>/api/coach/memory</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Everything the Coach remembers about this profile</span>
+  </summary>
+  <div class="ep-body">
+<p>Both kinds in one answer: narrative memory (preferences, habits, history the Coach may weave into its answers) and structural constraints (an injury blacklist among them, which plan generation reads and enforces regardless of any retrieval). Both kinds are only ever written through a confirmation the profile made, and both are editable and deletable here. Needs a session only: the memory is the profile's, not the Coach's.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">The entries, newest first within each kind.<span class="r-sig">{ narrative: <a href="#schema-CoachMemoryEntry">CoachMemoryEntry</a>[], constraints: <a href="#schema-CoachMemoryEntry">CoachMemoryEntry</a>[] }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-putCoachMemory">
+  <summary>
+    <span class="m put">PUT</span>
+    <span class="ep-path"><code>/api/coach/memory/{id}</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Edit one memory entry's text</span>
+  </summary>
+  <div class="ep-body">
+<p>The profile's own words win: the entry keeps its kind and origin, the text is replaced with what was sent, and a structural constraint re-takes effect at once. Needs a session only.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">text<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string <span class="p-hint">(&le; 500 chars)</span></span>
+    <span class="p-desc"></span>
+  </div>
+</div>
+<pre><code>{
+  &quot;text&quot;: &quot;膝盖不适,回避深蹲;跳跃可以但减量&quot;
+}</code></pre>
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">Edited.<span class="r-sig"><a href="#schema-CoachMemoryEntry">CoachMemoryEntry</a></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">404</span>
+    <span class="p-desc">No such entry.<span class="r-sig"><code>{&quot;error&quot;:&quot;no such entry&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-deleteCoachMemory">
+  <summary>
+    <span class="m delete">DELETE</span>
+    <span class="ep-path"><code>/api/coach/memory/{id}</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Forget one memory entry</span>
+  </summary>
+  <div class="ep-body">
+<p>Removed wherever it lives: the structural store first (a constraint stops binding the moment it is deleted), then the narrative store — the answer comes after both have let go. This is the profile's own deletion right; needs a session only.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">Forgotten.<span class="r-sig"><a href="#schema-Ok">Ok</a></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">404</span>
+    <span class="p-desc">No such entry.<span class="r-sig"><code>{&quot;error&quot;:&quot;no such entry&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-getCoachUsage">
+  <summary>
+    <span class="m get">GET</span>
+    <span class="ep-path"><code>/api/coach/usage</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">This profile's Coach spend and limits</span>
+  </summary>
+  <div class="ep-body">
+<p>What the running day and month have spent, per pool, against the limits now in force. Three pools: chat (generation turns), review (the re-check pass), and embedding (vector lookups behind knowledge search). When a limit is spent the Coach answers <code>cap</code> until the period rolls over. Needs a session only.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">Spend and limits, per pool.<span class="r-sig"><a href="#schema-CoachUsage">CoachUsage</a></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
   </div>
 </section>
 
@@ -3927,6 +4196,166 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   <div class="prow rrow">
     <span class="r-code s4">403</span>
     <span class="p-desc">Signed in, but not an admin. The attempt is recorded in the audit log.<span class="r-sig"><code>{&quot;error&quot;:&quot;forbidden&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-getAdminCoachUsageOverview">
+  <summary>
+    <span class="m get">GET</span>
+    <span class="ep-path"><code>/api/admin/coach/usage-overview</code><span class="ep-chip admin">admin</span></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Instance-wide Coach usage (three pools)</span>
+  </summary>
+  <div class="ep-body">
+<p>Instance-wide Coach spend, aggregated per pool: today's turns and tokens, the running month, and a per-day series for the last 14 days (oldest first). The pools are chat (generation turns), review (the re-check pass) and embedding (vector lookups behind knowledge search). Admin (support and up) only; no user-level rows and no conversation content — the operator sees counts, not chats.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Admin only: a signed-in session whose user is an admin (<code>ADMIN_UIDS</code> or <code>admin:true</code>), as the session cookie or a Bearer token.</span></p>
+
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">Instance-wide usage.<span class="r-sig">{ day: object, month: object, users: integer, trend14d: object[] }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">403</span>
+    <span class="p-desc">Signed in, but not an admin. The attempt is recorded in the audit log.<span class="r-sig"><code>{&quot;error&quot;:&quot;forbidden&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-putAdminCoachLimits">
+  <summary>
+    <span class="m put">PUT</span>
+    <span class="ep-path"><code>/api/admin/coach/limits</code><span class="ep-chip admin">admin</span></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Set the per-user Coach hard limits</span>
+  </summary>
+  <div class="ep-body">
+<p>The per-user quotas the Coach enforces before its first token: turns per day and tokens per month (chat and review pools together). Values are instance-wide; absent fields keep their current value. Requires ops and a fresh step-up — this changes what every profile may spend. <code>GET /api/coach/usage</code> echoes the values now in force.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Admin only: a signed-in session whose user is an admin (<code>ADMIN_UIDS</code> or <code>admin:true</code>), as the session cookie or a Bearer token.</span></p>
+
+<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">messagesPerDay</span>
+    <span class="p-type">integer <span class="p-hint">(1&ndash;10000)</span></span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">tokensPerMonth</span>
+    <span class="p-type">integer <span class="p-hint">(1000&ndash;)</span></span>
+    <span class="p-desc"></span>
+  </div>
+</div>
+<pre><code>{
+  &quot;messagesPerDay&quot;: 80,
+  &quot;tokensPerMonth&quot;: 5000000
+}</code></pre>
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">The limits now in force.<span class="r-sig">{ messagesPerDay: integer, tokensPerMonth: integer, resetAt: string }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">400</span>
+    <span class="p-desc">Out of the sane range.<span class="r-sig"><code>{&quot;error&quot;:&quot;messagesPerDay out of range&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">403</span>
+    <span class="p-desc">Signed in, but not an admin. The attempt is recorded in the audit log.<span class="r-sig"><code>{&quot;error&quot;:&quot;forbidden&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-getAdminCoachAgentConfig">
+  <summary>
+    <span class="m get">GET</span>
+    <span class="ep-path"><code>/api/admin/coach/agent-config</code><span class="ep-chip admin">admin</span></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">The AI-Native agent tuning (turns cap, review words)</span>
+  </summary>
+  <div class="ep-body">
+<p>The agent-loop knobs the governance console edits: the MAX_TURNS cap on the tool loop and the sensitive-word list the pre-stream review matches against (case-insensitive substring). Provider connectivity itself is read-only here — see GET /api/admin/coach.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Admin only: a signed-in session whose user is an admin (<code>ADMIN_UIDS</code> or <code>admin:true</code>), as the session cookie or a Bearer token.</span></p>
+
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">The config now in force.<span class="r-sig">{ maxTurns: integer, reviewWords: string[] }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">403</span>
+    <span class="p-desc"></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-putAdminCoachAgentConfig">
+  <summary>
+    <span class="m put">PUT</span>
+    <span class="ep-path"><code>/api/admin/coach/agent-config</code><span class="ep-chip admin">admin</span></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Set the agent tuning (partial update)</span>
+  </summary>
+  <div class="ep-body">
+<p>Absent fields keep their current value. Takes effect on the next chat turn (each turn reads the config; no restart). Requires ops and a fresh step-up.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Admin only: a signed-in session whose user is an admin (<code>ADMIN_UIDS</code> or <code>admin:true</code>), as the session cookie or a Bearer token.</span></p>
+
+<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">maxTurns</span>
+    <span class="p-type">integer <span class="p-hint">(1&ndash;8)</span></span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">reviewWords</span>
+    <span class="p-type">(string <span class="p-hint">(&le; 100 chars)</span>)[]</span>
+    <span class="p-desc"></span>
+  </div>
+</div>
+<pre><code>{
+  &quot;maxTurns&quot;: 5,
+  &quot;reviewWords&quot;: [
+    &quot;赌球&quot;
+  ]
+}</code></pre>
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">The config now in force.<span class="r-sig">{ maxTurns: integer, reviewWords: string[] }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">400</span>
+    <span class="p-desc">Out of range.<span class="r-sig"><code>{&quot;error&quot;:&quot;maxTurns out of range&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">403</span>
+    <span class="p-desc"></span>
   </div>
     </div>
   </div>
@@ -5708,6 +6137,150 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
     <span class="p-name">limitations</span>
     <span class="p-type">string</span>
     <span class="p-desc">Injuries and anything to work around.</span>
+  </div>
+</div>
+  </div>
+</details>
+
+<details class="ep sch" id="schema-CoachChatSession">
+  <summary>
+    <span class="sch-name"><code>CoachChatSession</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">A chat session's handle and where it stands.</span>
+  </summary>
+  <div class="ep-body">
+
+<div class="ptab">
+  <div class="prow">
+    <span class="p-name">id</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">16 hex characters.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">state</span>
+    <span class="p-type">&quot;active&quot; | &quot;waiting_confirm&quot;</span>
+    <span class="p-desc"><code>waiting_confirm</code> while one or more proposals await an answer.</span>
+  </div>
+</div>
+  </div>
+</details>
+
+<details class="ep sch" id="schema-CoachMemoryEntry">
+  <summary>
+    <span class="sch-name"><code>CoachMemoryEntry</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">One thing the Coach remembers.</span>
+  </summary>
+  <div class="ep-body">
+<p>Both kinds share the shape.</p>
+<div class="ptab">
+  <div class="prow">
+    <span class="p-name">id</span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">kind</span>
+    <span class="p-type">&quot;narrative&quot; | &quot;constraint&quot;</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">text</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">The entry</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">source</span>
+    <span class="p-type">&quot;profile&quot; | &quot;coach&quot; | &quot;intake&quot;</span>
+    <span class="p-desc">Who it came from: the profile said it, the Coach proposed it and it was accepted, or it came from intake answers.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">at</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">When it was confirmed.</span>
+  </div>
+</div>
+  </div>
+</details>
+
+<details class="ep sch" id="schema-CoachUsage">
+  <summary>
+    <span class="sch-name"><code>CoachUsage</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Spend and limits for this profile, per pool, for the running day and month.</span>
+  </summary>
+  <div class="ep-body">
+<p>Token counts are the Coach's own accounting, rounded; money never appears here.</p>
+<div class="ptab">
+  <div class="prow">
+    <span class="p-name">day</span>
+    <span class="p-type">object</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">day.messages</span>
+    <span class="p-type">integer</span>
+    <span class="p-desc">Chat turns taken today.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">day.chat</span>
+    <span class="p-type">integer</span>
+    <span class="p-desc">Generation tokens today.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">day.review</span>
+    <span class="p-type">integer</span>
+    <span class="p-desc">Review-pass tokens today.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">day.embedding</span>
+    <span class="p-type">integer</span>
+    <span class="p-desc">Vector-lookup tokens today.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">month</span>
+    <span class="p-type">object</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">month.messages</span>
+    <span class="p-type">integer</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">month.chat</span>
+    <span class="p-type">integer</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">month.review</span>
+    <span class="p-type">integer</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">month.embedding</span>
+    <span class="p-type">integer</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">limits</span>
+    <span class="p-type">object</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">limits.messagesPerDay</span>
+    <span class="p-type">integer</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">limits.tokensPerMonth</span>
+    <span class="p-type">integer</span>
+    <span class="p-desc">Chat and review pools together.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">limits.resetAt</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">When the spent counters roll over.</span>
   </div>
 </div>
   </div>

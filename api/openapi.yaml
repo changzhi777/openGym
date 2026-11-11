@@ -2939,6 +2939,259 @@ paths:
               schema: { $ref: '#/components/schemas/Ok' }
         '401': { $ref: '#/components/responses/Unauthorized' }
 
+  # ── fork (Muhe): AI-Native 对话面(chat/memory/usage),契约已冻结,实现落 Go 栈
+  # (backend-go internal/agent + internal/llm,方案 .zcf/沐禾健身-AINative重构方案-v2.md 批次2);
+  # Node 侧 501 stub。 ──
+  /api/coach/chat:
+    post:
+      tags: [coach]
+      operationId: postCoachChat
+      summary: Start or continue a chat with the Coach
+      description: |
+        Opens a chat session when no `id` is given, or appends a turn to the session named
+        by `id`. The reply does not arrive here: it streams through
+        `GET /api/coach/chat/{id}/events`. A turn may end with proposals — memory the Coach
+        suggests keeping, or a change to the plan — and nothing is written until the
+        profile answers them through `POST /api/coach/chat/{id}/confirm`. Nothing is ever
+        written without that confirmation.
+
+        The daily quota a turn spends covers the review pass as well; the same `cap`
+        refusal answers when it is spent.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message]
+              properties:
+                id:
+                  type: string
+                  description: The chat session to continue. Absent, a new session opens.
+                message:
+                  type: string
+                  maxLength: 4000
+                  description: |
+                    One user turn. Cut to the instance's `maxMessageLen` (1000 unless the
+                    admin changed it; 200–4000).
+                lang:
+                  type: string
+                  pattern: '^[A-Za-z]{2,3}([-_][A-Za-z0-9]{2,8})?$'
+                  description: |
+                    The language the app is showing, which the Coach writes in. Absent or not a
+                    language tag, the profile's stored `lang` is used.
+            example: { id: "c7a1b2d3e4f50617", message: "今天膝盖有点不舒服,计划要调整吗?" }
+      responses:
+        '200':
+          description: The turn is queued; the session handle comes back at once.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CoachChatSession' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/CoachRefused' }
+        '409': { $ref: '#/components/responses/CoachRefused' }
+        '429': { $ref: '#/components/responses/CoachRefused' }
+        '503': { $ref: '#/components/responses/CoachOff' }
+
+  /api/coach/chat/{id}/events:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+        description: The chat session id, as returned by `POST /api/coach/chat`.
+    get:
+      tags: [coach]
+      operationId: getCoachChatEvents
+      summary: Stream one chat turn's progress as server-sent events
+      description: |
+        One connection per turn; it closes when the turn is done (or refused). Events,
+        each a JSON line after its `event:` name:
+
+        - `token` — a piece of the reply text, in order.
+        - `tool_call` — the Coach consulted a tool (plan, history, bodyweight, knowledge).
+          Only that it looked, and at what; arguments are not echoed. When the result
+          carried reference ids (e.g. catalogue action ids from a knowledge search) they
+          ride along as `refs` (string array), so the client can render source cards.
+        - `proposal` — the Coach suggests remembering something or changing the plan.
+          Carries the proposal id and its change-list; nothing is applied until confirmed.
+        - `confirm_result` — the outcome of a confirmation the profile just made.
+        - `blocked` — the reply failed review (`sensitive` after the word filter, `llm`
+          after re-check) and will not be delivered; `reason` names which gate.
+        - `done` — the turn is over; the stream closes after it.
+
+        Every delivered reply passed review before its first token streamed, so a blocked
+        reply streams nothing at all.
+      responses:
+        '200':
+          description: The event stream for the turn now running (or just finished).
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: SSE frames (`event:` + `data:` JSON lines), ending at `done`.
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404':
+          description: No such chat session for this profile.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "no such chat" }
+        '503': { $ref: '#/components/responses/CoachOff' }
+
+  /api/coach/chat/{id}/confirm:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+        description: The chat session id the proposal belongs to.
+    post:
+      tags: [coach]
+      operationId: postCoachChatConfirm
+      summary: Answer a proposal — the only gate through which the Coach writes anything
+      description: |
+        Accepts or rejects one proposal the Coach raised in this session. Accepting a
+        memory proposal stores the entry, and it shows in `GET /api/coach/memory` at once;
+        accepting a plan proposal applies its change-list. Rejecting records the refusal
+        and nothing else. The session returns to `active` either way.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [proposalId, decision]
+              properties:
+                proposalId: { type: string }
+                decision: { type: string, enum: [accept, reject] }
+            example: { proposalId: "p3f8a1c2", decision: accept }
+      responses:
+        '200':
+          description: The decision is recorded.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CoachChatSession' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404':
+          description: No such session or proposal.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "no such proposal" }
+        '503': { $ref: '#/components/responses/CoachOff' }
+
+  /api/coach/memory:
+    get:
+      tags: [coach]
+      operationId: getCoachMemory
+      summary: Everything the Coach remembers about this profile
+      description: |
+        Both kinds in one answer: narrative memory (preferences, habits, history the Coach
+        may weave into its answers) and structural constraints (an injury blacklist among
+        them, which plan generation reads and enforces regardless of any retrieval). Both
+        kinds are only ever written through a confirmation the profile made, and both are
+        editable and deletable here. Needs a session only: the memory is the profile's,
+        not the Coach's.
+      responses:
+        '200':
+          description: The entries, newest first within each kind.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  narrative:
+                    type: array
+                    items: { $ref: '#/components/schemas/CoachMemoryEntry' }
+                  constraints:
+                    type: array
+                    items: { $ref: '#/components/schemas/CoachMemoryEntry' }
+              example:
+                narrative:
+                  - { id: "m41c2", kind: narrative, text: "喜欢哑铃,家里没有杠铃", source: profile, at: "2026-11-10T10:00:00Z" }
+                constraints:
+                  - { id: "m9d7e", kind: constraint, text: "膝盖不适,回避深蹲和跳跃", source: profile, at: "2026-11-10T09:30:00Z" }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/coach/memory/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+        description: The memory entry id, as listed by `GET /api/coach/memory`.
+    put:
+      tags: [coach]
+      operationId: putCoachMemory
+      summary: Edit one memory entry's text
+      description: |
+        The profile's own words win: the entry keeps its kind and origin, the text is
+        replaced with what was sent, and a structural constraint re-takes effect at once.
+        Needs a session only.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text: { type: string, maxLength: 500 }
+            example: { text: "膝盖不适,回避深蹲;跳跃可以但减量" }
+      responses:
+        '200':
+          description: Edited.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CoachMemoryEntry' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404':
+          description: No such entry.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "no such entry" }
+    delete:
+      tags: [coach]
+      operationId: deleteCoachMemory
+      summary: Forget one memory entry
+      description: |
+        Removed wherever it lives: the structural store first (a constraint stops binding
+        the moment it is deleted), then the narrative store — the answer comes after both
+        have let go. This is the profile's own deletion right; needs a session only.
+      responses:
+        '200':
+          description: Forgotten.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404':
+          description: No such entry.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "no such entry" }
+
+  /api/coach/usage:
+    get:
+      tags: [coach]
+      operationId: getCoachUsage
+      summary: This profile's Coach spend and limits
+      description: |
+        What the running day and month have spent, per pool, against the limits now in
+        force. Three pools: chat (generation turns), review (the re-check pass), and
+        embedding (vector lookups behind knowledge search). When a limit is spent the
+        Coach answers `cap` until the period rolls over. Needs a session only.
+      responses:
+        '200':
+          description: Spend and limits, per pool.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CoachUsage' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
   # ── fork (Muhe): SaaS 后台新端点,Go 后端实现(方案 .zcf/plan/current/saas-backend-go.md) ──
   /api/admin/overview:
     get:
@@ -3461,6 +3714,164 @@ paths:
               example: { error: "unknown provider" }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+
+  # ── fork (Muhe): AI-Native 计量与限额(批次 5,D1/D12 三池口径),实现落 Go 栈;
+  # Node 侧 501 stub。 ──
+  /api/admin/coach/usage-overview:
+    get:
+      tags: [admin, coach]
+      operationId: getAdminCoachUsageOverview
+      summary: 'Admin: instance-wide Coach usage (three pools)'
+      description: |
+        Instance-wide Coach spend, aggregated per pool: today's turns and tokens, the
+        running month, and a per-day series for the last 14 days (oldest first). The pools
+        are chat (generation turns), review (the re-check pass) and embedding (vector
+        lookups behind knowledge search). Admin (support and up) only; no user-level
+        rows and no conversation content — the operator sees counts, not chats.
+      responses:
+        '200':
+          description: Instance-wide usage.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  day:
+                    type: object
+                    properties:
+                      messages: { type: integer }
+                      chat: { type: integer }
+                      review: { type: integer }
+                      embedding: { type: integer }
+                  month:
+                    type: object
+                    properties:
+                      messages: { type: integer }
+                      chat: { type: integer }
+                      review: { type: integer }
+                      embedding: { type: integer }
+                  users: { type: integer, description: Distinct profiles with at least one turn today. }
+                  trend14d:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        date: { type: string, description: 'YYYY-MM-DD.' }
+                        messages: { type: integer }
+                        tokens: { type: integer, description: Chat+review+embedding together. }
+              example:
+                day: { messages: 120, chat: 1840000, review: 610000, embedding: 90000 }
+                month: { messages: 2100, chat: 19000000, review: 6400000, embedding: 960000 }
+                users: 41
+                trend14d: [ { date: "2026-10-29", messages: 90, tokens: 1200000 } ]
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/admin/coach/limits:
+    put:
+      tags: [admin, coach]
+      operationId: putAdminCoachLimits
+      summary: 'Admin: set the per-user Coach hard limits'
+      description: |
+        The per-user quotas the Coach enforces before its first token: turns per day and
+        tokens per month (chat and review pools together). Values are instance-wide;
+        absent fields keep their current value. Requires ops and a fresh step-up —
+        this changes what every profile may spend. `GET /api/coach/usage` echoes the
+        values now in force.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                messagesPerDay: { type: integer, minimum: 1, maximum: 10000 }
+                tokensPerMonth: { type: integer, minimum: 1000 }
+            example: { messagesPerDay: 80, tokensPerMonth: 5000000 }
+      responses:
+        '200':
+          description: The limits now in force.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  messagesPerDay: { type: integer }
+                  tokensPerMonth: { type: integer }
+                  resetAt: { type: string }
+        '400':
+          description: Out of the sane range.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "messagesPerDay out of range" }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/admin/coach/agent-config:
+    get:
+      tags: [admin, coach]
+      operationId: getAdminCoachAgentConfig
+      summary: 'Admin: the AI-Native agent tuning (turns cap, review words)'
+      description: |
+        The agent-loop knobs the governance console edits: the MAX_TURNS cap on
+        the tool loop and the sensitive-word list the pre-stream review matches
+        against (case-insensitive substring). Provider connectivity itself is
+        read-only here — see GET /api/admin/coach.
+      responses:
+        '200':
+          description: The config now in force.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  maxTurns: { type: integer, description: Tool-loop hard cap (1-8). }
+                  reviewWords:
+                    type: array
+                    items: { type: string }
+                    description: Sensitive substrings; a reply containing any is blocked before streaming.
+              example: { maxTurns: 4, reviewWords: ["赌球", "代孕"] }
+        '401': { : '#/components/responses/Unauthorized' }
+        '403': { : '#/components/responses/Forbidden' }
+    put:
+      tags: [admin, coach]
+      operationId: putAdminCoachAgentConfig
+      summary: 'Admin: set the agent tuning (partial update)'
+      description: |
+        Absent fields keep their current value. Takes effect on the next chat turn
+        (each turn reads the config; no restart). Requires ops and a fresh step-up.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                maxTurns: { type: integer, minimum: 1, maximum: 8 }
+                reviewWords:
+                  type: array
+                  items: { type: string, maxLength: 100 }
+                  maxItems: 200
+            example: { maxTurns: 5, reviewWords: ["赌球"] }
+      responses:
+        '200':
+          description: The config now in force.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  maxTurns: { type: integer }
+                  reviewWords: { type: array, items: { type: string } }
+        '400':
+          description: Out of range.
+          content:
+            application/json:
+              schema: { : '#/components/schemas/Error' }
+              example: { error: "maxTurns out of range" }
+        '401': { : '#/components/responses/Unauthorized' }
+        '403': { : '#/components/responses/Forbidden' }
 
 components:
   securitySchemes:
@@ -4377,6 +4788,62 @@ components:
         equipment: { type: array, items: { type: string } }
         limitations: { type: string, description: Injuries and anything to work around. }
       additionalProperties: true
+
+    CoachChatSession:
+      type: object
+      description: A chat session's handle and where it stands.
+      properties:
+        id: { type: string, description: 16 hex characters. }
+        state:
+          type: string
+          enum: [active, waiting_confirm]
+          description: "`waiting_confirm` while one or more proposals await an answer."
+      example: { id: "c7a1b2d3e4f50617", state: active }
+
+    CoachMemoryEntry:
+      type: object
+      description: One thing the Coach remembers. Both kinds share the shape.
+      properties:
+        id: { type: string }
+        kind: { type: string, enum: [narrative, constraint] }
+        text: { type: string, description: The entry, in the profile's own words. }
+        source:
+          type: string
+          enum: [profile, coach, intake]
+          description: "Who it came from: the profile said it, the Coach proposed it and it was accepted, or it came from intake answers."
+        at: { type: string, description: When it was confirmed. }
+      example: { id: "m9d7e1f", kind: constraint, text: "膝盖不适,回避深蹲和跳跃", source: profile, at: "2026-11-10T09:30:00Z" }
+
+    CoachUsage:
+      type: object
+      description: >-
+        Spend and limits for this profile, per pool, for the running day and month. Token
+        counts are the Coach's own accounting, rounded; money never appears here.
+      properties:
+        day:
+          type: object
+          properties:
+            messages: { type: integer, description: Chat turns taken today. }
+            chat: { type: integer, description: Generation tokens today. }
+            review: { type: integer, description: Review-pass tokens today. }
+            embedding: { type: integer, description: Vector-lookup tokens today. }
+        month:
+          type: object
+          properties:
+            messages: { type: integer }
+            chat: { type: integer }
+            review: { type: integer }
+            embedding: { type: integer }
+        limits:
+          type: object
+          properties:
+            messagesPerDay: { type: integer }
+            tokensPerMonth: { type: integer, description: Chat and review pools together. }
+            resetAt: { type: string, description: When the spent counters roll over. }
+      example:
+        day: { messages: 12, chat: 184000, review: 61000, embedding: 9000 }
+        month: { messages: 210, chat: 1900000, review: 640000, embedding: 96000 }
+        limits: { messagesPerDay: 50, tokensPerMonth: 3000000, resetAt: "2026-12-01T00:00:00Z" }
 
     CoachCohort:
       type: object

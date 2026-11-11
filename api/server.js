@@ -1934,6 +1934,20 @@ const routes = {
   'PUT /api/admin/settings': notYetGo,
   'POST /api/alive': notYetGo,
   'GET /api/admin/live': notYetGo,
+  // AI-Native 对话面(chat/memory/usage):契约已冻结(.zcf/沐禾健身-AINative重构方案-v2.md
+  // 批次1),实现落 Go 栈 backend-go internal/agent+internal/llm,Node 侧 501。
+  'POST /api/coach/chat': notYetGo,
+  'GET /api/coach/chat/{id}/events': notYetGo,
+  'POST /api/coach/chat/{id}/confirm': notYetGo,
+  'GET /api/coach/memory': notYetGo,
+  'PUT /api/coach/memory/{id}': notYetGo,
+  'DELETE /api/coach/memory/{id}': notYetGo,
+  'GET /api/coach/usage': notYetGo,
+  // 计量与限额(批次 5):admin 用量看板 + per-user 限额配置。
+  'GET /api/admin/coach/usage-overview': notYetGo,
+  'PUT /api/admin/coach/limits': notYetGo,
+  'GET /api/admin/coach/agent-config': notYetGo,
+  'PUT /api/admin/coach/agent-config': notYetGo,
 
   'GET /api/health': async (req, res) => {
     if (!dataWritable()) return json(res, 503, { ok: false, writable: false });
@@ -2688,6 +2702,11 @@ const server = http.createServer(async (req, res) => {
   if (mu) { key = req.method + ' /api/admin/users/{id}/' + mu[2]; }
   const mm = /^\/api\/media\/([0-9a-f]{64})$/.exec(url.pathname);
   if (mm) { key = req.method + ' /api/media/{hash}'; req.mediaHash = mm[1]; }
+  // fork (Muhe): AI-Native 对话面五条 {id} 路由映射(批次 2;stub 期即通,Go 实现后同键)。
+  const cc = /^\/api\/coach\/chat\/([^/]+)\/(events|confirm)$/.exec(url.pathname);
+  if (cc) { key = req.method + ' /api/coach/chat/{id}/' + cc[2]; }
+  const cmm = /^\/api\/coach\/memory\/([^/]+)$/.exec(url.pathname);
+  if (cmm) { key = req.method + ' /api/coach/memory/{id}'; }
   const handler = routes[key];
   if (!handler) return json(res, 404, { error: 'not found' });
   if (!csrfOk(req, key)) {
