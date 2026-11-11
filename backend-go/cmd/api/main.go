@@ -14,11 +14,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/changzhi777/openGym/backend-go/internal/agent"
 	"github.com/changzhi777/openGym/backend-go/internal/auth"
 	"github.com/changzhi777/openGym/backend-go/internal/coach"
 	"github.com/changzhi777/openGym/backend-go/internal/data"
 	"github.com/changzhi777/openGym/backend-go/internal/httpx"
+	"github.com/changzhi777/openGym/backend-go/internal/llm"
 	"github.com/changzhi777/openGym/backend-go/internal/media"
+	"github.com/changzhi777/openGym/backend-go/internal/weknora"
 	"github.com/changzhi777/openGym/backend-go/internal/presence"
 	"github.com/changzhi777/openGym/backend-go/internal/push"
 	"github.com/changzhi777/openGym/backend-go/internal/quota"
@@ -170,6 +173,30 @@ func main() {
 		r.GET("/internal/coach/public-config", coachProxy.IPublicConfig)
 	}
 
+	// AI-Native 对话面(批次 2,方案 .zcf/沐禾健身-AINative重构方案-v2.md 五):
+	// Go 内核 tool-loop;BIGMODEL_API_KEY 未配置时 Provider=nil,七端点 503 off
+	// (与 CoachOff 同语义,前端不裸跑)。审核链(T1/D12):词表(env)→ LLM 复检,
+	// 任一拦截即拦,复检 fail-closed;词库 admin 管理批次 5 进治理台。
+	var coachProvider llm.Provider = llm.FromEnv()
+	// WeKnora 知识检索(批次 3):未配置(WEKNORA_*)时 nil——search_knowledge
+	// 不注册(D15 降级),其余端点不受影响。
+	wkClient := weknora.FromEnv()
+	agentSvc := &agent.Service{
+		DB:       db,
+		Sessions: sessions,
+		Provider: coachProvider,
+		Tools:    agent.DefaultTools(db, wkClient, os.Getenv("WEKNORA_GLOBAL_KB")),
+		EnvWords: os.Getenv("MUHE_REVIEW_WORDS"),
+	}
+	agentSvc.InitHub()
+	r.POST("/api/coach/chat", agentSvc.Chat)
+	r.GET("/api/coach/chat/:id/events", agentSvc.Events)
+	r.POST("/api/coach/chat/:id/confirm", agentSvc.Confirm)
+	r.GET("/api/coach/memory", agentSvc.MemoryList)
+	r.PUT("/api/coach/memory/:id", agentSvc.MemoryPut)
+	r.DELETE("/api/coach/memory/:id", agentSvc.MemoryDelete)
+	r.GET("/api/coach/usage", agentSvc.Usage)
+
 	cfgSvc := &httpx.ConfigSvc{DB: db, Sessions: sessions, Coach: coachProxy}
 	r.GET("/api/config", cfgSvc.Get)
 	r.GET("/api/push/public-key", ph.PublicKey)
@@ -229,6 +256,12 @@ func main() {
 	r.GET("/api/admin/audit", support, adminSvc.AuditLog)
 	r.POST("/api/admin/audit/clear", super, stepUp, adminSvc.AuditClear)
 	r.POST("/api/admin/step-up", support, adminSvc.StepUp)
+	// AI-Native 计量(批次 5):全站用量看板(support+)/限额配置(ops+step-up)。
+	r.GET("/api/admin/coach/usage-overview", support, agentSvc.AdminUsageOverview)
+	r.PUT("/api/admin/coach/limits", ops, stepUp, agentSvc.AdminLimitsPut)
+	// 治理台配置(批次 6):MAX_TURNS/审核词表,ops+step-up,下一回合热生效。
+	r.GET("/api/admin/coach/agent-config", support, agentSvc.AdminAgentConfigGet)
+	r.PUT("/api/admin/coach/agent-config", ops, stepUp, agentSvc.AdminAgentConfigPut)
 	go adminSvc.PurgeLoop(context.Background()) // 审计 90 天保留(§3.8)
 
 	// 其余端点尚未实现 —— 与 Node 侧 501 stub 同语义。
