@@ -1,0 +1,54 @@
+# compose.weknora.yml — WeKnora 独立部署编排(批次 3,D10/D18)。
+#
+# 设计:与沐禾主链路(compose.go.yml)完全隔离——独立 PG(D18:不与生产 PG 共享
+# schema/备份)、仅内网可达(D10:无宿主公网端口,经 nginx 内网反代给 admin)。
+# WeKnora 镜像/版本以其官方仓库为准(部署时对齐 v0.9+),本文件只锚定沐禾侧
+# 的网络与数据边界;模型配置(embedding=智谱 Embedding-3,独立资源包 key)经
+# 环境注入,D13' 密钥纪律:.env 注入不入仓。
+#
+# 用法:docker-compose -f compose.weknora.yml up -d
+# admin 一期经 WeKnora 自带 RBAC 登录(双登录可接受,SSO 后置)。
+services:
+  weknora-pg:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: weknora
+      POSTGRES_PASSWORD: weknora
+      POSTGRES_DB: weknora
+    volumes:
+      - weknora-pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U weknora"]
+      interval: 3s
+      retries: 12
+    restart: unless-stopped
+
+  weknora-redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+
+  weknora:
+    image: tencent/weknora:v0.9.0 # 部署时对齐官方最新稳定 tag
+    environment:
+      # 数据面:独立 PG/Redis(见上)。
+      DATABASE_URL: postgres://weknora:weknora@weknora-pg:5432/weknora?sslmode=disable
+      REDIS_ADDR: weknora-redis:6379
+      # 模型面(D13'):embedding 走智谱 Embedding-3(独立资源包);密钥 .env 注入。
+      WEKNORA_EMBEDDING_PROVIDER: zhipu
+      WEKNORA_EMBEDDING_API_KEY: ${BIGMODEL_EMBEDDING_API_KEY:?need BIGMODEL_EMBEDDING_API_KEY in .env}
+      # D19:一期关闭 LLM 生成(Wiki/Agent)——只用检索/记忆/向量,不配对话模型。
+      WEKNORA_LLM_ENABLED: "false"
+    depends_on:
+      weknora-pg: { condition: service_healthy }
+      weknora-redis: { condition: service_started }
+    networks: [internal]
+    # 注意:无 ports 映射 = 仅 compose 内网可达(D10);沐禾主栈经共享网络访问时
+    # `docker network connect` 或改用 external network,部署时定。
+    restart: unless-stopped
+
+networks:
+  internal:
+    driver: bridge
+
+volumes:
+  weknora-pg:
