@@ -9,6 +9,7 @@ import { useOutletContext } from 'react-router-dom'
 import { api } from '../../lib/api.js'
 import { adminT, adminWhen } from '../../lib/admin/i18n.js'
 import { auditLine, fmtWhen } from '../../lib/audit.js'
+import { fmtNum } from '../../lib/format.js'
 import LineChart from '../../components/LineChart.jsx'
 
 const isToday = (iso, now) => !!iso && new Date(iso).toDateString() === new Date(now).toDateString()
@@ -26,6 +27,7 @@ export default function Overview() {
   const [audit, setAudit] = useState(null)
   const [err, setErr] = useState(null)
   const [liveRows, setLiveRows] = useState(null) // SSE 覆盖;null = 未连上
+  const [coachUsage, setCoachUsage] = useState(null) // AI-Native 批次5:三池用量;null = 未配置/501
   const esRef = useRef(null)
 
   const load = () => {
@@ -33,6 +35,8 @@ export default function Overview() {
     api('/api/admin/overview').then(setOv).catch(() => setOv(null))
     api('/api/admin/audit?limit=6').then(setAudit).catch(() => setAudit(null))
     api('/api/admin/users').then(setData).catch(e => setErr(e.message))
+    // AI-Native(批次5):Go 实现回真数据;Node 501 → null → 卡片不渲染(无数据不显示假 0)。
+    api('/api/admin/coach/usage-overview').then(setCoachUsage).catch(() => setCoachUsage(null))
   }
   useEffect(load, [])
 
@@ -108,6 +112,18 @@ export default function Overview() {
             </div>
           })}
         </div>
+        {coachUsage && (
+          <div className="adm-card" data-testid="coach-usage">
+            <h3>{adminT('AI 教练用量')} <span className="adm-usub">{adminT('今日活跃')} {coachUsage.users}</span></h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+              <Kpi k={adminT('今日回合')} v={coachUsage.day.messages} />
+              <Kpi k={adminT('今日 chat')} v={fmtNum(coachUsage.day.chat)} sub="tokens" />
+              <Kpi k={adminT('今日 review')} v={fmtNum(coachUsage.day.review)} sub="tokens" />
+              <Kpi k={adminT('本月合计')} v={fmtNum(coachUsage.month.chat + coachUsage.month.review + coachUsage.month.embedding)} sub="tokens" />
+            </div>
+            <div className="adm-usub">14 {adminT('天')}趋势: {coachUsage.trend14d?.map(d => d.messages).join(' / ') || '–'}</div>
+          </div>
+        )}
         <div className="adm-card"><h3>{adminT('邀请码')}</h3>
           <div className="adm-empty">{adminT('待后端支持')}</div>
         </div>

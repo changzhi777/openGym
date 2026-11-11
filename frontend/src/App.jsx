@@ -50,6 +50,9 @@ import AdminAudit from './views/admin/Audit.jsx'
 import AdminRoles from './views/admin/Roles.jsx'
 import AdminCoach from './views/AdminCoach.jsx'
 import CoachChat from './views/CoachChat.jsx'
+import CoachChatHome from './views/home-ai/CoachChatHome.jsx'
+import AdminAgentConfig from './views/admin/AgentConfig.jsx'
+import CoachMemory from './views/home-ai/CoachMemory.jsx'
 import Measurements from './views/Measurements.jsx'
 import CoachIntake from './views/CoachIntake.jsx'
 import CoachSetup from './views/CoachSetup.jsx'
@@ -227,6 +230,9 @@ function Shell() {
                   unconditionally so a deep link from a notification lands somewhere sane
                   rather than on the catch-all. */}
               <Route path="/coach" element={<CoachChat />} />
+              {/* fork (Muhe): AI-Native 对话入口(批次 4,home-ai 旁路;上游 /coach 原样保留) */}
+              <Route path="/coach-ai" element={<CoachChatHome />} />
+              <Route path="/coach-ai/memory" element={<CoachMemory />} />
               <Route path="/coach/intake" element={<CoachIntake />} />
               <Route path="/coach/proposal" element={<Navigate to="/coach" replace />} />
               <Route path="/coach/setup" element={<CoachSetup />} />

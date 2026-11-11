@@ -24,6 +24,7 @@ const NAV = [
   ] },
   { group: '系统', items: [
     { to: '/admin/coach', icon: 'sparkles', label: 'AI 教练' },
+    { to: '/admin/coach/agent', icon: 'list', label: 'AI 治理' },
   ] },
 ]
 
