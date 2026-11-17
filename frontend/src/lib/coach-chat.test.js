@@ -152,11 +152,38 @@ describe('runChatTurn(编排,依赖注入)', () => {
     expect(r.messages[1].text).toBe('答')
     expect(r.phase).toBe('idle')
   })
-  it('cap 429:服务端原文透出 + 回 idle', async () => {
+  it('cap 429:服务端原文透出 + 回 idle(顶层 code,桩形状)', async () => {
     const deps = { sendChat: async () => { const e = new Error('今日对话额度已用完,明天再来'); e.code = 'cap'; throw e }, streamEvents: async () => {} }
     const r = await runChatTurn(initialState(), '问', deps)
     expect(r.messages[r.messages.length - 1]).toEqual({ role: 'system', text: '今日对话额度已用完,明天再来' })
     expect(r.phase).toBe('idle')
+  })
+  it('cap 经 e.data.code 也透出(api() 真实错误形状,批次 C)', async () => {
+    const deps = { sendChat: async () => { const e = new Error('今日对话额度已用完,明天再来'); e.data = { code: 'cap' }; throw e }, streamEvents: async () => {} }
+    const r = await runChatTurn(initialState(), '问', deps)
+    expect(r.messages[r.messages.length - 1].text).toBe('今日对话额度已用完,明天再来')
+  })
+  it('流干净结束但无 done 帧:归位 idle(代理掐断场景,批次 C)', async () => {
+    const deps = { sendChat: async () => ({ id: 'c1' }), streamEvents: async (_id, on) => { on(ev('token', { text: '半' })) } }
+    const r = await runChatTurn(initialState(), '问', deps)
+    expect(r.phase).toBe('idle')
+    expect(r.messages[1].text).toBe('半')
+  })
+  it('AbortError 上抛(卸载中断,调用方忽略;批次 C)', async () => {
+    const boom = new Error('aborted'); boom.name = 'AbortError'
+    const deps = { sendChat: async () => { throw boom }, streamEvents: async () => {} }
+    await expect(runChatTurn(initialState(), '问', deps)).rejects.toBe(boom)
+  })
+  it('onChatId 在拿到会话句柄即回调(批次 C:组件挂 sessionStorage)', async () => {
+    const seen = []
+    const deps = {
+      sendChat: async () => ({ id: 'c7' }),
+      streamEvents: async (_id, on) => { on(ev('done', {})) },
+      onChatId: id => seen.push(id),
+    }
+    const r = await runChatTurn(initialState(), '问', deps)
+    expect(seen).toEqual(['c7'])
+    expect(r.chatId).toBe('c7')
   })
   it('其他错误:统一文案 + 保留用户消息', async () => {
     const deps = { sendChat: async () => { throw new Error('boom') }, streamEvents: async () => {} }

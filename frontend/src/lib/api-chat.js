@@ -7,23 +7,32 @@ import { api, appBase } from './api.js'
 
 // parseSSEFrame 把一段流文本并进缓冲,吐出完整事件帧。SSE 帧形:
 // `event: token\ndata: {"kind":"token","text":"…"}\n\n`(帧间空行分隔)。
-// data 解析失败保留原串(不吞事件),由调用方按 kind 分派。
+// 2026-11-18 批次 C:行终结按规范三种全兼容(LF / CRLF / CR,取最早出现的
+// 帧分隔),多行 data 行按规范以 \n 拼接(此前只认 \n\n 且后行覆盖前行,
+// 任一中间层改写换行即整流解析不出)。data 解析失败保留原串(不吞事件)。
 export function parseSSEFrame(buffer, incoming) {
   let buf = (buffer || '') + (incoming || '')
   const events = []
   for (;;) {
-    const end = buf.indexOf('\n\n')
+    let end = -1
+    let sepLen = 0
+    for (const [sep, len] of [['\n\n', 2], ['\r\n\r\n', 4], ['\r\r', 2]]) {
+      const i = buf.indexOf(sep)
+      if (i >= 0 && (end < 0 || i < end)) { end = i; sepLen = len }
+    }
     if (end < 0) break
     const frame = buf.slice(0, end)
-    buf = buf.slice(end + 2)
+    buf = buf.slice(end + sepLen)
     let kind = 'message'
-    let data = null
-    for (const line of frame.split('\n')) {
+    const datas = []
+    for (const line of frame.split(/\r\n|\r|\n/)) {
       if (line.startsWith('event:')) kind = line.slice(6).trim()
-      else if (line.startsWith('data:')) data = line.slice(5).trim()
+      else if (line.startsWith('data:')) datas.push(line.slice(5).trim())
     }
-    if (data) {
-      try { data = JSON.parse(data) } catch { /* keep string */ }
+    if (datas.length) {
+      const raw = datas.join('\n')
+      let data = raw
+      try { data = JSON.parse(raw) } catch { /* keep string */ }
       events.push({ kind, data })
     }
   }

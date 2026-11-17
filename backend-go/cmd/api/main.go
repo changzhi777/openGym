@@ -116,8 +116,17 @@ func main() {
 	})
 
 	// 认证重构(2026-10-29):手机号+短信验证码 / 微信小程序码扫码;passkey/密码/配对退役。
+	// 批次 C(P1-9):ORIGIN 非 https 时 cookie 无 Secure——生产必设,启动即告警不静默。
+	if !strings.HasPrefix(origin(), "https://") {
+		log.Printf("WARNING: ORIGIN=%q is not https — session cookies will lack the Secure flag; set ORIGIN to the https origin in production", origin())
+	}
 	sessions := auth.NewSessions(secret(), sessionDays(), strings.Contains(origin(), "https://"))
 	smsSender := sms.FromEnv()
+	// 批次 C(P2-8):SMS 凭据漏配不再静默进 dev 模式(验证码进日志=有日志读
+	// 权限者可接管任意号)。本地开发/双跑测试须显式开闸。
+	if !smsSender.Enabled && os.Getenv("MUHE_ALLOW_SMS_DEV") != "1" && os.Getenv("MUHE_TEST") != "1" {
+		log.Fatal("sms: SMS_* not configured and dev mode not allowed — set MUHE_ALLOW_SMS_DEV=1 for local development, or configure SMS_SECRET_ID/KEY/APP_ID/SIGN/TEMPLATE_ID")
+	}
 	smsStore := sms.Store{Rdb: rdb}
 	wxMini := wechat.New(os.Getenv("WX_MINI_APPID"), os.Getenv("WX_MINI_SECRET"), rdb)
 	svc := &auth.Service{DB: db, Sessions: sessions, Rdb: rdb,

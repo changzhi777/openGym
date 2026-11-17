@@ -46,4 +46,23 @@ describe('parseSSEFrame', () => {
     const { events } = parseSSEFrame('', 'event: ping\n\n')
     expect(events).toHaveLength(0)
   })
+
+  it('CRLF 行终结全帧兼容(SSE 规范三种行终结,批次 C)', () => {
+    const crlf = 'event: token\r\ndata: {"kind":"token","text":"答"}\r\n\r\n'
+    const a = parseSSEFrame('', crlf)
+    expect(a.events).toHaveLength(1)
+    expect(a.events[0].kind).toBe('token')
+    expect(a.events[0].data.text).toBe('答')
+    expect(a.rest).toBe('')
+    // 分片切在 \r 与 \n 之间也不丢帧。
+    const b = parseSSEFrame('', crlf.slice(0, -3))
+    const c = parseSSEFrame(b.rest, crlf.slice(-3))
+    expect(c.events).toHaveLength(1)
+  })
+
+  it('多行 data 按规范 \\n 拼接(此前后行覆盖前行,批次 C)', () => {
+    const { events } = parseSSEFrame('', 'data: {"a":\ndata: 1}\n\n')
+    expect(events).toHaveLength(1)
+    expect(events[0].data).toEqual({ a: 1 })
+  })
 })

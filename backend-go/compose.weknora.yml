@@ -13,7 +13,7 @@ services:
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: weknora
-      POSTGRES_PASSWORD: weknora
+      POSTGRES_PASSWORD: ${WEKNORA_PG_PASSWORD:?backend-go/.env 需设 WEKNORA_PG_PASSWORD(批次 C 弱口令不落仓)}
       POSTGRES_DB: weknora
     volumes:
       - weknora-pg:/var/lib/postgresql/data
@@ -31,7 +31,7 @@ services:
     image: tencent/weknora:v0.9.0 # 部署时对齐官方最新稳定 tag
     environment:
       # 数据面:独立 PG/Redis(见上)。
-      DATABASE_URL: postgres://weknora:weknora@weknora-pg:5432/weknora?sslmode=disable
+      DATABASE_URL: postgres://weknora:${WEKNORA_PG_PASSWORD}@weknora-pg:5432/weknora?sslmode=disable
       REDIS_ADDR: weknora-redis:6379
       # 模型面(D13'):embedding 走智谱 Embedding-3(独立资源包);密钥 .env 注入。
       WEKNORA_EMBEDDING_PROVIDER: zhipu

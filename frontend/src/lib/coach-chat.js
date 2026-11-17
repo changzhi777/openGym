@@ -106,21 +106,33 @@ export function applyEvent(state, ev) {
   }
 }
 
-// runChatTurn 一个对话回合的完整编排(依赖注入,可离线单测——组件是薄壳)。
-// 流程:入列用户消息 → sendChat 拿会话 → streamChatEvents 逐事件归并 →
-// 错误映射(cap 用服务端原文,其余统一文案)→ 返回终态。
-// deps:{ sendChat(body), streamEvents(id, onEvent) } — 组件传 api-chat 的两个
-// 函数;测试传脚本桩。
+// runChatTurn 一个对话回合的完整编排(依赖注入,可离线单测——组件是薄壳,
+// 2026-11-18 批次 C 收编:组件不再内联平行实现,测试保护的就是线上路径)。
+// 流程:入列用户消息 → sendChat 拿会话 → streamEvents 逐事件归并 →
+// 无 done 帧的干净 EOF 归位 phase(代理掐断场景)→ 错误映射(cap 读
+// e.data?.code||e.code——api() 的错误形状无顶层 code)→ 返回终态。
+// deps:{ sendChat(body), streamEvents(id, onEvent, signal), signal?,
+//         onChatId?(id) } — 组件传 api-chat 真实现与中断信号;测试传桩。
 export async function runChatTurn(state, userText, deps) {
   let next = applyUserMessage(state, userText)
   let id = null
   try {
     const r = await deps.sendChat({ id: next.chatId || undefined, message: userText })
     id = r && r.id
-    await deps.streamEvents(id, ev => { next = applyEvent(next, ev) })
+    if (id && deps.onChatId) deps.onChatId(id)
+    let sawDone = false
+    await deps.streamEvents(id, ev => {
+      if (ev && ev.kind === 'done') sawDone = true
+      next = applyEvent(next, ev)
+    }, deps.signal)
+    if (!sawDone) {
+      next = { ...next, phase: next.proposals.length ? 'waiting' : 'idle' }
+    }
     return { ...next, chatId: id }
   } catch (e) {
-    const line = e && e.code === 'cap' && e.message ? e.message : 'AI 服务暂时不可用,稍后再试。'
+    if (e && e.name === 'AbortError') throw e // 卸载中断:调用方自行忽略
+    const capped = e && ((e.data && e.data.code) || e.code) === 'cap'
+    const line = capped && e.message ? e.message : 'AI 服务暂时不可用,稍后再试。'
     return {
       ...next,
       chatId: id || next.chatId,

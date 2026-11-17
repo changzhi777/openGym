@@ -8,7 +8,7 @@
 // check-locales 不扫本目录)。
 import { useEffect, useRef, useState } from 'react'
 import { sendChat, streamChatEvents, confirmProposal, fetchCoachUsage } from '../../lib/api-chat.js'
-import { initialState, applyEvent, proposalToCard, runChatTurn, decideLocally } from '../../lib/coach-chat.js'
+import { initialState, proposalToCard, runChatTurn, decideLocally } from '../../lib/coach-chat.js'
 import Icon from '../../components/Icon.jsx'
 import { exName } from '../../lib/coach.js'
 import '../../coach.css'
@@ -25,7 +25,8 @@ export default function CoachChatHome({ initialChat }) {
   const endRef = useRef(null)
   const streamAbort = useRef(null)               // 当前回合 SSE 中断器(卸载即断)
   const [deciding, setDeciding] = useState(null) // 决断中禁用按钮,防双击双回执
-  const busy = chat.phase === 'streaming'
+  const [sending, setSending] = useState(false)  // 回合在途(批次 C:相位要等编排返回才落,须本地闸防双发)
+  const busy = chat.phase === 'streaming' || sending
 
   // 卸载即断流(2026-11-18 审查轮:切路由/锁屏后旧连接悬着,后端已能剔除死订阅,
   // 前端也要主动断);chatId 留在 sessionStorage 供重进续聊。
@@ -40,40 +41,28 @@ export default function CoachChatHome({ initialChat }) {
     endRef.current?.scrollIntoView?.({ behavior: 'smooth' })
   }, [chat.messages.length, chat.proposals.length])
 
-  // 2026-11-18 审查轮三处补牢:① AbortController 断流;② 流干净结束但没收到
-  // done 帧(代理掐断/写失败)→ 归位 phase,输入框不再永久锁死;③ cap 判断改读
-  // e.data.code(api() 的错误形状不含顶层 code,旧判断是死分支,cap 文案从未透出)。
+  // 2026-11-18 批次 C:send 收编回 lib 的 runChatTurn 薄委派(组件不再内联
+  // 平行编排——此前 lib 有 20 案测试保护、组件那份裸奔,行为早已漂移)。
   async function send() {
     const text = input.trim()
     if (!text || busy) return
     setInput('')
-    setChat(c => applyUserMessage(c, text))
+    setSending(true)
     const ctl = typeof AbortController === 'function' ? new AbortController() : null
     streamAbort.current = ctl
-    let id = chatId.current
-    let sawDone = false
     try {
-      const r = await sendChat({ id: id || undefined, message: text })
-      chatId.current = r.id
-      sessionStorage.setItem(CHAT_ID_KEY, r.id) // 重进续聊同一会话(批次 B)
-      id = r.id
-      await streamChatEvents(r.id, ev => {
-        if (ev && ev.kind === 'done') sawDone = true
-        setChat(c => applyEvent(c, ev))
-      }, ctl ? ctl.signal : undefined)
-      if (!sawDone) setChat(c => ({ ...c, phase: c.proposals.length ? 'waiting' : 'idle' }))
+      const final = await runChatTurn(chat, text, {
+        sendChat,
+        streamEvents: (id, onEvent, signal) => streamChatEvents(id, onEvent, signal),
+        signal: ctl ? ctl.signal : undefined,
+        onChatId: id => { chatId.current = id; sessionStorage.setItem(CHAT_ID_KEY, id) },
+      })
+      setChat(final)
     } catch (e) {
-      if (e && e.name === 'AbortError') return // 卸载中断:组件已走,无需善后
-      // off(503)/cap(429)/网络:统一 system 提示,cap 用服务端原文(明日再来话术)。
-      const capped = e && (e.data?.code || e.code) === 'cap'
-      const line = capped && e.message ? e.message : 'AI 服务暂时不可用,稍后再试。'
-      setChat(c => ({
-        ...c,
-        messages: [...c.messages, { role: 'system', text: line }],
-        phase: 'idle',
-      }))
+      /* AbortError(卸载中断):组件已走,无需善后 */
     } finally {
       streamAbort.current = null
+      setSending(false)
     }
   }
 

@@ -2995,7 +2995,7 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
     <div class="ptab">
   <div class="prow rrow">
     <span class="r-code s2">200</span>
-    <span class="p-desc">Edited.<span class="r-sig"><a href="#schema-CoachMemoryEntry">CoachMemoryEntry</a></span></span>
+    <span class="p-desc">Edited — answers <code>{ ok: true }</code> (2026-11-18 audit round: aligned with the implementation; the edited entry is re-fetched via GET).<span class="r-sig">object</span></span>
   </div>
   <div class="prow rrow">
     <span class="r-code s4">401</span>
@@ -6185,7 +6185,7 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
     <span class="ep-sum">One thing the Coach remembers.</span>
   </summary>
   <div class="ep-body">
-<p>Both kinds share the shape.</p>
+<p>Both kinds share the shape. (2026-11-18 audit round: the <code>source</code> field was removed — no backing column exists; provenance lives in the proposals queue.)</p>
 <div class="ptab">
   <div class="prow">
     <span class="p-name">id</span>
@@ -6201,11 +6201,6 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
     <span class="p-name">text</span>
     <span class="p-type">string</span>
     <span class="p-desc">The entry</span>
-  </div>
-  <div class="prow">
-    <span class="p-name">source</span>
-    <span class="p-type">&quot;profile&quot; | &quot;coach&quot; | &quot;intake&quot;</span>
-    <span class="p-desc">Who it came from: the profile said it, the Coach proposed it and it was accepted, or it came from intake answers.</span>
   </div>
   <div class="prow">
     <span class="p-name">at</span>

@@ -79,6 +79,19 @@ func DefaultSystem(db *pgxpool.Pool) SystemPrompt {
 				fmt.Fprintf(&b, "- %s\n", c)
 			}
 		}
+		// 批次 C(P1-10):叙事记忆注入——用户确认过的"记住"从此对模型可见
+		// (此前只写不读,"带记忆的教练"闭环断裂)。与约束同一失败语义:读不到
+		// 即 blocked(memory),fail-closed。
+		narr, err := ActiveNarrative(ctx, db, userID, 8)
+		if err != nil {
+			return "", false
+		}
+		if len(narr) > 0 {
+			b.WriteString("\n【长期记忆(用户确认过的偏好与背景,回答时参考;与硬约束冲突时以硬约束为准)】\n")
+			for _, m := range narr {
+				fmt.Fprintf(&b, "- %s\n", m)
+			}
+		}
 		return b.String(), true
 	}
 }
@@ -178,8 +191,19 @@ func (h *turnHub) get(sessionID string) *turnStream {
 
 func (h *turnHub) finish(sessionID string) {
 	h.mu.Lock()
-	defer h.mu.Unlock()
 	delete(h.busy, sessionID)
+	ts := h.streams[sessionID] // 延迟淘汰(批次 C:此前 streams 永不清,进程内存无界涨)
+	h.mu.Unlock()
+	if ts != nil {
+		// 回放宽限 60s:客户端断线重连还能补齐本回合;到期且未被新回合替换才删。
+		time.AfterFunc(60*time.Second, func() {
+			h.mu.Lock()
+			defer h.mu.Unlock()
+			if h.streams[sessionID] == ts {
+				delete(h.streams, sessionID)
+			}
+		})
+	}
 }
 
 var errBusy = errors.New("agent: turn already running")
@@ -302,7 +326,8 @@ func (s *Service) runTurn(sess *Session, userMsg string, ts *turnStream) {
 		return
 	}
 
-	// 落库:史 = 旧史 + user + assistant(中间工具轮不入史,重建成本低,v1 口径)。
+	// 落库:史 = 旧史 + user + assistant(中间工具轮不入史,重建成本低,v1 口径);
+	// usage 传增量(批次 C:SQL 侧 usage_in = usage_in + δ)。
 	sess.History = append(sess.History,
 		llm.Message{Role: "user", Text: userMsg},
 		llm.Message{Role: "assistant", Text: res.Text})
@@ -316,7 +341,7 @@ func (s *Service) runTurn(sess *Session, userMsg string, ts *turnStream) {
 		}
 		sess.State = StateWaitingConfirm
 	}
-	if err := saveTurn(ctx, s.DB, sess); err != nil {
+	if err := saveTurn(ctx, s.DB, sess, int64(res.Usage.InputTokens), int64(res.Usage.OutputTokens)); err != nil {
 		log.Printf("agent: save turn %s: %v", sess.ID, err)
 	}
 	if err := RecordUsage(ctx, s.DB, sess.UserID, "chat", int64(res.Usage.InputTokens), int64(res.Usage.OutputTokens)); err != nil {

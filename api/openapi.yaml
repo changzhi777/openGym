@@ -3144,10 +3144,14 @@ paths:
             example: { text: "膝盖不适,回避深蹲;跳跃可以但减量" }
       responses:
         '200':
-          description: Edited.
+          description: >-
+            Edited — answers `{ ok: true }` (2026-11-18 audit round: aligned with
+            the implementation; the edited entry is re-fetched via GET).
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/CoachMemoryEntry' }
+              schema:
+                type: object
+                example: { ok: true }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404':
           description: No such entry.
@@ -4812,17 +4816,16 @@ components:
 
     CoachMemoryEntry:
       type: object
-      description: One thing the Coach remembers. Both kinds share the shape.
+      description: >-
+        One thing the Coach remembers. Both kinds share the shape.
+        (2026-11-18 audit round: the `source` field was removed — no backing
+        column exists; provenance lives in the proposals queue.)
       properties:
         id: { type: string }
         kind: { type: string, enum: [narrative, constraint] }
         text: { type: string, description: The entry, in the profile's own words. }
-        source:
-          type: string
-          enum: [profile, coach, intake]
-          description: "Who it came from: the profile said it, the Coach proposed it and it was accepted, or it came from intake answers."
         at: { type: string, description: When it was confirmed. }
-      example: { id: "m9d7e1f", kind: constraint, text: "膝盖不适,回避深蹲和跳跃", source: profile, at: "2026-11-10T09:30:00Z" }
+      example: { id: "n9", kind: constraint, text: "膝盖不适,回避深蹲和跳跃", at: "2026-11-10T09:30:00Z" }
 
     CoachUsage:
       type: object

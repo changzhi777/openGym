@@ -29,7 +29,7 @@ if [[ $WEB_ONLY -eq 0 ]]; then
   TAR=/tmp/muhe-src.tar.gz
   tar -czf "$TAR" \
     --exclude node_modules --exclude .git --exclude .zcf --exclude .claude \
-    --exclude 'backend-go/build' \
+    --exclude 'backend-go/build' --exclude .env \
     -C "$LOCAL_REPO" backend-go api/openapi.yaml api/coach package.json
   scp -q "$TAR" "$HOST:/opt/muhe-fit/muhe-src.tar.gz" && rm -f "$TAR"
   r bash -c "'cd /opt/muhe-fit && tar -xzf muhe-src.tar.gz && rm muhe-src.tar.gz && docker compose build 2>&1 | tail -2 && docker compose up -d'"
