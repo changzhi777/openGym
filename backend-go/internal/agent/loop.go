@@ -21,11 +21,12 @@ import (
 
 // SSE 事件类型(契约 GET /api/coach/chat/{id}/events 六事件)。
 const (
-	EventToken    = "token"
-	EventToolCall = "tool_call"
-	EventProposal = "proposal"
-	EventBlocked  = "blocked"
-	EventDone     = "done"
+	EventToken         = "token"
+	EventToolCall      = "tool_call"
+	EventProposal      = "proposal"
+	EventConfirmResult = "confirm_result" // Confirm 端点决断后发(批次 B 接通)
+	EventBlocked       = "blocked"
+	EventDone          = "done"
 )
 
 // Event 是发给 SSE 层的一个事件。Token 携带增量文本;Proposal 携带提议;

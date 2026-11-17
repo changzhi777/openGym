@@ -14,6 +14,10 @@ import { exName } from '../../lib/coach.js'
 import '../../coach.css'
 
 export default function CoachChatHome({ initialChat }) {
+  // 会话恢复(2026-11-18 批次 B):chatId 落 sessionStorage,切路由/刷新后续聊
+  // 同一会话而非静默开新——服务端 PG 里历史与约束的延续才不断。消息流仍只在
+  // 内存(历史回填属后续端点)。
+  const CHAT_ID_KEY = 'muhe-coach-chat-id'
   const [chat, setChat] = useState(initialChat || initialState)
   const [input, setInput] = useState('')
   const [usage, setUsage] = useState(null)
@@ -24,10 +28,12 @@ export default function CoachChatHome({ initialChat }) {
   const busy = chat.phase === 'streaming'
 
   // 卸载即断流(2026-11-18 审查轮:切路由/锁屏后旧连接悬着,后端已能剔除死订阅,
-  // 前端也要主动断)。
+  // 前端也要主动断);chatId 留在 sessionStorage 供重进续聊。
   useEffect(() => () => streamAbort.current?.abort(), [])
 
   useEffect(() => {
+    const saved = sessionStorage.getItem(CHAT_ID_KEY)
+    if (saved) chatId.current = saved
     fetchCoachUsage().then(setUsage).catch(() => {}) // 用量条失败静默:不挡对话
   }, [])
   useEffect(() => {
@@ -49,6 +55,7 @@ export default function CoachChatHome({ initialChat }) {
     try {
       const r = await sendChat({ id: id || undefined, message: text })
       chatId.current = r.id
+      sessionStorage.setItem(CHAT_ID_KEY, r.id) // 重进续聊同一会话(批次 B)
       id = r.id
       await streamChatEvents(r.id, ev => {
         if (ev && ev.kind === 'done') sawDone = true

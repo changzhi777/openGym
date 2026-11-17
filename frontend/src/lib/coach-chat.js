@@ -73,8 +73,12 @@ export function applyEvent(state, ev) {
       return { ...state, messages: msgs, proposals: [...state.proposals, p], phase: 'waiting' }
     }
     case 'confirm_result': {
-      // 决断已由 confirm 端点单独应答;流内此帧只作清列信号。
-      return { ...state, proposals: [], phase: state.phase === 'waiting' ? 'idle' : state.phase }
+      // 决断已由 confirm 端点单独应答;流内此帧作清列信号(批次 B 起真会发出,
+      // 服务端带 proposalId——多标签同会话时另一端据此单删,不误清新提议)。
+      const pid = data && data.proposalId
+      const rest = pid ? state.proposals.filter(p => p.id !== pid) : []
+      const cleared = rest.length === 0
+      return { ...state, proposals: rest, phase: state.phase === 'waiting' && cleared ? 'idle' : state.phase }
     }
     case 'blocked': {
       const reason = (data && data.reason) || (typeof data === 'string' ? data : 'sensitive')

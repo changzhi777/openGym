@@ -93,11 +93,19 @@ describe('applyEvent.done', () => {
 })
 
 describe('applyEvent.confirm_result / 未知事件', () => {
-  it('confirm_result 清待决列', () => {
+  it('confirm_result 清待决列(无 proposalId 时全清,兼容空载荷)', () => {
     let s = applyEvent(initialState(), ev('proposal', { proposalId: 'p1', tool: 'propose_memory' }))
     s = applyEvent(s, ev('confirm_result', {}))
     expect(s.proposals).toEqual([])
     expect(s.phase).toBe('idle')
+  })
+  it('confirm_result 带 proposalId 时单删对应提议(批次 B 服务端真发此帧)', () => {
+    let s = applyEvent(initialState(), ev('proposal', { proposalId: 'p1', tool: 'propose_memory' }))
+    s = applyEvent(s, ev('proposal', { proposalId: 'p2', tool: 'propose_constraint' }))
+    s = applyEvent(s, ev('confirm_result', { proposalId: 'p1', decision: 'accept' }))
+    expect(s.proposals).toHaveLength(1)
+    expect(s.proposals[0].id).toBe('p2')
+    expect(s.phase).toBe('waiting') // 仍有待决,不回 idle
   })
   it('不认识的事件不动状态', () => {
     const s = initialState()

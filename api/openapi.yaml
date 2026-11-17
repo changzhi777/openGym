@@ -3015,7 +3015,10 @@ paths:
           ride along as `refs` (string array), so the client can render source cards.
         - `proposal` — the Coach suggests remembering something or changing the plan.
           Carries the proposal id and its change-list; nothing is applied until confirmed.
-        - `confirm_result` — the outcome of a confirmation the profile just made.
+        - `confirm_result` — the outcome of a confirmation the profile just made:
+          `proposalId` plus `decision` (`accept`|`reject`). Only frames to a stream
+          that is still open (a turn in progress); after `done` the decision arrives
+          only via the confirm endpoint's HTTP response.
         - `blocked` — the reply failed review (`sensitive` after the word filter, `llm`
           after re-check) and will not be delivered; `reason` names which gate.
         - `done` — the turn is over; the stream closes after it.
