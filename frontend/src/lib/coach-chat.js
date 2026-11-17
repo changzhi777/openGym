@@ -59,7 +59,9 @@ export function applyEvent(state, ev) {
       return { ...state, messages: msgs }
     }
     case 'proposal': {
-      const p = { id: (data && data.proposalId) || '', tool: (data && data.tool) || '', input: {} }
+      // input 随事件透传(2026-11-18 审查轮:确认卡片必须显示将写入的内容,
+      // 盲确认不是确认;缺省 {} 保持旧事件形状兼容)。
+      const p = { id: (data && data.proposalId) || '', tool: (data && data.tool) || '', input: (data && data.input) || {} }
       const msgs = state.messages.slice()
       const last = msgs[msgs.length - 1]
       const base = last && last.role === 'assistant' ? last : { role: 'assistant', text: '' }
@@ -127,6 +129,8 @@ export async function runChatTurn(state, userText, deps) {
 // decideLocally 决断后的本地状态清理(服务端 confirm 由调用方另行请求):
 // 移除该提议;清空时回 idle 并落一行回执文案。
 export function decideLocally(state, proposalId, decision) {
+  // 重复决断(双击/重放)原样返回,不追加第二条回执(2026-11-18 审查轮)。
+  if (!state.proposals.some(p => p.id === proposalId)) return state
   const rest = state.proposals.filter(p => p.id !== proposalId)
   const cleared = rest.length === 0
   return {

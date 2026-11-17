@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"sync"
@@ -85,6 +86,10 @@ type turnStream struct {
 	subs []chan Event   // 实时订阅者
 }
 
+// publish 追加事件并投递订阅者。绝不持锁阻塞:慢/死订阅者直接剔除并关闭,
+// 断线客户端靠 buf 回放补齐——一个掉队的读端不能挂死整个回合(2026-11-18
+// 审查轮:此前 ch<-e 在锁内阻塞,断开后缓冲填满即 runTurn 永久卡死、会话
+// 409 busy 到进程重启,外加 goroutine 泄漏)。
 func (ts *turnStream) publish(e Event) {
 	ts.mu.Lock()
 	defer ts.mu.Unlock()
@@ -92,8 +97,14 @@ func (ts *turnStream) publish(e Event) {
 		return
 	}
 	ts.buf = append(ts.buf, e)
-	for _, ch := range ts.subs {
-		ch <- e
+	for i := 0; i < len(ts.subs); {
+		select {
+		case ts.subs[i] <- e:
+			i++
+		default:
+			close(ts.subs[i])
+			ts.subs = append(ts.subs[:i], ts.subs[i+1:]...)
+		}
 	}
 	if e.Kind == EventDone {
 		ts.done = true
@@ -115,6 +126,19 @@ func (ts *turnStream) subscribe() (<-chan Event, []Event) {
 	ch := make(chan Event, len(ts.buf)+8)
 	ts.subs = append(ts.subs, ch)
 	return ch, replay
+}
+
+// unsubscribe 摘除订阅(write 失败/客户端断开时的退出路径,不残留无人排空的
+// channel)。已不在 subs 中(publish 剔除或 done 关闭)时是安全空操作。
+func (ts *turnStream) unsubscribe(ch <-chan Event) {
+	ts.mu.Lock()
+	defer ts.mu.Unlock()
+	for i, c := range ts.subs {
+		if c == ch {
+			ts.subs = append(ts.subs[:i], ts.subs[i+1:]...)
+			return
+		}
+	}
 }
 
 type turnHub struct {
@@ -262,7 +286,7 @@ func (s *Service) runTurn(sess *Session, userMsg string, ts *turnStream) {
 	loop := &Loop{
 		Provider: s.Provider,
 		Tools:    s.Tools,
-		Config:   LoopConfig{MaxTurns: cfg.MaxTurns},
+		Config:   LoopConfig{MaxTurns: cfg.MaxTurns, ProposalPrefix: sess.ID + ":p"},
 		Review:   s.reviewerFor(ctx),
 	}
 	res, err := loop.Run(WithUID(ctx, sess.UserID), system, sess.History, userMsg, ts.publish)
@@ -279,12 +303,19 @@ func (s *Service) runTurn(sess *Session, userMsg string, ts *turnStream) {
 	sess.UsageIn += int64(res.Usage.InputTokens)
 	sess.UsageOut += int64(res.Usage.OutputTokens)
 	for _, p := range res.Proposals {
-		if err := AddProposal(ctx, s.DB, sess.ID, p); err == nil {
-			sess.State = StateWaitingConfirm
+		if err := AddProposal(ctx, s.DB, sess.ID, p); err != nil {
+			// 落库失败必须可见:回复与卡片已流出,静默吞错 = 用户确认时 404 无从排查。
+			log.Printf("agent: add proposal %s/%s: %v", sess.ID, p.ID, err)
+			continue
 		}
+		sess.State = StateWaitingConfirm
 	}
-	_ = saveTurn(ctx, s.DB, sess)
-	_ = RecordUsage(ctx, s.DB, sess.UserID, "chat", int64(res.Usage.InputTokens), int64(res.Usage.OutputTokens))
+	if err := saveTurn(ctx, s.DB, sess); err != nil {
+		log.Printf("agent: save turn %s: %v", sess.ID, err)
+	}
+	if err := RecordUsage(ctx, s.DB, sess.UserID, "chat", int64(res.Usage.InputTokens), int64(res.Usage.OutputTokens)); err != nil {
+		log.Printf("agent: record usage %s: %v", sess.UserID, err)
+	}
 }
 
 // Events GET /api/coach/chat/{id}/events — SSE(回放 + 跟随至 done)。
@@ -329,6 +360,9 @@ func (s *Service) Events(c *gin.Context) {
 		if e.ProposalID != "" {
 			payload["proposalId"] = e.ProposalID
 		}
+		if len(e.Input) > 0 {
+			payload["input"] = e.Input
+		}
 		b, err := json.Marshal(payload)
 		if err != nil {
 			return false
@@ -343,6 +377,9 @@ func (s *Service) Events(c *gin.Context) {
 	}
 
 	live, replay := ts.subscribe()
+	if live != nil {
+		defer ts.unsubscribe(live) // 断线即摘除,残留订阅会挂死 publish
+	}
 	for _, e := range replay {
 		if !write(e) {
 			return

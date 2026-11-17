@@ -19,7 +19,13 @@ export default function CoachChatHome({ initialChat }) {
   const [usage, setUsage] = useState(null)
   const chatId = useRef('')
   const endRef = useRef(null)
+  const streamAbort = useRef(null)               // 当前回合 SSE 中断器(卸载即断)
+  const [deciding, setDeciding] = useState(null) // 决断中禁用按钮,防双击双回执
   const busy = chat.phase === 'streaming'
+
+  // 卸载即断流(2026-11-18 审查轮:切路由/锁屏后旧连接悬着,后端已能剔除死订阅,
+  // 前端也要主动断)。
+  useEffect(() => () => streamAbort.current?.abort(), [])
 
   useEffect(() => {
     fetchCoachUsage().then(setUsage).catch(() => {}) // 用量条失败静默:不挡对话
@@ -28,31 +34,59 @@ export default function CoachChatHome({ initialChat }) {
     endRef.current?.scrollIntoView?.({ behavior: 'smooth' })
   }, [chat.messages.length, chat.proposals.length])
 
+  // 2026-11-18 审查轮三处补牢:① AbortController 断流;② 流干净结束但没收到
+  // done 帧(代理掐断/写失败)→ 归位 phase,输入框不再永久锁死;③ cap 判断改读
+  // e.data.code(api() 的错误形状不含顶层 code,旧判断是死分支,cap 文案从未透出)。
   async function send() {
     const text = input.trim()
     if (!text || busy) return
     setInput('')
     setChat(c => applyUserMessage(c, text))
+    const ctl = typeof AbortController === 'function' ? new AbortController() : null
+    streamAbort.current = ctl
     let id = chatId.current
+    let sawDone = false
     try {
       const r = await sendChat({ id: id || undefined, message: text })
       chatId.current = r.id
       id = r.id
-      await streamChatEvents(r.id, ev => setChat(c => applyEvent(c, ev)))
+      await streamChatEvents(r.id, ev => {
+        if (ev && ev.kind === 'done') sawDone = true
+        setChat(c => applyEvent(c, ev))
+      }, ctl ? ctl.signal : undefined)
+      if (!sawDone) setChat(c => ({ ...c, phase: c.proposals.length ? 'waiting' : 'idle' }))
     } catch (e) {
+      if (e && e.name === 'AbortError') return // 卸载中断:组件已走,无需善后
       // off(503)/cap(429)/网络:统一 system 提示,cap 用服务端原文(明日再来话术)。
-      const line = e.code === 'cap' && e.message ? e.message : 'AI 服务暂时不可用,稍后再试。'
+      const capped = e && (e.data?.code || e.code) === 'cap'
+      const line = capped && e.message ? e.message : 'AI 服务暂时不可用,稍后再试。'
       setChat(c => ({
         ...c,
         messages: [...c.messages, { role: 'system', text: line }],
         phase: 'idle',
       }))
+    } finally {
+      streamAbort.current = null
     }
   }
 
+  // 决断:404 = 服务端已决断,以本地清理为准;网络/5xx 保留卡片并提示重试
+  // (2026-11-18 审查轮:此前吞掉一切错误,弱网下的"已应用"是假回执)。
   async function decide(p, decision) {
-    try { await confirmProposal(chatId.current, p.id, decision) } catch { /* 404 等以本地清理为准 */ }
-    setChat(c => decideLocally(c, p.id, decision))
+    if (deciding) return
+    setDeciding(p.id)
+    try {
+      await confirmProposal(chatId.current, p.id, decision)
+      setChat(c => decideLocally(c, p.id, decision))
+    } catch (e) {
+      if (e && e.status === 404) {
+        setChat(c => decideLocally(c, p.id, decision))
+      } else {
+        setChat(c => ({ ...c, messages: [...c.messages, { role: 'system', text: '操作未送达,请重试。' }] }))
+      }
+    } finally {
+      setDeciding(null)
+    }
   }
 
   return (
@@ -92,8 +126,8 @@ export default function CoachChatHome({ initialChat }) {
               <div>{card.text}</div>
               <div className="chat-st">{card.confirm}</div>
               <div className="chips-row">
-                <button onClick={() => decide(p, 'accept')}>应用</button>
-                <button onClick={() => decide(p, 'reject')}>拒绝</button>
+                <button onClick={() => decide(p, 'accept')} disabled={!!deciding}>应用</button>
+                <button onClick={() => decide(p, 'reject')} disabled={!!deciding}>拒绝</button>
               </div>
             </div>
           )

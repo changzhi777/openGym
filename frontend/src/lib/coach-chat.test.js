@@ -48,6 +48,18 @@ describe('applyEvent.proposal', () => {
     expect(s.messages[1].proposal).toBe('p1')
     expect(s.phase).toBe('waiting')
   })
+  it('input 随事件透传 → 确认卡片有正文(2026-11-18 盲确认修复)', () => {
+    let s = applyUserMessage(initialState(), '我膝伤,别安排深蹲')
+    s = applyEvent(s, ev('proposal', { proposalId: 's9:p1', tool: 'propose_constraint', input: { text: '膝伤,回避深蹲' } }))
+    expect(s.proposals[0].input).toEqual({ text: '膝伤,回避深蹲' })
+    expect(proposalToCard(s.proposals[0]).text).toBe('膝伤,回避深蹲')
+  })
+  it('decideLocally 对已决断的重复调用原样返回(防双击双回执)', () => {
+    let s = applyUserMessage(initialState(), '记')
+    s = applyEvent(s, ev('proposal', { proposalId: 'p1', tool: 'propose_memory' }))
+    const once = decideLocally(s, 'p1', 'accept')
+    expect(decideLocally(once, 'p1', 'accept')).toBe(once)
+  })
 })
 
 describe('applyEvent.blocked', () => {

@@ -3353,24 +3353,31 @@ paths:
     post:
       tags: [admin]
       operationId: adminStepUp
-      summary: 'Admin: start a step-up passkey ceremony'
+      summary: 'Admin: open a 5-minute step-up window (SMS code)'
       description: >-
-        Hands out a challenge bound to the admin session; the assertion is
-        verified by the same call with `credential` present, which then grants
-        a 5-minute step-up window written to the audit log.
+        SMS-code step-up (passkey retired with the 2026-10-29 auth rework).
+        The code is issued to a phone bound to the signed-in admin via
+        GET /api/auth/captcha + POST /api/auth/sms/send; verifying it here
+        opens a 5-minute step-up window that is written to the audit log.
+        Sensitive routes still answer 403 code=passkey-required without it.
       requestBody:
-        required: false
+        required: true
         content:
           application/json:
             schema:
               type: object
+              required: [phone, code]
               properties:
-                credential: { type: object, description: 'Second call: the WebAuthn assertion.' }
+                phone: { type: string, description: 'Must be bound to the signed-in admin.' }
+                code: { type: string, description: 'The 6-digit SMS code.' }
       responses:
         '200':
-          description: First call returns the challenge options; second returns { ok, until }.
+          description: '{ ok, until } — the step-up window deadline in epoch ms.'
+        '400':
+          description: Malformed body — phone or code missing/invalid.
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /api/admin/session:
     get:
@@ -3832,8 +3839,8 @@ paths:
                     items: { type: string }
                     description: Sensitive substrings; a reply containing any is blocked before streaming.
               example: { maxTurns: 4, reviewWords: ["赌球", "代孕"] }
-        '401': { : '#/components/responses/Unauthorized' }
-        '403': { : '#/components/responses/Forbidden' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
     put:
       tags: [admin, coach]
       operationId: putAdminCoachAgentConfig
@@ -3868,10 +3875,10 @@ paths:
           description: Out of range.
           content:
             application/json:
-              schema: { : '#/components/schemas/Error' }
+              schema: { $ref: '#/components/schemas/Error' }
               example: { error: "maxTurns out of range" }
-        '401': { : '#/components/responses/Unauthorized' }
-        '403': { : '#/components/responses/Forbidden' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
 
 components:
   securitySchemes:

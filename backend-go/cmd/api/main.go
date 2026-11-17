@@ -6,6 +6,7 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
 	"log"
 	"net"
@@ -302,7 +303,9 @@ func sessionDays() int {
 }
 
 // secret 会话 HMAC 密钥:env 优先 → DATA_DIR/secret 文件(Node 同语义;灰度切换
-// 两栈必须同钥,cookie 才互通)→ dev 兜底。
+// 两栈必须同钥,cookie 才互通)。无 env 无文件时仿 Node 首启生成随机密钥落盘;
+// 持久化不了就拒绝启动——fail-closed。2026-11-18 审查轮移除 "dev-secret" 硬编码
+// 兜底:那是公开仓库里的常量,生产漏挂数据卷时等于全站 cookie 可伪造且无告警。
 func secret() []byte {
 	if v := os.Getenv("SECRET"); v != "" {
 		return []byte(v)
@@ -311,8 +314,18 @@ func secret() []byte {
 		if b, err := os.ReadFile(dir + "/secret"); err == nil && len(b) > 0 {
 			return b
 		}
+		b := make([]byte, 32)
+		if _, err := rand.Read(b); err != nil {
+			log.Fatalf("secret: entropy unavailable: %v", err)
+		}
+		if err := os.WriteFile(dir+"/secret", b, 0o600); err != nil {
+			log.Fatalf("secret: cannot persist %s/secret: %v — refusing to start", dir, err)
+		}
+		log.Printf("secret: generated a new key at %s/secret (first boot)", dir)
+		return b
 	}
-	return []byte("dev-secret")
+	log.Fatal("secret: no SECRET env and no DATA_DIR — refusing to start (fail-closed)")
+	return nil
 }
 func envOr(k, d string) string {
 	if v := os.Getenv(k); v != "" {

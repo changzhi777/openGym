@@ -43,7 +43,9 @@ rsync -az --delete "$LOCAL_REPO/frontend/dist/" "$HOST:/opt/muhe-fit/web/"
 
 echo "==> [4/5] 验证"
 r bash -c "'curl -s -m 6 http://127.0.0.1:3100/api/health'"
-curl -s -m 8 -o /dev/null && curl -s -m 8 -o /dev/null -w "bare:%{http_code} " https://qingmulife.com/api/health
+# 2026-11-18 审查轮:第一个 curl 曾缺 URL 参数(必 exit 2,set -e 直接掐死脚本,
+# bare 域验证从未执行)。三行各自独立验证,不再用 && 串联。
+curl -s -m 8 -o /dev/null -w "bare:%{http_code} " https://qingmulife.com/api/health
 curl -s -m 8 -o /dev/null -w "api:%{http_code}\n" https://api.qingmulife.com/api/health
 
 echo "==> [5/5] 完成(数据备份 = 服务器 /opt/muhe-fit/data + pg 卷 muhe-fit_pgdata)"
