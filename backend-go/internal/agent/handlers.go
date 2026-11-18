@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"sync"
@@ -39,9 +40,15 @@ type Service struct {
 	Tools    Registry
 	System   SystemPrompt // nil → 默认装配
 	EnvWords string       // MUHE_REVIEW_WORDS(env 兜底词表,与配置词表并集)
+	// Audit admin 审计挂点(main.go 注入 admin.Service.Audit;fail-closed——
+	// 写不进审计就拒绝操作)。nil = 未注入(本地装配/测试),跳过审计。
+	Audit AuditFunc
 
 	hub *turnHub // InitHub 装配(main.go 构造后调一次;非并发安全,仅启动期)
 }
+
+// AuditFunc 与 admin.Service.Audit 同形(字段注入避免 agent→admin 反向依赖)。
+type AuditFunc func(c *gin.Context, action, targetType, targetID string, detail map[string]any) bool
 
 // InitHub 装配事件流注册表(main.go 启动期一次性调用)。
 func (s *Service) InitHub() { s.hub = newTurnHub() }
@@ -72,6 +79,19 @@ func DefaultSystem(db *pgxpool.Pool) SystemPrompt {
 				fmt.Fprintf(&b, "- %s\n", c)
 			}
 		}
+		// 批次 C(P1-10):叙事记忆注入——用户确认过的"记住"从此对模型可见
+		// (此前只写不读,"带记忆的教练"闭环断裂)。与约束同一失败语义:读不到
+		// 即 blocked(memory),fail-closed。
+		narr, err := ActiveNarrative(ctx, db, userID, 8)
+		if err != nil {
+			return "", false
+		}
+		if len(narr) > 0 {
+			b.WriteString("\n【长期记忆(用户确认过的偏好与背景,回答时参考;与硬约束冲突时以硬约束为准)】\n")
+			for _, m := range narr {
+				fmt.Fprintf(&b, "- %s\n", m)
+			}
+		}
 		return b.String(), true
 	}
 }
@@ -85,6 +105,10 @@ type turnStream struct {
 	subs []chan Event   // 实时订阅者
 }
 
+// publish 追加事件并投递订阅者。绝不持锁阻塞:慢/死订阅者直接剔除并关闭,
+// 断线客户端靠 buf 回放补齐——一个掉队的读端不能挂死整个回合(2026-11-18
+// 审查轮:此前 ch<-e 在锁内阻塞,断开后缓冲填满即 runTurn 永久卡死、会话
+// 409 busy 到进程重启,外加 goroutine 泄漏)。
 func (ts *turnStream) publish(e Event) {
 	ts.mu.Lock()
 	defer ts.mu.Unlock()
@@ -92,8 +116,14 @@ func (ts *turnStream) publish(e Event) {
 		return
 	}
 	ts.buf = append(ts.buf, e)
-	for _, ch := range ts.subs {
-		ch <- e
+	for i := 0; i < len(ts.subs); {
+		select {
+		case ts.subs[i] <- e:
+			i++
+		default:
+			close(ts.subs[i])
+			ts.subs = append(ts.subs[:i], ts.subs[i+1:]...)
+		}
 	}
 	if e.Kind == EventDone {
 		ts.done = true
@@ -115,6 +145,19 @@ func (ts *turnStream) subscribe() (<-chan Event, []Event) {
 	ch := make(chan Event, len(ts.buf)+8)
 	ts.subs = append(ts.subs, ch)
 	return ch, replay
+}
+
+// unsubscribe 摘除订阅(write 失败/客户端断开时的退出路径,不残留无人排空的
+// channel)。已不在 subs 中(publish 剔除或 done 关闭)时是安全空操作。
+func (ts *turnStream) unsubscribe(ch <-chan Event) {
+	ts.mu.Lock()
+	defer ts.mu.Unlock()
+	for i, c := range ts.subs {
+		if c == ch {
+			ts.subs = append(ts.subs[:i], ts.subs[i+1:]...)
+			return
+		}
+	}
 }
 
 type turnHub struct {
@@ -148,8 +191,19 @@ func (h *turnHub) get(sessionID string) *turnStream {
 
 func (h *turnHub) finish(sessionID string) {
 	h.mu.Lock()
-	defer h.mu.Unlock()
 	delete(h.busy, sessionID)
+	ts := h.streams[sessionID] // 延迟淘汰(批次 C:此前 streams 永不清,进程内存无界涨)
+	h.mu.Unlock()
+	if ts != nil {
+		// 回放宽限 60s:客户端断线重连还能补齐本回合;到期且未被新回合替换才删。
+		time.AfterFunc(60*time.Second, func() {
+			h.mu.Lock()
+			defer h.mu.Unlock()
+			if h.streams[sessionID] == ts {
+				delete(h.streams, sessionID)
+			}
+		})
+	}
 }
 
 var errBusy = errors.New("agent: turn already running")
@@ -262,7 +316,7 @@ func (s *Service) runTurn(sess *Session, userMsg string, ts *turnStream) {
 	loop := &Loop{
 		Provider: s.Provider,
 		Tools:    s.Tools,
-		Config:   LoopConfig{MaxTurns: cfg.MaxTurns},
+		Config:   LoopConfig{MaxTurns: cfg.MaxTurns, ProposalPrefix: sess.ID + ":p"},
 		Review:   s.reviewerFor(ctx),
 	}
 	res, err := loop.Run(WithUID(ctx, sess.UserID), system, sess.History, userMsg, ts.publish)
@@ -272,19 +326,35 @@ func (s *Service) runTurn(sess *Session, userMsg string, ts *turnStream) {
 		return
 	}
 
-	// 落库:史 = 旧史 + user + assistant(中间工具轮不入史,重建成本低,v1 口径)。
+	// 落库:史 = 旧史 + user + assistant(中间工具轮不入史,重建成本低,v1 口径);
+	// usage 传增量(批次 C:SQL 侧 usage_in = usage_in + δ)。
 	sess.History = append(sess.History,
 		llm.Message{Role: "user", Text: userMsg},
 		llm.Message{Role: "assistant", Text: res.Text})
 	sess.UsageIn += int64(res.Usage.InputTokens)
 	sess.UsageOut += int64(res.Usage.OutputTokens)
 	for _, p := range res.Proposals {
-		if err := AddProposal(ctx, s.DB, sess.ID, p); err == nil {
-			sess.State = StateWaitingConfirm
+		if err := AddProposal(ctx, s.DB, sess.ID, p); err != nil {
+			// 落库失败必须可见:回复与卡片已流出,静默吞错 = 用户确认时 404 无从排查。
+			log.Printf("agent: add proposal %s/%s: %v", sess.ID, p.ID, err)
+			continue
+		}
+		sess.State = StateWaitingConfirm
+	}
+	if err := saveTurn(ctx, s.DB, sess, int64(res.Usage.InputTokens), int64(res.Usage.OutputTokens)); err != nil {
+		log.Printf("agent: save turn %s: %v", sess.ID, err)
+	}
+	if err := RecordUsage(ctx, s.DB, sess.UserID, "chat", int64(res.Usage.InputTokens), int64(res.Usage.OutputTokens)); err != nil {
+		log.Printf("agent: record usage %s: %v", sess.UserID, err)
+	}
+	// 2026-11-18 批次 B:审核 LLM 消耗落 review 池(此前从不入账)。
+	if du, ok := loop.Review.(interface{ DrainUsage() llm.Usage }); ok {
+		if u := du.DrainUsage(); u.InputTokens > 0 || u.OutputTokens > 0 {
+			if err := RecordUsage(ctx, s.DB, sess.UserID, "review", int64(u.InputTokens), int64(u.OutputTokens)); err != nil {
+				log.Printf("agent: record review usage %s: %v", sess.UserID, err)
+			}
 		}
 	}
-	_ = saveTurn(ctx, s.DB, sess)
-	_ = RecordUsage(ctx, s.DB, sess.UserID, "chat", int64(res.Usage.InputTokens), int64(res.Usage.OutputTokens))
 }
 
 // Events GET /api/coach/chat/{id}/events — SSE(回放 + 跟随至 done)。
@@ -317,6 +387,8 @@ func (s *Service) Events(c *gin.Context) {
 		payload := map[string]any{"kind": e.Kind}
 		if e.Kind == EventBlocked {
 			payload["reason"] = e.Text // 契约:blocked 事件带 reason(sensitive|llm|upstream|memory)
+		} else if e.Kind == EventConfirmResult {
+			payload["decision"] = e.Text // 契约:confirm_result 带决断(accept|reject)
 		} else if e.Text != "" {
 			payload["text"] = e.Text
 		}
@@ -328,6 +400,9 @@ func (s *Service) Events(c *gin.Context) {
 		}
 		if e.ProposalID != "" {
 			payload["proposalId"] = e.ProposalID
+		}
+		if len(e.Input) > 0 {
+			payload["input"] = e.Input
 		}
 		b, err := json.Marshal(payload)
 		if err != nil {
@@ -343,6 +418,9 @@ func (s *Service) Events(c *gin.Context) {
 	}
 
 	live, replay := ts.subscribe()
+	if live != nil {
+		defer ts.unsubscribe(live) // 断线即摘除,残留订阅会挂死 publish
+	}
 	for _, e := range replay {
 		if !write(e) {
 			return
@@ -362,6 +440,8 @@ func (s *Service) Events(c *gin.Context) {
 }
 
 // Confirm POST /api/coach/chat/{id}/confirm — 提议决断。
+// 决断结果同时向该会话流 publish 一帧 confirm_result(契约六事件之一;此前
+// 只走 HTTP 响应、常量从未发出——挂着的 SSE 客户端收不到确认结果)。
 func (s *Service) Confirm(c *gin.Context) {
 	u, ok := auth.UserOf(c, s.DB, s.Sessions)
 	if !ok {
@@ -389,6 +469,12 @@ func (s *Service) Confirm(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "session unreadable"})
 		return
+	}
+	// 契约六事件之 confirm_result:决断后向该会话流补一帧(清待决列信号)。
+	// 流已结束(hub 无活跃 turnStream)时静默跳过——confirm_result 是附属信号,
+	// 决断真值以本 HTTP 响应为准。
+	if ts := s.hubOf().get(sess.ID); ts != nil {
+		ts.publish(Event{Kind: EventConfirmResult, ProposalID: body.ProposalID, Text: body.Decision})
 	}
 	c.JSON(http.StatusOK, gin.H{"id": sess.ID, "state": sess.State, "applied": applied})
 }
@@ -515,6 +601,7 @@ func (s *Service) AdminLimitsPut(c *gin.Context) {
 		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "limits unreadable"})
 		return
 	}
+	before := cur // 变更前快照(批次 B 审计用;值拷贝)
 	if body.MessagesPerDay != nil {
 		if *body.MessagesPerDay < 1 || *body.MessagesPerDay > 10000 {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "messagesPerDay out of range"})
@@ -528,6 +615,16 @@ func (s *Service) AdminLimitsPut(c *gin.Context) {
 			return
 		}
 		cur.TokensPerMonth = *body.TokensPerMonth
+	}
+	// 2026-11-18 审查轮批次 B:限额变更先审计后落库(fail-closed,与 admin 其余
+	// 敏感操作同语义)——此前改硬限额不留痕。
+	if s.Audit != nil {
+		if !s.Audit(c, "admin.coach.limits", "coach", "", gin.H{
+			"messagesPerDay": gin.H{"before": before.MessagesPerDay, "after": cur.MessagesPerDay},
+			"tokensPerMonth": gin.H{"before": before.TokensPerMonth, "after": cur.TokensPerMonth},
+		}) {
+			return // 审计失败已被 abort
+		}
 	}
 	if err := SetLimits(c.Request.Context(), s.DB, cur); err != nil {
 		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "save failed"})
@@ -566,6 +663,7 @@ func (s *Service) AdminAgentConfigPut(c *gin.Context) {
 		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "config unreadable"})
 		return
 	}
+	before := cur // 变更前快照(批次 B 审计用;值拷贝)
 	if body.MaxTurns != nil {
 		if *body.MaxTurns < 1 || *body.MaxTurns > 8 {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "maxTurns out of range"})
@@ -574,13 +672,35 @@ func (s *Service) AdminAgentConfigPut(c *gin.Context) {
 		cur.MaxTurns = *body.MaxTurns
 	}
 	if body.ReviewWords != nil {
+		// 契约边界(maxLength 100 / maxItems 200)此前未执行:巨型词表落库后
+		// 每回合全量子串匹配,PUT 回显也放大(2026-11-18 批次 B 补校验)。
+		if len(*body.ReviewWords) > 200 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "reviewWords: at most 200 items"})
+			return
+		}
 		clean := make([]string, 0, len(*body.ReviewWords))
 		for _, w := range *body.ReviewWords {
-			if t := strings.TrimSpace(w); t != "" {
-				clean = append(clean, t)
+			t := strings.TrimSpace(w)
+			if t == "" {
+				continue
 			}
+			if n := len([]rune(t)); n > 100 {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "reviewWords: item longer than 100 chars"})
+				return
+			}
+			clean = append(clean, t)
 		}
 		cur.ReviewWords = clean
+	}
+	// 批次 B:治理配置先审计后落库(fail-closed)——改审核词表/MAX_TURNS 不留痕
+	// 等于 AI 安全参数可被静默拆除。
+	if s.Audit != nil {
+		if !s.Audit(c, "admin.coach.agent-config", "coach", "", gin.H{
+			"maxTurns":    gin.H{"before": before.MaxTurns, "after": cur.MaxTurns},
+			"reviewWords": gin.H{"before": before.ReviewWords, "after": cur.ReviewWords},
+		}) {
+			return // 审计失败已被 abort
+		}
 	}
 	if err := SetAgentConfig(c.Request.Context(), s.DB, cur); err != nil {
 		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "save failed"})

@@ -48,6 +48,18 @@ describe('applyEvent.proposal', () => {
     expect(s.messages[1].proposal).toBe('p1')
     expect(s.phase).toBe('waiting')
   })
+  it('input 随事件透传 → 确认卡片有正文(2026-11-18 盲确认修复)', () => {
+    let s = applyUserMessage(initialState(), '我膝伤,别安排深蹲')
+    s = applyEvent(s, ev('proposal', { proposalId: 's9:p1', tool: 'propose_constraint', input: { text: '膝伤,回避深蹲' } }))
+    expect(s.proposals[0].input).toEqual({ text: '膝伤,回避深蹲' })
+    expect(proposalToCard(s.proposals[0]).text).toBe('膝伤,回避深蹲')
+  })
+  it('decideLocally 对已决断的重复调用原样返回(防双击双回执)', () => {
+    let s = applyUserMessage(initialState(), '记')
+    s = applyEvent(s, ev('proposal', { proposalId: 'p1', tool: 'propose_memory' }))
+    const once = decideLocally(s, 'p1', 'accept')
+    expect(decideLocally(once, 'p1', 'accept')).toBe(once)
+  })
 })
 
 describe('applyEvent.blocked', () => {
@@ -81,11 +93,19 @@ describe('applyEvent.done', () => {
 })
 
 describe('applyEvent.confirm_result / 未知事件', () => {
-  it('confirm_result 清待决列', () => {
+  it('confirm_result 清待决列(无 proposalId 时全清,兼容空载荷)', () => {
     let s = applyEvent(initialState(), ev('proposal', { proposalId: 'p1', tool: 'propose_memory' }))
     s = applyEvent(s, ev('confirm_result', {}))
     expect(s.proposals).toEqual([])
     expect(s.phase).toBe('idle')
+  })
+  it('confirm_result 带 proposalId 时单删对应提议(批次 B 服务端真发此帧)', () => {
+    let s = applyEvent(initialState(), ev('proposal', { proposalId: 'p1', tool: 'propose_memory' }))
+    s = applyEvent(s, ev('proposal', { proposalId: 'p2', tool: 'propose_constraint' }))
+    s = applyEvent(s, ev('confirm_result', { proposalId: 'p1', decision: 'accept' }))
+    expect(s.proposals).toHaveLength(1)
+    expect(s.proposals[0].id).toBe('p2')
+    expect(s.phase).toBe('waiting') // 仍有待决,不回 idle
   })
   it('不认识的事件不动状态', () => {
     const s = initialState()
@@ -132,11 +152,38 @@ describe('runChatTurn(编排,依赖注入)', () => {
     expect(r.messages[1].text).toBe('答')
     expect(r.phase).toBe('idle')
   })
-  it('cap 429:服务端原文透出 + 回 idle', async () => {
+  it('cap 429:服务端原文透出 + 回 idle(顶层 code,桩形状)', async () => {
     const deps = { sendChat: async () => { const e = new Error('今日对话额度已用完,明天再来'); e.code = 'cap'; throw e }, streamEvents: async () => {} }
     const r = await runChatTurn(initialState(), '问', deps)
     expect(r.messages[r.messages.length - 1]).toEqual({ role: 'system', text: '今日对话额度已用完,明天再来' })
     expect(r.phase).toBe('idle')
+  })
+  it('cap 经 e.data.code 也透出(api() 真实错误形状,批次 C)', async () => {
+    const deps = { sendChat: async () => { const e = new Error('今日对话额度已用完,明天再来'); e.data = { code: 'cap' }; throw e }, streamEvents: async () => {} }
+    const r = await runChatTurn(initialState(), '问', deps)
+    expect(r.messages[r.messages.length - 1].text).toBe('今日对话额度已用完,明天再来')
+  })
+  it('流干净结束但无 done 帧:归位 idle(代理掐断场景,批次 C)', async () => {
+    const deps = { sendChat: async () => ({ id: 'c1' }), streamEvents: async (_id, on) => { on(ev('token', { text: '半' })) } }
+    const r = await runChatTurn(initialState(), '问', deps)
+    expect(r.phase).toBe('idle')
+    expect(r.messages[1].text).toBe('半')
+  })
+  it('AbortError 上抛(卸载中断,调用方忽略;批次 C)', async () => {
+    const boom = new Error('aborted'); boom.name = 'AbortError'
+    const deps = { sendChat: async () => { throw boom }, streamEvents: async () => {} }
+    await expect(runChatTurn(initialState(), '问', deps)).rejects.toBe(boom)
+  })
+  it('onChatId 在拿到会话句柄即回调(批次 C:组件挂 sessionStorage)', async () => {
+    const seen = []
+    const deps = {
+      sendChat: async () => ({ id: 'c7' }),
+      streamEvents: async (_id, on) => { on(ev('done', {})) },
+      onChatId: id => seen.push(id),
+    }
+    const r = await runChatTurn(initialState(), '问', deps)
+    expect(seen).toEqual(['c7'])
+    expect(r.chatId).toBe('c7')
   })
   it('其他错误:统一文案 + 保留用户消息', async () => {
     const deps = { sendChat: async () => { throw new Error('boom') }, streamEvents: async () => {} }

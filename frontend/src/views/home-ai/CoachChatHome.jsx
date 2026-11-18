@@ -8,51 +8,81 @@
 // check-locales 不扫本目录)。
 import { useEffect, useRef, useState } from 'react'
 import { sendChat, streamChatEvents, confirmProposal, fetchCoachUsage } from '../../lib/api-chat.js'
-import { initialState, applyEvent, proposalToCard, runChatTurn, decideLocally } from '../../lib/coach-chat.js'
+import { initialState, proposalToCard, runChatTurn, decideLocally } from '../../lib/coach-chat.js'
 import Icon from '../../components/Icon.jsx'
 import { exName } from '../../lib/coach.js'
 import '../../coach.css'
 
 export default function CoachChatHome({ initialChat }) {
+  // 会话恢复(2026-11-18 批次 B):chatId 落 sessionStorage,切路由/刷新后续聊
+  // 同一会话而非静默开新——服务端 PG 里历史与约束的延续才不断。消息流仍只在
+  // 内存(历史回填属后续端点)。
+  const CHAT_ID_KEY = 'muhe-coach-chat-id'
   const [chat, setChat] = useState(initialChat || initialState)
   const [input, setInput] = useState('')
   const [usage, setUsage] = useState(null)
   const chatId = useRef('')
   const endRef = useRef(null)
-  const busy = chat.phase === 'streaming'
+  const streamAbort = useRef(null)               // 当前回合 SSE 中断器(卸载即断)
+  const [deciding, setDeciding] = useState(null) // 决断中禁用按钮,防双击双回执
+  const [sending, setSending] = useState(false)  // 回合在途(批次 C:相位要等编排返回才落,须本地闸防双发)
+  const busy = chat.phase === 'streaming' || sending
+
+  // 卸载即断流(2026-11-18 审查轮:切路由/锁屏后旧连接悬着,后端已能剔除死订阅,
+  // 前端也要主动断);chatId 留在 sessionStorage 供重进续聊。
+  useEffect(() => () => streamAbort.current?.abort(), [])
 
   useEffect(() => {
+    const saved = sessionStorage.getItem(CHAT_ID_KEY)
+    if (saved) chatId.current = saved
     fetchCoachUsage().then(setUsage).catch(() => {}) // 用量条失败静默:不挡对话
   }, [])
   useEffect(() => {
     endRef.current?.scrollIntoView?.({ behavior: 'smooth' })
   }, [chat.messages.length, chat.proposals.length])
 
+  // 2026-11-18 批次 C:send 收编回 lib 的 runChatTurn 薄委派(组件不再内联
+  // 平行编排——此前 lib 有 20 案测试保护、组件那份裸奔,行为早已漂移)。
   async function send() {
     const text = input.trim()
     if (!text || busy) return
     setInput('')
-    setChat(c => applyUserMessage(c, text))
-    let id = chatId.current
+    setSending(true)
+    const ctl = typeof AbortController === 'function' ? new AbortController() : null
+    streamAbort.current = ctl
     try {
-      const r = await sendChat({ id: id || undefined, message: text })
-      chatId.current = r.id
-      id = r.id
-      await streamChatEvents(r.id, ev => setChat(c => applyEvent(c, ev)))
+      const final = await runChatTurn(chat, text, {
+        sendChat,
+        streamEvents: (id, onEvent, signal) => streamChatEvents(id, onEvent, signal),
+        signal: ctl ? ctl.signal : undefined,
+        onChatId: id => { chatId.current = id; sessionStorage.setItem(CHAT_ID_KEY, id) },
+      })
+      setChat(final)
     } catch (e) {
-      // off(503)/cap(429)/网络:统一 system 提示,cap 用服务端原文(明日再来话术)。
-      const line = e.code === 'cap' && e.message ? e.message : 'AI 服务暂时不可用,稍后再试。'
-      setChat(c => ({
-        ...c,
-        messages: [...c.messages, { role: 'system', text: line }],
-        phase: 'idle',
-      }))
+      /* AbortError(卸载中断):组件已走,无需善后 */
+    } finally {
+      streamAbort.current = null
+      setSending(false)
     }
   }
 
+  // 决断:404 = 服务端已决断,以本地清理为准;网络/5xx 保留卡片并提示重试
+  // (2026-11-18 审查轮:此前吞掉一切错误,弱网下的"已应用"是假回执)。
   async function decide(p, decision) {
-    try { await confirmProposal(chatId.current, p.id, decision) } catch { /* 404 等以本地清理为准 */ }
-    setChat(c => decideLocally(c, p.id, decision))
+    if (deciding) return
+    setDeciding(p.id)
+    try {
+      await confirmProposal(chatId.current, p.id, decision)
+      setChat(c => decideLocally(c, p.id, decision))
+    } catch (e) {
+      if (e && e.status === 404) {
+        setChat(c => decideLocally(c, p.id, decision))
+      } else {
+        setChat(c => ({ ...c, messages: [...c.messages, { role: 'system', text: '操作未送达,请重试。' }] }))
+      }
+    } finally {
+      setDeciding(null)
+    }
   }
 
   return (
@@ -92,8 +122,8 @@ export default function CoachChatHome({ initialChat }) {
               <div>{card.text}</div>
               <div className="chat-st">{card.confirm}</div>
               <div className="chips-row">
-                <button onClick={() => decide(p, 'accept')}>应用</button>
-                <button onClick={() => decide(p, 'reject')}>拒绝</button>
+                <button onClick={() => decide(p, 'accept')} disabled={!!deciding}>应用</button>
+                <button onClick={() => decide(p, 'reject')} disabled={!!deciding}>拒绝</button>
               </div>
             </div>
           )

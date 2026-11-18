@@ -60,7 +60,8 @@ const llmReviewerSystem = `你是内容安全审核员。对给定文本只做�
 // prompt;ledger 单列 review 池)。fail-closed。
 type LLMReviewer struct {
 	Provider llm.Provider
-	MaxReply int // 审核送检的回复截断(长回复只影响成本,上界 8000 字符默认)
+	MaxReply int       // 审核送检的回复截断(长回复只影响成本,上界 8000 字符默认)
+	spent    llm.Usage // 本实例累计消耗(每回合一实例,Review 同步调用,无需锁)
 }
 
 // NewLLMReviewer 构造(nil provider 时 Review 直通——调用方应在装配期判空)。
@@ -91,6 +92,10 @@ func (l *LLMReviewer) Review(ctx context.Context, reply string) (bool, string) {
 	if err != nil {
 		return false, "llm_error"
 	}
+	// 2026-11-18 批次 B:审核消耗入账(此前 usage 被丢弃,review 池恒 0,
+	// 月度硬限额系统性低估约一半)。
+	l.spent.InputTokens += resp.Usage.InputTokens
+	l.spent.OutputTokens += resp.Usage.OutputTokens
 	var v llmReviewVerdict
 	if err := json.Unmarshal([]byte(strings.TrimSpace(resp.Text)), &v); err != nil {
 		return false, "llm_error"
@@ -99,6 +104,13 @@ func (l *LLMReviewer) Review(ctx context.Context, reply string) (bool, string) {
 		return true, ""
 	}
 	return false, "llm"
+}
+
+// DrainUsage 取走累计审核消耗并清零(review 池记账入口)。
+func (l *LLMReviewer) DrainUsage() llm.Usage {
+	u := l.spent
+	l.spent = llm.Usage{}
+	return u
 }
 
 // Chained 串联多个 Reviewer:短路于第一个拦截。
@@ -112,6 +124,19 @@ func (c Chained) Review(ctx context.Context, reply string) (bool, string) {
 		}
 	}
 	return true, ""
+}
+
+// DrainUsage 汇聚链内可上报的审核消耗并清零(LLMReviewer;runTurn 落 review 池)。
+func (c Chained) DrainUsage() llm.Usage {
+	var total llm.Usage
+	for _, r := range c {
+		if du, ok := r.(interface{ DrainUsage() llm.Usage }); ok {
+			u := du.DrainUsage()
+			total.InputTokens += u.InputTokens
+			total.OutputTokens += u.OutputTokens
+		}
+	}
+	return total
 }
 
 // String 调试/治理台展示用(链长;Reviewer 是函数类型,无类型身份可枚举——

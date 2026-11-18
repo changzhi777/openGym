@@ -1,0 +1,9 @@
+# backend-go 构建上下文排除(2026-11-18 批次 C:Dockerfile COPY . . 会把下列
+# 内容打进层缓存;.env 含 SMS/BIGMODEL/WEKNORA 等真实凭据,绝不进镜像)。
+.env
+.env.*
+build/
+data/
+*.md
+compose*.yml
+scripts/

@@ -21,12 +21,12 @@ import (
 
 // SSE 事件类型(契约 GET /api/coach/chat/{id}/events 六事件)。
 const (
-	EventToken        = "token"
-	EventToolCall     = "tool_call"
-	EventProposal     = "proposal"
-	EventConfirmReady = "confirm_ready"
-	EventBlocked      = "blocked"
-	EventDone         = "done"
+	EventToken         = "token"
+	EventToolCall      = "tool_call"
+	EventProposal      = "proposal"
+	EventConfirmResult = "confirm_result" // Confirm 端点决断后发(批次 B 接通)
+	EventBlocked       = "blocked"
+	EventDone          = "done"
 )
 
 // Event 是发给 SSE 层的一个事件。Token 携带增量文本;Proposal 携带提议;
@@ -35,9 +35,10 @@ type Event struct {
 	Kind       string
 	Text       string
 	ToolName   string
-	Refs       []string  // tool_call:结果携带的引用 id(动作卡渲染源)
+	Refs       []string      // tool_call:结果携带的引用 id(动作卡渲染源)
 	ProposalID string
-	Usage      llm.Usage // Done 帧携带全程累计
+	Input      map[string]any // proposal:提议将写入的内容(确认卡片正文——用户须先见后确认)
+	Usage      llm.Usage     // Done 帧携带全程累计
 }
 
 // Proposal 是模型的一次写提议(记忆/改计划),等用户 confirm。
@@ -51,6 +52,10 @@ type Proposal struct {
 type LoopConfig struct {
 	MaxTurns     int // 硬顶,v2 方案默认 4
 	MaxToolBytes int // 单个工具结果进上下文的字节上界,默认 2048
+	// ProposalPrefix 提议 id 前缀。coach_proposals.id 是全库主键而 seq 每回合
+	// 归零——裸 "p1" 从全库第二条起必撞键(2026-11-18 审查轮);生产侧传
+	// "<sessionID>:p",默认 "p" 仅为兼容既有测试断言。
+	ProposalPrefix string
 }
 
 func (c LoopConfig) withDefaults() LoopConfig {
@@ -180,9 +185,14 @@ func (l *Loop) handleToolCalls(ctx context.Context, resp *llm.Response, cfg Loop
 		case tool.Proposal:
 			// 提议型:永不执行。落确认队列(调用方持久化),回填等待话术。
 			*seq++
-			p := Proposal{ID: fmt.Sprintf("p%d", *seq), Tool: call.Name, Input: call.Input}
+			pfx := cfg.ProposalPrefix
+			if pfx == "" {
+				pfx = "p"
+			}
+			p := Proposal{ID: fmt.Sprintf("%s%d", pfx, *seq), Tool: call.Name, Input: call.Input}
 			proposals = append(proposals, p)
-			onEvent(Event{Kind: EventProposal, ProposalID: p.ID, ToolName: call.Name})
+			// input 随事件上线:确认卡片必须展示将写入的内容,"盲确认"不是确认。
+			onEvent(Event{Kind: EventProposal, ProposalID: p.ID, ToolName: call.Name, Input: p.Input})
 			toolMsgs = append(toolMsgs, llm.Message{Role: "tool", ToolCallID: call.ID,
 				Text: `{"accepted":"proposal_queued","note":"已记录提议,用户确认后才生效"}`})
 			res.ToolRuns++

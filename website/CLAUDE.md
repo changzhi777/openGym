@@ -2,7 +2,7 @@
 
 # website/ — 项目官网（opengym.ch 源站结构）
 
-> 手写 HTML/CSS/JS 静态站，**无构建步骤**，nginx 服务。与产品代码完全解耦，单独部署（GitHub Pages 由上游 `pages.yml` 发布）。本轮核对：结构无变化；`api.html` 已随"沐禾健身 API"契约再生。
+> 手写 HTML/CSS/JS 静态站，**无构建步骤**，nginx 服务。与产品代码完全解耦，单独部署（GitHub Pages 由上游 `pages.yml` 发布）。本轮核对：结构无变化（18 文件）；`api.html` 已随"沐禾健身 API"契约再生（页内计数器显 107 endpoints；2026-11-18 澄清：该计数含 7 个 path 级 parameters 块，spec 实为 90 路径 / 100 操作，页面实际渲染 100 张端点卡）。
 
 ## 页面清单
 
@@ -26,8 +26,8 @@
 - 截图同名更新 + nginx 图片缓存 7 天 → 需立即生效就改文件名
 - `styles.css`/`site.js` 改动必须 bump `?v=N`（防边缘旧配新）
 - 每页有 "Skip to content"（`.skip`）无障碍入口
-- fork 生产不走本目录（生产是 PVE CT 151 的 Node+nginx 栈）；本目录服务于上游官网/文档发布链
+- fork 生产不走本目录（生产是 118 qingmulife.com 的 Go 栈 compose + 宿主 nginx，2026-10-29 起；CT 151 为旧内网实例）；本目录服务于上游官网/文档发布链
 
 ---
 
-变更记录: 2026-10-27 V1.1 核对式更新（init-architect）:api.html 契约品牌、APK/图标品牌注记；2026-10-20 V1.0 初版
+变更记录: 2026-11-18 V1.2 审查轮核准（init-architect）:api.html 计数口径澄清（107 = 100 操作 + 7 个 path 级 parameters 块）；生产注记更新（118 现行 / CT151 旧）；目录 16→18 文件注记。2026-10-27 V1.1 核对式更新（init-architect）:api.html 契约品牌、APK/图标品牌注记；2026-10-20 V1.0 初版

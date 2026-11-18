@@ -2868,7 +2868,7 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   </summary>
   <div class="ep-body">
 <p>One connection per turn; it closes when the turn is done (or refused). Events, each a JSON line after its <code>event:</code> name:</p>
-<ul><li><code>token</code> — a piece of the reply text, in order.</li><li><code>tool_call</code> — the Coach consulted a tool (plan, history, bodyweight, knowledge). Only that it looked, and at what; arguments are not echoed. When the result carried reference ids (e.g. catalogue action ids from a knowledge search) they ride along as <code>refs</code> (string array), so the client can render source cards.</li><li><code>proposal</code> — the Coach suggests remembering something or changing the plan. Carries the proposal id and its change-list; nothing is applied until confirmed.</li><li><code>confirm_result</code> — the outcome of a confirmation the profile just made.</li><li><code>blocked</code> — the reply failed review (<code>sensitive</code> after the word filter, <code>llm</code> after re-check) and will not be delivered; <code>reason</code> names which gate.</li><li><code>done</code> — the turn is over; the stream closes after it.</li></ul>
+<ul><li><code>token</code> — a piece of the reply text, in order.</li><li><code>tool_call</code> — the Coach consulted a tool (plan, history, bodyweight, knowledge). Only that it looked, and at what; arguments are not echoed. When the result carried reference ids (e.g. catalogue action ids from a knowledge search) they ride along as <code>refs</code> (string array), so the client can render source cards.</li><li><code>proposal</code> — the Coach suggests remembering something or changing the plan. Carries the proposal id and its change-list; nothing is applied until confirmed.</li><li><code>confirm_result</code> — the outcome of a confirmation the profile just made: <code>proposalId</code> plus <code>decision</code> (<code>accept</code>|<code>reject</code>). Only frames to a stream that is still open (a turn in progress); after <code>done</code> the decision arrives only via the confirm endpoint's HTTP response.</li><li><code>blocked</code> — the reply failed review (<code>sensitive</code> after the word filter, <code>llm</code> after re-check) and will not be delivered; <code>reason</code> names which gate.</li><li><code>done</code> — the turn is over; the stream closes after it.</li></ul>
 <p>Every delivered reply passed review before its first token streamed, so a blocked reply streams nothing at all.</p>
     <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
 
@@ -2995,7 +2995,7 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
     <div class="ptab">
   <div class="prow rrow">
     <span class="r-code s2">200</span>
-    <span class="p-desc">Edited.<span class="r-sig"><a href="#schema-CoachMemoryEntry">CoachMemoryEntry</a></span></span>
+    <span class="p-desc">Edited — answers <code>{ ok: true }</code> (2026-11-18 audit round: aligned with the implementation; the edited entry is re-fetched via GET).<span class="r-sig">object</span></span>
   </div>
   <div class="prow rrow">
     <span class="r-code s4">401</span>
@@ -3742,24 +3742,33 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
     <span class="m post">POST</span>
     <span class="ep-path"><code>/api/admin/step-up</code><span class="ep-chip admin">admin</span></span>
     <span class="ep-chev" aria-hidden="true"></span>
-    <span class="ep-sum">Start a step-up passkey ceremony</span>
+    <span class="ep-sum">Open a 5-minute step-up window (SMS code)</span>
   </summary>
   <div class="ep-body">
-<p>Hands out a challenge bound to the admin session; the assertion is verified by the same call with <code>credential</code> present, which then grants a 5-minute step-up window written to the audit log.</p>
+<p>SMS-code step-up (passkey retired with the 2026-10-29 auth rework). The code is issued to a phone bound to the signed-in admin via GET /api/auth/captcha + POST /api/auth/sms/send; verifying it here opens a 5-minute step-up window that is written to the audit log. Sensitive routes still answer 403 code=passkey-required without it.</p>
     <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Admin only: a signed-in session whose user is an admin (<code>ADMIN_UIDS</code> or <code>admin:true</code>), as the session cookie or a Bearer token.</span></p>
 
-<p class="ep-h">Request body <span class="p-hint">(JSON)</span> <span class="p-hint">(optional)</span></p><div class="ptab">
+<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
   <div class="prow">
-    <span class="p-name">credential</span>
-    <span class="p-type">object</span>
-    <span class="p-desc">Second call: the WebAuthn assertion.</span>
+    <span class="p-name">phone<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc">Must be bound to the signed-in admin.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">code<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc">The 6-digit SMS code.</span>
   </div>
 </div>
     <p class="ep-h">Responses</p>
     <div class="ptab">
   <div class="prow rrow">
     <span class="r-code s2">200</span>
-    <span class="p-desc">First call returns the challenge options; second returns { ok, until }.</span>
+    <span class="p-desc">{ ok, until } — the step-up window deadline in epoch ms.</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">400</span>
+    <span class="p-desc">Malformed body — phone or code missing/invalid.</span>
   </div>
   <div class="prow rrow">
     <span class="r-code s4">401</span>
@@ -3768,6 +3777,10 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   <div class="prow rrow">
     <span class="r-code s4">403</span>
     <span class="p-desc">Signed in, but not an admin. The attempt is recorded in the audit log.<span class="r-sig"><code>{&quot;error&quot;:&quot;forbidden&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">429</span>
+    <span class="p-desc">Paused by the sign-in throttle (see <i>Throttling</i> in the description). The request was not looked at; try again after <code>Retry-After</code> seconds.<span class="r-sig"><code>{&quot;error&quot;:&quot;too many attempts, try again later&quot;}</code></span></span>
   </div>
     </div>
   </div>
@@ -4300,11 +4313,11 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   </div>
   <div class="prow rrow">
     <span class="r-code s4">401</span>
-    <span class="p-desc"></span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
   </div>
   <div class="prow rrow">
     <span class="r-code s4">403</span>
-    <span class="p-desc"></span>
+    <span class="p-desc">Signed in, but not an admin. The attempt is recorded in the audit log.<span class="r-sig"><code>{&quot;error&quot;:&quot;forbidden&quot;}</code></span></span>
   </div>
     </div>
   </div>
@@ -4351,11 +4364,11 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   </div>
   <div class="prow rrow">
     <span class="r-code s4">401</span>
-    <span class="p-desc"></span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
   </div>
   <div class="prow rrow">
     <span class="r-code s4">403</span>
-    <span class="p-desc"></span>
+    <span class="p-desc">Signed in, but not an admin. The attempt is recorded in the audit log.<span class="r-sig"><code>{&quot;error&quot;:&quot;forbidden&quot;}</code></span></span>
   </div>
     </div>
   </div>
@@ -6172,7 +6185,7 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
     <span class="ep-sum">One thing the Coach remembers.</span>
   </summary>
   <div class="ep-body">
-<p>Both kinds share the shape.</p>
+<p>Both kinds share the shape. (2026-11-18 audit round: the <code>source</code> field was removed — no backing column exists; provenance lives in the proposals queue.)</p>
 <div class="ptab">
   <div class="prow">
     <span class="p-name">id</span>
@@ -6188,11 +6201,6 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
     <span class="p-name">text</span>
     <span class="p-type">string</span>
     <span class="p-desc">The entry</span>
-  </div>
-  <div class="prow">
-    <span class="p-name">source</span>
-    <span class="p-type">&quot;profile&quot; | &quot;coach&quot; | &quot;intake&quot;</span>
-    <span class="p-desc">Who it came from: the profile said it, the Coach proposed it and it was accepted, or it came from intake answers.</span>
   </div>
   <div class="prow">
     <span class="p-name">at</span>

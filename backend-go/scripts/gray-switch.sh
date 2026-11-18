@@ -46,23 +46,63 @@ PY
   echo "✅ migrate 完成 —— 可执行 switch"
   ;;
 switch)
+  echo "== 0/4 环境闸门 =="
+  # 2026-11-18 审查轮批次 B:两栈同钥是 cookie 互通的硬前提。shell 里残留的
+  # SECRET env 会让 Go 用它、Node 仍读 DATA_DIR/secret → 全量用户掉登录。
+  if [ -n "${SECRET:-}" ]; then
+    echo "❌ 检测到 SECRET env——两栈同钥要求 Go 与 Node 读同一 DATA_DIR/secret,"
+    echo "   请 unset SECRET 后重跑(或确认你确实要覆盖式换钥,那是另一套规程)"
+    exit 1
+  fi
   echo "== 1/4 停 Node(systemd 或进程) =="
   systemctl stop opengym 2>/dev/null || pkill -f "node server.js" || true
   sleep 1
-  echo "== 2/4 起 Go =="
-  "$API_BIN" & echo $! > /tmp/muhe-go.pid
+  echo "== 2/4 起 Go(nohup 脱离会话;SSH 断线不再 SIGHUP 直杀刚上线的生产) =="
+  nohup "$API_BIN" >/tmp/muhe-go.log 2>&1 &
+  echo $! > /tmp/muhe-go.pid
   for i in $(seq 1 20); do sleep 1; curl -sf "http://127.0.0.1:${PORT:-3100}/api/health" >/dev/null 2>&1 && break; done
   curl -sf "http://127.0.0.1:${PORT:-3100}/api/health" || { echo "❌ health 不过,立即回滚"; "$0" rollback; exit 1; }
-  echo "== 3/4 验收:passkey 登录冒烟(人工) =="
-  echo "   请在浏览器打开前端,用任一用户 passkey 登录并确认训练数据完整"
+  echo "== 3/4 验收:登录冒烟(人工) =="
+  echo "   请在浏览器打开前端,用任一用户登录并确认训练数据完整"
   echo "== 4/4 回滚窗口 24h:数据目录保留原样,DATA_DIR 未动 =="
   echo "✅ switch 完成(五条第 4/5 条人工完成:登录冒烟 + 10 用户抽样)"
   ;;
 rollback)
   echo "== 回滚:停 Go,起 Node =="
   [ -f /tmp/muhe-go.pid ] && kill "$(cat /tmp/muhe-go.pid)" 2>/dev/null || pkill -f muhe-api || true
-  systemctl start opengym 2>/dev/null || (cd api && node server.js &)
-  echo "✅ 已回滚到 Node(数据目录从未改动)"
+  sleep 1
+  # 2026-11-18 审查轮批次 B:回滚前反向导出 Go 窗口期写入到 JSON。窗口内用户的
+  # 训练记录/体重全部落 PG,直接切回 Node 会静默丢掉这些写入。导出幂等且只写
+  # 导出目录——Node 侧数据是否采用由操作者对照后决定,脚本不自动覆盖 DATA_DIR。
+  if [ -x "$MIG_BIN" ]; then
+    STAMP=$(date +%Y%m%d_%H%M%S)
+    OUT=/tmp/muhe-go-window-$STAMP
+    if "$MIG_BIN" export "$OUT"; then
+      echo "↩️ Go 窗口期写入已导出: $OUT(对照无误后再并回 DATA_DIR;含 state-*.json)"
+      if command -v python3 >/dev/null && compgen -G "$OUT/state-*.json" >/dev/null; then
+        python3 - "$OUT" <<'PY'
+import json,sys,glob
+n=len(glob.glob(sys.argv[1]+'/state-*.json'))
+print(f"   导出 states={n}(0 = 窗口期无状态写入,可直接回滚)")
+PY
+      fi
+    else
+      echo "⚠️ muhemigrate export 失败——继续回滚将丢失 Go 窗口期全部写入;"
+      echo "   Ctrl-C 中止排查,或 30 秒后脚本继续(export 目录可能部分可用)"
+      sleep 30
+    fi
+  else
+    echo "⚠️ 找不到 muhemigrate($MIG_BIN)——无法导出 Go 窗口期写入,继续回滚将丢失之"
+  fi
+  systemctl start opengym 2>/dev/null || (cd api && nohup node server.js >/tmp/muhe-node.log 2>&1 &)
+  # 回滚也要验收(批次 B:此前起完就走,Node 是否真起来无人知道)。
+  NODE_OK=0
+  for i in $(seq 1 20); do
+    sleep 1
+    curl -sf "http://127.0.0.1:${NODE_PORT:-3000}/api/health" >/dev/null 2>&1 && { NODE_OK=1; break; }
+  done
+  [ "$NODE_OK" -eq 1 ] && echo "✅ 已回滚到 Node(health 绿)" || echo "❌ Node health 20s 未绿——立即人工检查 /tmp/muhe-node.log"
+  [ "$NODE_OK" -eq 1 ] || exit 1
   ;;
 *)
   echo "用法: $0 migrate|switch|rollback"; exit 2

@@ -6,6 +6,7 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
 	"log"
 	"net"
@@ -90,6 +91,12 @@ func main() {
 
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
+	// 2026-11-18 审查轮批次 B:gin 默认 trust-all——直连者注入的 X-Forwarded-For
+	// 会被 ClientIP 采信(SMS per-IP 日限与审计 IP 全可伪造)。生产链路唯一前置
+	// 代理是同机 nginx(回环地址),只信回环;无 XFF 的直连自动落 RemoteAddr。
+	if err := r.SetTrustedProxies([]string{"127.0.0.1", "::1"}); err != nil {
+		log.Fatalf("trusted proxies: %v", err)
+	}
 	r.Use(gin.Recovery())
 	r.Use(httpx.CORS(origin())) // 预检 204 + Capacitor 源(Node APP_ORIGINS 同集)
 	r.Use(httpx.CSRF(origin())) // Node csrfOk 移植(Sec-Fetch-Site 优先)
@@ -109,8 +116,17 @@ func main() {
 	})
 
 	// 认证重构(2026-10-29):手机号+短信验证码 / 微信小程序码扫码;passkey/密码/配对退役。
+	// 批次 C(P1-9):ORIGIN 非 https 时 cookie 无 Secure——生产必设,启动即告警不静默。
+	if !strings.HasPrefix(origin(), "https://") {
+		log.Printf("WARNING: ORIGIN=%q is not https — session cookies will lack the Secure flag; set ORIGIN to the https origin in production", origin())
+	}
 	sessions := auth.NewSessions(secret(), sessionDays(), strings.Contains(origin(), "https://"))
 	smsSender := sms.FromEnv()
+	// 批次 C(P2-8):SMS 凭据漏配不再静默进 dev 模式(验证码进日志=有日志读
+	// 权限者可接管任意号)。本地开发/双跑测试须显式开闸。
+	if !smsSender.Enabled && os.Getenv("MUHE_ALLOW_SMS_DEV") != "1" && os.Getenv("MUHE_TEST") != "1" {
+		log.Fatal("sms: SMS_* not configured and dev mode not allowed — set MUHE_ALLOW_SMS_DEV=1 for local development, or configure SMS_SECRET_ID/KEY/APP_ID/SIGN/TEMPLATE_ID")
+	}
 	smsStore := sms.Store{Rdb: rdb}
 	wxMini := wechat.New(os.Getenv("WX_MINI_APPID"), os.Getenv("WX_MINI_SECRET"), rdb)
 	svc := &auth.Service{DB: db, Sessions: sessions, Rdb: rdb,
@@ -228,6 +244,9 @@ func main() {
 	adminSvc.Rdb = rdb
 	adminSvc.SmsStore = smsStore
 	adminSvc.SmsSender = smsSender
+	// 2026-11-18 审查轮批次 B:AI 治理两处 PUT 挂 admin 审计(fail-closed——
+	// 改 MAX_TURNS/审核词表/限额而不留痕,恰是治理台最该盯的动作)。
+	agentSvc.Audit = adminSvc.Audit
 	r.GET("/api/admin/session", adminSvc.Session)
 	coachProxy.StepUpOK = adminSvc.StepUpValid // config/connect/disconnect 的 step-up 闸门
 	support := adminSvc.RequireRole(admin.RoleSupport)
@@ -302,7 +321,9 @@ func sessionDays() int {
 }
 
 // secret 会话 HMAC 密钥:env 优先 → DATA_DIR/secret 文件(Node 同语义;灰度切换
-// 两栈必须同钥,cookie 才互通)→ dev 兜底。
+// 两栈必须同钥,cookie 才互通)。无 env 无文件时仿 Node 首启生成随机密钥落盘;
+// 持久化不了就拒绝启动——fail-closed。2026-11-18 审查轮移除 "dev-secret" 硬编码
+// 兜底:那是公开仓库里的常量,生产漏挂数据卷时等于全站 cookie 可伪造且无告警。
 func secret() []byte {
 	if v := os.Getenv("SECRET"); v != "" {
 		return []byte(v)
@@ -311,8 +332,18 @@ func secret() []byte {
 		if b, err := os.ReadFile(dir + "/secret"); err == nil && len(b) > 0 {
 			return b
 		}
+		b := make([]byte, 32)
+		if _, err := rand.Read(b); err != nil {
+			log.Fatalf("secret: entropy unavailable: %v", err)
+		}
+		if err := os.WriteFile(dir+"/secret", b, 0o600); err != nil {
+			log.Fatalf("secret: cannot persist %s/secret: %v — refusing to start", dir, err)
+		}
+		log.Printf("secret: generated a new key at %s/secret (first boot)", dir)
+		return b
 	}
-	return []byte("dev-secret")
+	log.Fatal("secret: no SECRET env and no DATA_DIR — refusing to start (fail-closed)")
+	return nil
 }
 func envOr(k, d string) string {
 	if v := os.Getenv(k); v != "" {

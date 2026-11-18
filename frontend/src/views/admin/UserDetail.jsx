@@ -6,8 +6,8 @@
 // 删除仅 super_admin)。操作经 apiAdmin(stepUp 包装)。
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams, useOutletContext } from 'react-router-dom'
-import { api, passkeyAssertion } from '../../lib/api.js'
-import { apiAdmin } from '../../lib/admin/stepUp.js'
+import { api } from '../../lib/api.js'
+import { apiAdmin, ensureStepUp } from '../../lib/admin/stepUp.js'
 import { adminT, adminWhen } from '../../lib/admin/i18n.js'
 import { fmtDate } from '../../lib/format.js'
 import { confirmSheet } from '../../sheets.jsx'
@@ -219,8 +219,10 @@ export default function UserDetail() {
 
   const del = () => openSheet(close => <DeleteSheet user={u} impact={impact} close={close} onDone={() => nav('/admin/users')} />)
 
+  // 解锁仪式从 passkey(已退役,Go 栈 501 死路)换成 step-up 短信码——与其余
+  // 敏感操作同一道闸(2026-11-18 审查轮)。
   const showFullEmail = async () => {
-    try { await passkeyAssertion(); setFullEmail(true) } catch { /* 取消验证:保持脱敏 */ }
+    try { await ensureStepUp(); setFullEmail(true) } catch { /* 取消验证:保持脱敏 */ }
   }
 
   return (

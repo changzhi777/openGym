@@ -21,12 +21,12 @@
 | 框架 | **无**（`node:http` + `routes` 对象按 `'METHOD /path'` 分发） |
 | 运行时依赖 | 仅 3 个：`@simplewebauthn/server`、`undici`、`web-push`（optional: `@anthropic-ai/claude-agent-sdk`，仅 coach 镜像装） |
 | 入口 | `server.js`（`npm start`） |
-| API 契约 | `openapi.yaml`（手写 OpenAPI 3.1，title **沐禾健身 API**；双栈契约源；**107 端点**，浏览版 website/api.html 已再生） |
-| 测试 | `node --test test/*.test.js`（76 个文件） |
+| API 契约 | `openapi.yaml`（手写 OpenAPI 3.1，title **沐禾健身 API**；双栈契约源；**90 路径 / 100 操作**——api.html 计数器显 107 系生成器把 7 个 path 级 `parameters:` 块计入，浏览版 website/api.html 已再生） |
+| 测试 | `node --test test/*.test.js`（75 个测试文件 + 3 个 .mjs 辅件） |
 
 ## 契约冻结与 501 stub（fork）
 
-`server.js` 路由表内 `notYetGo` 处理器：fork 的**契约已冻结但实现落 Go 栈**的端点，Node 侧不实现、一律 501 `{error:"planned for the Go backend", code:"not-implemented"}`——前端对这类端点只做占位渲染不会调用，501 是误调用的明确信号。**当前挂 stub 共 32 个键**（`server.js` L1915–1950，2026-11-11 实测；演进轨迹 8 → 21（2026-11-10）→ 32（AI-Native 批次 1/5/6））：
+`server.js` 路由表内 `notYetGo` 处理器：fork 的**契约已冻结但实现落 Go 栈**的端点，Node 侧不实现、一律 501 `{error:"planned for the Go backend", code:"not-implemented"}`——前端对这类端点只做占位渲染不会调用，501 是误调用的明确信号。**当前挂 stub 共 32 个键**（`server.js` L1915–1950，2026-11-18 复核依旧；演进轨迹 8 → 21（2026-11-10）→ 32（AI-Native 批次 1/5/6））：
 
 - **SaaS 后台批（8）**：`GET /api/admin/overview` · `GET|PUT /api/admin/users/{id}/quota` · `GET /api/admin/users/{id}/activity` · `GET /api/admin/roles` · `POST /api/admin/roles/grant` · `POST /api/admin/roles/revoke` · `POST /api/admin/step-up`
 - **认证重构批（7）**：`GET /api/auth/captcha` · `POST /api/auth/sms/send` · `POST /api/auth/sms/verify` · `GET /api/auth/wechat/qrcode` · `GET /api/auth/wechat/poll` · `POST /api/auth/wechat/confirm` · `POST /api/auth/bind-phone`（对应 backend-go captcha/sms/wechat 包与 0012_auth_identities 迁移）
@@ -45,9 +45,9 @@
 
 ### 契约现状（批次 1/5/6 冻结）
 
-- **对话面 7 操作 / 6 路径**：POST `/api/coach/chat`（发起/续聊，回会话句柄）· GET `/api/coach/chat/{id}/events`（SSE 六事件：token / tool_call / proposal / confirm_result / blocked / done，回复先审后流，blocked 带拦截原因）· POST `/api/coach/chat/{id}/confirm`（确认闸门 = Coach 唯一写入口）· GET `/api/coach/memory` + PUT/DELETE `/api/coach/memory/{id}`（叙事/结构化双类记忆，删=先结构化后叙事跨存储一致性）· GET `/api/coach/usage`（chat/review/embedding 三池）
+- **对话面 7 操作 / 6 路径**：POST `/api/coach/chat`（发起/续聊，回会话句柄）· GET `/api/coach/chat/{id}/events`（SSE 六事件：token / tool_call / proposal / confirm_result / blocked / done，回复先审后流，blocked 带拦截原因；批次 6 后段补 `refs` 字段=动作卡引用）· POST `/api/coach/chat/{id}/confirm`（确认闸门 = Coach 唯一写入口）· GET `/api/coach/memory` + PUT/DELETE `/api/coach/memory/{id}`（叙事/结构化双类记忆，删=先结构化后叙事跨存储一致性）· GET `/api/coach/usage`（chat/review/embedding 三池）
 - **管理面 4 操作**：GET `/api/admin/coach/usage-overview`（全站三池日/月 + 今日活跃 + 14 天趋势，无用户级行与对话原文）· PUT `/api/admin/coach/limits`（per-user 硬限额，范围校验 1–10000/≥1000）· GET|PUT `/api/admin/coach/agent-config`（MAX_TURNS 1–8 + 词表 ≤200）
-- **新增 schema**：`CoachChatSession` / `CoachMemoryEntry` / `CoachUsage`（openapi L4792–4817）；`website/api.html` 已再生（**107 endpoints**，L250 实测）
+- **新增 schema**：`CoachChatSession` / `CoachMemoryEntry` / `CoachUsage`（openapi L4792–4817）；`website/api.html` 已再生（L250 计数器显 **107 endpoints**；2026-11-18 澄清：该计数含 7 个 path 级 parameters 块，spec 实为 **90 路径 / 100 操作**，页面实际渲染 100 张端点卡）
 - **Node 侧分发器**：批次 2 补 5 条 `{id}` 路由映射（批次 1 遗漏——契约一致性测试只查键存在不查 URL 可达，双跑冒烟抓出后修复，`server.js` L2705–2709 有注释）
 
 ### Node 侧 coach/ 停止演进（定调）
@@ -107,7 +107,7 @@
 - `coach`：再加 Agent SDK + Codex CLI + bubblewrap + `/coach-auth` 卷（批任务 Coach，停止演进）
 - healthcheck：`wget /api/health`；模块 COPY 清单改动必须同步 Dockerfile（有测试盯着）
 
-## 测试（76 文件，含 fork 双跑扩展）
+## 测试（75 个测试文件 + 3 辅件，含 fork 双跑扩展）
 
 ```bash
 cd api && npm test        # node --test test/*.test.js
@@ -116,11 +116,11 @@ MUHE_GO=1 npm test        # fork：同一批用例拉起 Go 栈双跑（需 PG+R
 
 - `routes.test.js` + `openapi-routes.test.js` — 路由与 OpenAPI 契约一致（**501 stub 端点也在契约内**；注意只查键存在不查 URL 可达，`{id}` 路由靠分发器映射 + 双跑冒烟兜底）
 - `server-*.test.js` — 按子系统切分：passkeys/password/media/push/pairing/admin/data-rev/cors/presence…
-- **fork 双跑**：29 个文件带 `MUHE_TEST=1` 启动分支（2026-11-11 实测，较 11-10 的 28 个 +1）；`MUHE_GO=1` 时改为拉起 Go 二进制（`backend-go/internal/testmode` 提供每测试独立 PG 库、seed、`BootLine` 端口行与 Node 同序）——**backend-go 的主测法就在这套件里**
+- **fork 双跑**：29 个文件带 `MUHE_TEST=1` 启动分支（2026-11-18 复核依旧）；`MUHE_GO=1` 时改为拉起 Go 二进制（`backend-go/internal/testmode` 提供每测试独立 PG 库、seed、`BootLine` 端口行与 Node 同序）——**backend-go 的主测法就在这套件里**
 - 🆕 `coach-chat-off.test.js` — AI-Native 双跑冒烟（批次 2）：Node 走 501 stub / Go 走 503 off（Provider 未配）+ memory·usage 真数据，JWT cookie 双栈互通验证
 - coach 批任务侧：adapters / pipeline(payload) / prompts / jobs / cadence / cohort / review-repair（随 coach/ 停止演进，此区冻结）
 - `dockerfile-copy.test.js`、`k8s-web-port.test.js` — 部署件一致性
-- 夹具：`helpers.mjs`、`fake-clock.mjs`、`fixtures/media-refs.json`
+- 夹具：`helpers.mjs`、`fake-clock.mjs`、`media-samples.mjs`、`fixtures/media-refs.json`
 - 台账口径：批次 2 后 api 套件 612 测试 **606 pass / 0 fail**（基线 605 + coach-chat-off 1）
 
 ## FAQ / 坑
@@ -134,8 +134,8 @@ MUHE_GO=1 npm test        # fork：同一批用例拉起 Go 栈双跑（需 PG+R
 
 ## 相关文件清单（节选）
 
-`server.js`（含 501 stub 区 + {id} 分发器）· `openapi.yaml`（107 端点，含对话面）· `Dockerfile` · `package.json`（gym-api）· `password.js` · `media.js` · `coach/`（40 文件，停止演进）· `test/`（76 文件，含 coach-chat-off 双跑冒烟）· `scripts/`（build-nudge-copy / check-core-loadable）· 文档：[docs/AI_COACH.md](../docs/AI_COACH.md)、[docs/API.md](../docs/API.md)、[backend-go/CLAUDE.md](../backend-go/CLAUDE.md)（Agent 内核实现）、[mcp/CLAUDE.md](../mcp/CLAUDE.md)（算法单源三实现）
+`server.js`（含 501 stub 区 + {id} 分发器）· `openapi.yaml`（90 路径/100 操作，api.html 计数器 107，含对话面）· `Dockerfile` · `package.json`（gym-api）· `password.js` · `media.js` · `coach/`（40 文件，停止演进）· `test/`（79 文件：75 test + 3 辅件 + fixtures/media-refs.json，含 coach-chat-off 双跑冒烟）· `scripts/`（build-nudge-copy / check-core-loadable）· 文档：[docs/AI_COACH.md](../docs/AI_COACH.md)、[docs/API.md](../docs/API.md)、[backend-go/CLAUDE.md](../backend-go/CLAUDE.md)（Agent 内核实现）、[mcp/CLAUDE.md](../mcp/CLAUDE.md)（算法单源三实现）
 
 ---
 
-变更记录: 2026-11-11 V1.3 增量（init-architect，实施后刷新轮）:AI-Native 规划节改写为"契约与 Node 侧现状"——七端点对话面 + 计量/治理 4 端点契约已冻结（stub 21→32 键，L1915–1950 实测）、api.html 107 端点、Node 分发器 5 条 {id} 映射已补（批次 2 教训入 FAQ）、coach-chat-off.test.js 双跑冒烟已加；**Node 侧 coach/ 定调停止演进（契约参考与回滚源）**，v1 规划的 agent-tools.js/tool-loop 旁路/core/agent/ 全部作废（方案 v2 R 系裁决）；测试 74→76 文件、MUHE_TEST 28→29；数据模型注记 AI-Native 落 PG 0013 五表非 data/ JSON。2026-11-10 V1.2 增量:新增 AI-Native 重构规划节（P0 五组端点 / P1 agent-tools.js + tool-loop 旁路 / P3/P4 落点，全部规划态代码未动）；修正漂移——501 stub 8→21 键、MUHE_TEST 26→28、coach/ 33→40 文件；2026-10-27 V1.1 增量:契约冻结与 501 stub、MUHE_GO 双跑、测试数 71→74、品牌名；2026-10-20 V1.0 初版
+变更记录: 2026-11-18 V1.4 审查轮核准（init-architect）:测试文件 76→**75**（test/ 实为 79：75 test + 3 .mjs 辅件 + fixtures/media-refs.json）、模块规模 ~142→**~137** 文件；"107 端点"口径澄清——spec 实为 **90 路径/100 操作**，api.html 计数器 107 = 生成器 `build-api-docs.mjs` 把 7 个 path 级 `parameters:` 块计入 ops.length（无 tags 不渲染成卡，页面实际 100 张端点卡）；32 键 stub（L1915–1950）/ 29 个 MUHE_TEST / coach 40 文件复核无漂移；对话面 events 补记批次 6 后段 `refs` 字段；四路专项审查修复方案见 `.zcf/沐禾健身-全面审查修复方案-20261118.md`。2026-11-11 V1.3 增量（init-architect，实施后刷新轮）:AI-Native 规划节改写为"契约与 Node 侧现状"——七端点对话面 + 计量/治理 4 端点契约已冻结（stub 21→32 键，L1915–1950 实测）、api.html 107 端点、Node 分发器 5 条 {id} 映射已补（批次 2 教训入 FAQ）、coach-chat-off.test.js 双跑冒烟已加；**Node 侧 coach/ 定调停止演进（契约参考与回滚源）**，v1 规划的 agent-tools.js/tool-loop 旁路/core/agent/ 全部作废（方案 v2 R 系裁决）；测试 74→76 文件、MUHE_TEST 28→29；数据模型注记 AI-Native 落 PG 0013 五表非 data/ JSON。2026-11-10 V1.2 增量:新增 AI-Native 重构规划节（P0 五组端点 / P1 agent-tools.js + tool-loop 旁路 / P3/P4 落点，全部规划态代码未动）；修正漂移——501 stub 8→21 键、MUHE_TEST 26→28、coach/ 33→40 文件；2026-10-27 V1.1 增量:契约冻结与 501 stub、MUHE_GO 双跑、测试数 71→74、品牌名；2026-10-20 V1.0 初版
