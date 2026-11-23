@@ -1,11 +1,13 @@
 # 沐禾健身 Go 后端栈(fork 专属;上游 docker-compose.yml 不动,P6 前两栈并存)
 # 用法: docker-compose -f compose.go.yml up -d --build
+# 2026-11-18 批次 C:PG 口令改 .env 注入(同目录 backend-go/.env;必填,
+# 缺失即拒绝起栈——防未来误加 ports 时弱口令裸奔公网)。
 services:
   pg:
     image: postgres:16-alpine   # 本地已有;17 部署时再拉
     environment:
       POSTGRES_USER: muhe
-      POSTGRES_PASSWORD: muhe
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?backend-go/.env 需设 POSTGRES_PASSWORD}
       POSTGRES_DB: muhe
     volumes:
       - muhe-pg:/var/lib/postgresql/data
@@ -13,6 +15,7 @@ services:
       test: ["CMD-SHELL", "pg_isready -U muhe"]
       interval: 3s
       retries: 12
+    networks: [internal]
 
   redis:
     image: redis:7-alpine
@@ -20,19 +23,26 @@ services:
       test: ["CMD", "redis-cli", "ping"]
       interval: 3s
       retries: 12
+    networks: [internal]
 
   api:
     build: .
     environment:
       PORT: "3100"
-      DATABASE_URL: postgres://muhe:muhe@pg:5432/muhe?sslmode=disable
+      DATABASE_URL: postgres://muhe:${POSTGRES_PASSWORD}@pg:5432/muhe?sslmode=disable
       REDIS_ADDR: redis:6379
+      MUHE_ALLOW_SMS_DEV: "1"   # 本地栈:无 SMS_* 时验证码打日志(生产绝不带此值)
     ports:
       - "3110:3100"
+    networks: [internal, default]
     depends_on:
       pg: { condition: service_healthy }
       redis: { condition: service_healthy }
     restart: unless-stopped
+
+networks:
+  internal:
+    internal: true   # pg/redis 不出网;api 借 default 发布 3110
 
 volumes:
   muhe-pg:

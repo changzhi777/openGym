@@ -1,5 +1,5 @@
 // review_test.go — 审核挂点单测:词表命中/直通、LLM 复检三态(放行/拦截/
-// fail-closed)、链式短路。假 provider 零外部依赖。
+// fail-closed)、链式短路、审核消耗入账(review 池)。假 provider 零外部依赖。
 package agent
 
 import (
@@ -53,6 +53,30 @@ func TestLLMReviewerVerdicts(t *testing.T) {
 	var nilP *LLMReviewer
 	if pass, _ := nilP.Review(context.Background(), "x"); !pass {
 		t.Error("nil reviewer must pass")
+	}
+}
+
+// TestReviewUsageAccounting 批次 B:审核 LLM 消耗经 DrainUsage 入 review 池
+// (此前 usage 被丢弃,review 池恒 0,月度硬限额系统性低估)。
+func TestReviewUsageAccounting(t *testing.T) {
+	u := llm.Usage{InputTokens: 120, OutputTokens: 30}
+	fp := &fakeProvider{script: []llm.Response{
+		{Text: `{"ok": true}`, StopReason: "end_turn", Usage: u},
+		{Text: `{"ok": true}`, StopReason: "end_turn", Usage: u},
+	}}
+	chain := Chained{NewLLMReviewer(fp)}
+	for i := 0; i < 2; i++ {
+		if ok, _ := chain.Review(context.Background(), "正常内容"); !ok {
+			t.Fatalf("review %d must pass", i)
+		}
+	}
+	got := chain.DrainUsage()
+	if got.InputTokens != 240 || got.OutputTokens != 60 {
+		t.Errorf("drained usage = %+v, want in=240 out=60", got)
+	}
+	// Drain 后清零:重复 drain 不得重复入账。
+	if again := chain.DrainUsage(); again.InputTokens != 0 || again.OutputTokens != 0 {
+		t.Errorf("second drain = %+v, want zero", again)
 	}
 }
 

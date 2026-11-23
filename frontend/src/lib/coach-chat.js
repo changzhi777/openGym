@@ -59,7 +59,9 @@ export function applyEvent(state, ev) {
       return { ...state, messages: msgs }
     }
     case 'proposal': {
-      const p = { id: (data && data.proposalId) || '', tool: (data && data.tool) || '', input: {} }
+      // input 随事件透传(2026-11-18 审查轮:确认卡片必须显示将写入的内容,
+      // 盲确认不是确认;缺省 {} 保持旧事件形状兼容)。
+      const p = { id: (data && data.proposalId) || '', tool: (data && data.tool) || '', input: (data && data.input) || {} }
       const msgs = state.messages.slice()
       const last = msgs[msgs.length - 1]
       const base = last && last.role === 'assistant' ? last : { role: 'assistant', text: '' }
@@ -71,8 +73,12 @@ export function applyEvent(state, ev) {
       return { ...state, messages: msgs, proposals: [...state.proposals, p], phase: 'waiting' }
     }
     case 'confirm_result': {
-      // 决断已由 confirm 端点单独应答;流内此帧只作清列信号。
-      return { ...state, proposals: [], phase: state.phase === 'waiting' ? 'idle' : state.phase }
+      // 决断已由 confirm 端点单独应答;流内此帧作清列信号(批次 B 起真会发出,
+      // 服务端带 proposalId——多标签同会话时另一端据此单删,不误清新提议)。
+      const pid = data && data.proposalId
+      const rest = pid ? state.proposals.filter(p => p.id !== pid) : []
+      const cleared = rest.length === 0
+      return { ...state, proposals: rest, phase: state.phase === 'waiting' && cleared ? 'idle' : state.phase }
     }
     case 'blocked': {
       const reason = (data && data.reason) || (typeof data === 'string' ? data : 'sensitive')
@@ -100,21 +106,33 @@ export function applyEvent(state, ev) {
   }
 }
 
-// runChatTurn 一个对话回合的完整编排(依赖注入,可离线单测——组件是薄壳)。
-// 流程:入列用户消息 → sendChat 拿会话 → streamChatEvents 逐事件归并 →
-// 错误映射(cap 用服务端原文,其余统一文案)→ 返回终态。
-// deps:{ sendChat(body), streamEvents(id, onEvent) } — 组件传 api-chat 的两个
-// 函数;测试传脚本桩。
+// runChatTurn 一个对话回合的完整编排(依赖注入,可离线单测——组件是薄壳,
+// 2026-11-18 批次 C 收编:组件不再内联平行实现,测试保护的就是线上路径)。
+// 流程:入列用户消息 → sendChat 拿会话 → streamEvents 逐事件归并 →
+// 无 done 帧的干净 EOF 归位 phase(代理掐断场景)→ 错误映射(cap 读
+// e.data?.code||e.code——api() 的错误形状无顶层 code)→ 返回终态。
+// deps:{ sendChat(body), streamEvents(id, onEvent, signal), signal?,
+//         onChatId?(id) } — 组件传 api-chat 真实现与中断信号;测试传桩。
 export async function runChatTurn(state, userText, deps) {
   let next = applyUserMessage(state, userText)
   let id = null
   try {
     const r = await deps.sendChat({ id: next.chatId || undefined, message: userText })
     id = r && r.id
-    await deps.streamEvents(id, ev => { next = applyEvent(next, ev) })
+    if (id && deps.onChatId) deps.onChatId(id)
+    let sawDone = false
+    await deps.streamEvents(id, ev => {
+      if (ev && ev.kind === 'done') sawDone = true
+      next = applyEvent(next, ev)
+    }, deps.signal)
+    if (!sawDone) {
+      next = { ...next, phase: next.proposals.length ? 'waiting' : 'idle' }
+    }
     return { ...next, chatId: id }
   } catch (e) {
-    const line = e && e.code === 'cap' && e.message ? e.message : 'AI 服务暂时不可用,稍后再试。'
+    if (e && e.name === 'AbortError') throw e // 卸载中断:调用方自行忽略
+    const capped = e && ((e.data && e.data.code) || e.code) === 'cap'
+    const line = capped && e.message ? e.message : 'AI 服务暂时不可用,稍后再试。'
     return {
       ...next,
       chatId: id || next.chatId,
@@ -127,6 +145,8 @@ export async function runChatTurn(state, userText, deps) {
 // decideLocally 决断后的本地状态清理(服务端 confirm 由调用方另行请求):
 // 移除该提议;清空时回 idle 并落一行回执文案。
 export function decideLocally(state, proposalId, decision) {
+  // 重复决断(双击/重放)原样返回,不追加第二条回执(2026-11-18 审查轮)。
+  if (!state.proposals.some(p => p.id === proposalId)) return state
   const rest = state.proposals.filter(p => p.id !== proposalId)
   const cleared = rest.length === 0
   return {

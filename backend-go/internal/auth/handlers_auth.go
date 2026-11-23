@@ -202,33 +202,42 @@ func (s *Service) SmsVerify(c *gin.Context) {
 		return
 	}
 	ct := c.Request.Context()
+	// 2026-11-18 审查轮:连错锁定同样闸 verify(此前只闸 send——6 位码 5 分钟
+	// TTL 可对 verify 端点无限穷举,手机号即账号,等同接管面)。
+	if s.SmsStore.Locked(ct, b.Phone) {
+		c.JSON(429, gin.H{"error": "too many wrong codes, wait a minute", "code": "locked", "retryAfter": 60})
+		return
+	}
 	uid, bound, err := store.UserByIdentity(ct, s.DB, store.IdPhone, b.Phone)
 	if err != nil {
 		jsonFail(c, 500, "lookup", "")
 		return
 	}
 	isNew := false
+	if !bound && s.inviteOnly(c) && b.Invite == "" {
+		jsonFail(c, 403, "a valid invite code is required", "invite")
+		return
+	}
+	// 2026-11-18 审查轮:先验码后建号(此前先建号——开放实例任何人可用错码无限
+	// 刷出无身份孤儿用户行);邀请码核销也移到验码之后并携带真实 uid(空 uid 撞
+	// used_by 外键,邀请制实例注册曾 100% 失败)。
+	if !s.SmsStore.Verify(ct, b.Phone, b.Code) {
+		jsonFail(c, 401, "wrong or expired code", "sms-code")
+		return
+	}
 	if !bound {
+		uid = newUID()
 		if s.inviteOnly(c) {
-			if b.Invite == "" {
-				jsonFail(c, 403, "a valid invite code is required", "invite")
-				return
-			}
-			if err := store.ConsumeInvite(ct, s.DB, strings.ToUpper(strings.TrimSpace(b.Invite)), ""); err != nil {
+			if err := store.ConsumeInvite(ct, s.DB, strings.ToUpper(strings.TrimSpace(b.Invite)), uid); err != nil {
 				jsonFail(c, 403, "a valid invite code is required", "invite")
 				return
 			}
 		}
-		uid = newUID()
 		if err := store.InsertUser(ct, s.DB, uid, defaultName(b.Phone)); err != nil {
 			jsonFail(c, 500, "save", "")
 			return
 		}
 		isNew = true
-	}
-	if !s.SmsStore.Verify(ct, b.Phone, b.Code) {
-		jsonFail(c, 401, "wrong or expired code", "sms-code")
-		return
 	}
 	if err := store.CreateIdentity(ct, s.DB, uid, store.IdPhone, b.Phone); err != nil {
 		jsonFail(c, 500, "identity", "")
@@ -335,17 +344,19 @@ func (s *Service) WechatConfirm(c *gin.Context) {
 	}
 	isNew := false
 	if !bound {
+		uid = newUID()
 		if s.inviteOnly(c) {
 			if b.Invite == "" {
 				jsonFail(c, 403, "a valid invite code is required", "invite")
 				return
 			}
-			if err := store.ConsumeInvite(ct, s.DB, strings.ToUpper(strings.TrimSpace(b.Invite)), ""); err != nil {
+			// 2026-11-18 审查轮:携带真实 uid 核销(空 uid 撞 used_by 外键,
+			// 邀请制注册曾 100% 失败)。
+			if err := store.ConsumeInvite(ct, s.DB, strings.ToUpper(strings.TrimSpace(b.Invite)), uid); err != nil {
 				jsonFail(c, 403, "a valid invite code is required", "invite")
 				return
 			}
 		}
-		uid = newUID()
 		name := "沐禾用户" + openid[len(openid)-4:]
 		if err := store.InsertUser(ct, s.DB, uid, name); err != nil {
 			jsonFail(c, 500, "save", "")

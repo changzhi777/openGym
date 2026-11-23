@@ -95,20 +95,22 @@ func GetSession(ctx context.Context, db *pgxpool.Pool, id, userID string) (*Sess
 	return &s, nil
 }
 
-// saveTurn 会话级事务:追加双方消息 + 累计 usage + 推进状态。
+// saveTurn 会话级事务:追加双方消息 + 增量累计 usage + 推进状态。
 // waitingConfirm 只升不降(提议产生即 waiting;confirm 回 active 由 DecideProposal 负责)。
-func saveTurn(ctx context.Context, db *pgxpool.Pool, s *Session) error {
+// 2026-11-18 批次 C:usage 改增量(usage_in = usage_in + δ)而非全量覆盖——
+// history 仍是快照覆写(单实例 busy 单飞语义;水平扩容前 history 需乐观锁)。
+func saveTurn(ctx context.Context, db *pgxpool.Pool, s *Session, dIn, dOut int64) error {
 	raw, err := marshalHistory(s.History)
 	if err != nil {
 		return fmt.Errorf("agent: marshal history: %w", err)
 	}
 	_, err = db.Exec(ctx, `UPDATE coach_chat_sessions
-		SET history=$2, usage_in=$3, usage_out=$4,
+		SET history=$2, usage_in=usage_in+$3, usage_out=usage_out+$4,
 		    state=CASE WHEN state='closed' THEN state
 		              WHEN $5 THEN 'waiting_confirm' ELSE state END,
 		    updated_at=now()
 		WHERE id=$1 AND user_id=$6`,
-		s.ID, raw, s.UsageIn, s.UsageOut, s.State == StateWaitingConfirm, s.UserID)
+		s.ID, raw, dIn, dOut, s.State == StateWaitingConfirm, s.UserID)
 	if err != nil {
 		return fmt.Errorf("agent: save turn: %w", err)
 	}
@@ -210,6 +212,8 @@ type MemoryEntry struct {
 }
 
 // ListMemory 合并两类记忆(叙事在前,约束在后;均按新→旧)。
+// 2026-11-18 批次 C:两段循环后查 rows.Err()(此前迭代中断静默返回截断列表),
+// 第一段错误路径显式 Close。
 func ListMemory(ctx context.Context, db *pgxpool.Pool, userID string) ([]MemoryEntry, []MemoryEntry, error) {
 	var narrative, constraints []MemoryEntry
 	rows, err := db.Query(ctx, `SELECT id, text, created_at FROM coach_memory_narrative
@@ -222,10 +226,15 @@ func ListMemory(ctx context.Context, db *pgxpool.Pool, userID string) ([]MemoryE
 		var at time.Time
 		var serial int64
 		if err := rows.Scan(&serial, &e.Text, &at); err != nil {
+			rows.Close()
 			return nil, nil, err
 		}
 		e.ID, e.Kind, e.At = fmt.Sprintf("n%d", serial), "narrative", at.UTC().Format(time.RFC3339)
 		narrative = append(narrative, e)
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return nil, nil, err
 	}
 	rows.Close()
 	rows, err = db.Query(ctx, `SELECT id, text, created_at FROM coach_constraints
@@ -243,6 +252,9 @@ func ListMemory(ctx context.Context, db *pgxpool.Pool, userID string) ([]MemoryE
 		}
 		e.ID, e.Kind, e.At = fmt.Sprintf("c%d", serial), "constraint", at.UTC().Format(time.RFC3339)
 		constraints = append(constraints, e)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, nil, err
 	}
 	return narrative, constraints, nil
 }
@@ -326,7 +338,27 @@ func ActiveConstraints(ctx context.Context, db *pgxpool.Pool, userID string) ([]
 		}
 		out = append(out, s)
 	}
-	return out, nil
+	return out, rows.Err()
+}
+
+// ActiveNarrative 供 system prompt 注入(2026-11-18 批次 C,与约束同法;
+// 此前叙事记忆只写不读——确认后的"记住"对模型永远不可见)。新→旧取前 limit 条。
+func ActiveNarrative(ctx context.Context, db *pgxpool.Pool, userID string, limit int) ([]string, error) {
+	rows, err := db.Query(ctx, `SELECT text FROM coach_memory_narrative
+		WHERE user_id=$1 AND active ORDER BY id DESC LIMIT $2`, userID, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []string
+	for rows.Next() {
+		var s string
+		if err := rows.Scan(&s); err != nil {
+			return nil, err
+		}
+		out = append(out, s)
+	}
+	return out, rows.Err()
 }
 
 // UsageEvent 三池记账行(ledger 原始事件,看板按日/月聚合)。

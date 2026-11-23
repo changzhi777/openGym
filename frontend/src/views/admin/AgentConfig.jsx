@@ -5,6 +5,7 @@
 // provider 连接性等只读信息在「AI 教练」页,本页只管运行时治理。
 import { useEffect, useState } from 'react'
 import { api } from '../../lib/api.js'
+import { apiAdmin } from '../../lib/admin/stepUp.js'
 import { adminT } from '../../lib/admin/i18n.js'
 import { Button, TextField } from '../../components/ui.jsx'
 
@@ -30,7 +31,9 @@ export default function AdminAgentConfig() {
     setOkLine('')
     try {
       const wordsList = words.split(/[,，\n]/).map(w => w.trim()).filter(Boolean)
-      const r = await api('/api/admin/coach/agent-config', {
+      // PUT 走 apiAdmin(ops+step-up 敏感操作;2026-11-18 审查轮:裸 api() 遇 403
+      // 不触发 step-up 重放,治理页保存在 Go 栈曾直接死掉)。
+      const r = await apiAdmin('/api/admin/coach/agent-config', {
         method: 'PUT',
         body: JSON.stringify({ maxTurns: Number(maxTurns), reviewWords: wordsList }),
       })

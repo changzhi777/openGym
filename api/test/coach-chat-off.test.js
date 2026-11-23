@@ -126,4 +126,16 @@ test('coach chat surface: 501 stubs on Node, off-guarded real endpoints on Go', 
   } else {
     assert.equal(del.status, 501);
   }
+
+  // ⑦ {id} 分发器可达性:admin export(Node 曾漏映射 404,2026-11-18 审查轮修复)。
+  //    契约一致性测试只查键存在不查 URL 可达——这条按真实 URL 打,双栈都要过。
+  const exported = await call('GET', '/api/admin/users/u_chat_1/export');
+  if (GO) {
+    // 非管理员会话:路由已注册,落在鉴权/角色守卫(401/403),绝不能是 404。
+    assert.ok(exported.status === 401 || exported.status === 403,
+      `expected auth guard on a registered route, got ${exported.status}`);
+  } else {
+    assert.equal(exported.status, 501);
+    assert.equal(exported.json.code, 'not-implemented');
+  }
 });

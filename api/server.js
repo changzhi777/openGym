@@ -2697,8 +2697,9 @@ const server = http.createServer(async (req, res) => {
   let key = req.method + ' ' + url.pathname;
   // The one route with a parameter in its path. Mapped onto its template key here so the table
   // above stays a plain lookup, and so csrfOk and the catch-all see one name for every file.
-  // fork (Muhe): the two {id} admin routes map onto template keys the same way.
-  const mu = /^\/api\/admin\/users\/([^/]+)\/(quota|activity)$/.exec(url.pathname);
+  // fork (Muhe): the {id} admin routes map onto template keys the same way
+  // (quota/activity/export; export added 2026-11-18 审查轮——批次 2 同类遗漏).
+  const mu = /^\/api\/admin\/users\/([^/]+)\/(quota|activity|export)$/.exec(url.pathname);
   if (mu) { key = req.method + ' /api/admin/users/{id}/' + mu[2]; }
   const mm = /^\/api\/media\/([0-9a-f]{64})$/.exec(url.pathname);
   if (mm) { key = req.method + ' /api/media/{hash}'; req.mediaHash = mm[1]; }

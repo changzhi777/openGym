@@ -30,8 +30,8 @@ helm install opengym ./helm -f my-values.yaml   # 参考 helm/README.md 与 valu
 
 - passkey 绑定主机名：ingress/httproute 的 hostname 必须与 `RP_ID`/`ORIGIN` 一致，TLS 是硬要求
 - api 的 `api/test/k8s-web-port.test.js` 锁端口约定，改 chart 端口映射时留意
-- fork 现实：生产 = PVE CT 151（`scripts/deploy-ct151.sh`）；若未来上 K8s 跑 Go 栈，需为 backend-go 另写 deployment（其 compose.go.yml 的 pg+redis+api 拓扑可作蓝本）
+- fork 现实：生产 = 118 qingmulife.com 的 Go 栈 compose（`scripts/deploy-118.sh`，2026-10-29 起；CT 151 为旧内网实例）；若未来上 K8s 跑 Go 栈，需为 backend-go 另写 deployment（其 compose.go.yml 的 pg+redis+api 拓扑可作蓝本）
 
 ---
 
-变更记录: 2026-10-27 V1.1 核对式更新（init-architect）:fork 部署现实与 Go 栈空白注记，无文件变化；2026-10-20 V1.0 初版
+变更记录: 2026-11-18 V1.2 审查轮核准（init-architect）:生产注记更新——现行生产 = 118 qingmulife.com Go 栈 compose（deploy-118.sh），CT 151 为旧内网实例（FORK.md §5 2026-10-29 行为准）；无文件变化。2026-10-27 V1.1 核对式更新（init-architect）:fork 部署现实与 Go 栈空白注记，无文件变化；2026-10-20 V1.0 初版

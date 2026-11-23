@@ -2,7 +2,7 @@
 
 # web/ — web 容器（构建 + 服务 + 反代）
 
-> 3 个文件，职责单一：把 `frontend/` 多阶段构建成静态文件，用 nginx 服务并反代 `/api` → api 容器——**单一源（single origin）是 passkey 的硬要求**。本轮核对：无文件变化；fork 生产（CT 151）目前用宿主 nginx 直配而非本容器，但本容器仍是 compose/上游发布链的标准形态。
+> 4 个文件（含本文档），职责单一：把 `frontend/` 多阶段构建成静态文件，用 nginx 服务并反代 `/api` → api 容器——**单一源（single origin）是 passkey 的硬要求**。本轮核对：无文件变化；fork 生产（118 qingmulife.com，2026-10-29 起）用宿主 nginx 双 server 直配而非本容器（旧内网实例 CT 151 亦同），但本容器仍是 compose/上游发布链的标准形态。
 
 ## 文件清单（全量）
 
@@ -25,4 +25,4 @@ api 侧有 `api/test/k8s-web-port.test.js` 跨模块校验端口约定；镜像�
 
 ---
 
-变更记录: 2026-10-27 V1.1 核对式更新（init-architect）:品牌与 fork 生产形态注记，无文件变化；2026-10-20 V1.0 初版
+变更记录: 2026-11-18 V1.2 审查轮核准（init-architect）:生产注记更新——现行生产 = 118 qingmulife.com（宿主 nginx 双 server，Go 栈 compose），CT 151 为旧内网实例（FORK.md §5 2026-10-29 行为准）；文件计数注记 3→4（含本文档），无文件变化。2026-10-27 V1.1 核对式更新（init-architect）:品牌与 fork 生产形态注记，无文件变化；2026-10-20 V1.0 初版

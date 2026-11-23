@@ -221,6 +221,9 @@ func (st Store) Verify(ctx context.Context, phone, code string) bool {
 		}
 		if n > failLock {
 			st.Rdb.Set(ctx, "sms:lock:"+phone, "1", time.Duration(n-failLock)*time.Minute)
+			// 连错超限:当前码一并作废——锁定窗口内即使穷举命中也无效(2026-11-18
+			// 审查轮:verify 侧此前不受锁约束,6 位码 5 分钟 TTL 是可穷举空间)。
+			st.Rdb.Del(ctx, "sms:code:"+phone)
 		}
 		return false
 	}

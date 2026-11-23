@@ -65,7 +65,7 @@ func TestSessionLifecycle(t *testing.T) {
 		llm.Message{Role: "user", Text: "今天练什么"},
 		llm.Message{Role: "assistant", Text: "推举 4×8。"})
 	sess.UsageIn, sess.UsageOut = 100, 30
-	if err := saveTurn(ctx, db, sess); err != nil {
+	if err := saveTurn(ctx, db, sess, 100, 30); err != nil {
 		t.Fatalf("saveTurn: %v", err)
 	}
 	got, err := GetSession(ctx, db, sess.ID, testUID)
@@ -87,7 +87,7 @@ func TestSessionLifecycle(t *testing.T) {
 		t.Fatalf("add proposal: %v", err)
 	}
 	sess.State = StateWaitingConfirm
-	if err := saveTurn(ctx, db, sess); err != nil {
+	if err := saveTurn(ctx, db, sess, 0, 0); err != nil {
 		t.Fatalf("saveTurn: %v", err)
 	}
 
