@@ -12,6 +12,7 @@ import { initialState, applyEvent, proposalToCard, runChatTurn, decideLocally } 
 import Icon from '../../components/Icon.jsx'
 import { exName } from '../../lib/coach.js'
 import '../../coach.css'
+import '../../home-ai.css'
 
 export default function CoachChatHome({ initialChat }) {
   const [chat, setChat] = useState(initialChat || initialState)
@@ -63,37 +64,47 @@ export default function CoachChatHome({ initialChat }) {
           <b>沐禾教练</b>
           <div className="chat-st">{usage ? `今日 ${usage.day.messages}/${usage.limits.messagesPerDay} 条` : ''}</div>
         </div>
+        <a className="iconbtn" href="#/coach-ai/memory" aria-label="记住了什么">
+          <Icon name="list" />
+        </a>
       </div>
 
-      <div className="chat-body">
+      <div className="msgs">
         {!chat.messages.length && (
           <div className="chat-empty">你的 AI 教练。问计划、记偏好、聊训练——任何写入都要你确认。</div>
         )}
-        {chat.messages.map((m, i) => (
-          <div key={i} className={'bub ' + m.role}>
-            <div>{m.text}</div>
-            {!!(m.tools && m.tools.length) && <div className="chat-tools">查了: {m.tools.join(', ')}</div>}
-            {!!(m.refs && m.refs.length) && (
-              <div className="chips-row" data-testid="action-refs">
-                {m.refs.map(id => (
-                  <a key={id} className="chip" href={`#/library?ex=${id}`} onClick={e => e.stopPropagation()}>
-                    {exName(id)} <span className="muted small">#{id}</span>
-                  </a>
-                ))}
+        {chat.messages.map((m, i) => {
+          const role = m.role === 'user' ? 'user' : m.role === 'system' ? 'sys' : 'coach'
+          return (
+            <div key={i} className={'msg ' + role}>
+              <div className={'bub' + (role === 'sys' ? ' sys' : '')}>
+                <div>{m.text}</div>
+                {!!(m.tools && m.tools.length) && <div className="chat-tools">查了: {m.tools.join(', ')}</div>}
+                {!!(m.refs && m.refs.length) && (
+                  <div className="chips-row">
+                    {m.refs.map(id => (
+                      <a key={id} className="chip" href={`#/library?ex=${id}`}>
+                        {exName(id)} <span className="muted small">#{id}</span>
+                      </a>
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        ))}
+            </div>
+          )
+        })}
         {chat.proposals.map(p => {
           const card = proposalToCard(p)
           return (
-            <div key={p.id} className="bub assistant" data-testid="proposal-card">
-              <b>{card.title}</b>
-              <div>{card.text}</div>
-              <div className="chat-st">{card.confirm}</div>
-              <div className="chips-row">
-                <button onClick={() => decide(p, 'accept')}>应用</button>
-                <button onClick={() => decide(p, 'reject')}>拒绝</button>
+            <div key={p.id} className="msg coach">
+              <div className="bub" data-testid="proposal-card">
+                <b>{card.title}</b>
+                <div style={{ marginTop: 4 }}>{card.text}</div>
+                <div className="chat-st">{card.confirm}</div>
+                <div className="chips-row">
+                  <button onClick={() => decide(p, 'accept')}>应用</button>
+                  <button onClick={() => decide(p, 'reject')}>拒绝</button>
+                </div>
               </div>
             </div>
           )
@@ -102,18 +113,20 @@ export default function CoachChatHome({ initialChat }) {
       </div>
 
       <div className="composer">
-        <input
-          className="composer-in"
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) send() }}
-          placeholder="和教练聊聊…"
-          disabled={busy}
-          aria-label="消息"
-        />
-        <button className="composer-go" onClick={send} disabled={busy || !input.trim()} aria-label="发送">
-          {busy ? '…' : '→'}
-        </button>
+        <div className="composer-in">
+          <textarea
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
+            placeholder="和教练聊聊…"
+            disabled={busy}
+            rows={1}
+            aria-label="消息"
+          />
+          <button className="send" onClick={send} disabled={busy || !input.trim()} aria-label="发送">
+            {busy ? '…' : '→'}
+          </button>
+        </div>
       </div>
     </div>
   )
