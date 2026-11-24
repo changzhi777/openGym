@@ -1435,6 +1435,8 @@ export default {
   'This phone switches back to local-only and its copy of your account is removed. First it checks that your server has every change. If not, you choose what happens to them.': 'Bu telefon yerel moda döner ve hesabının kopyası telefondan kaldırılır. Önce sunucunda her değişikliğin olup olmadığı kontrol edilir. Yoksa onlara ne olacağını sen seçersin.',
   'Your data is removed from this browser; your profile on the server keeps it. First it checks that the server has every change. If not, you choose what happens to them.': 'Verilerin bu tarayıcıdan kaldırılır; sunucudaki profilin onları saklar. Önce sunucuda her değişikliğin olup olmadığı kontrol edilir. Yoksa onlara ne olacağını sen seçersin.',
   'Bind mobile number': 'Cep telefonu numarasını bağla',
+  'Export my data': 'Verilerimi dışa aktar',
+  'Download everything the server has of yours as one JSON file.': 'Sunucunun sizinle ilgili her şeyini tek bir JSON dosyası olarak indirin.',
   'Signs this profile out on every device, including this one. Phones paired with it are disconnected and have to be paired again. Your passkeys keep working, so you can sign in with them again anytime.': 'Bu profilin oturumunu bu cihaz dahil tüm cihazlarda kapatır. Bu profille eşleştirilmiş telefonların bağlantısı kesilir ve yeniden eşleştirilmeleri gerekir. Geçiş anahtarların çalışmaya devam eder, yani istediğin zaman onlarla yeniden giriş yapabilirsin.',
   '{0} change': '{0} değişiklik',
   '{0} changes': '{0} değişiklik',

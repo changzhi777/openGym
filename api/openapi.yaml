@@ -824,35 +824,40 @@ paths:
       summary: Delete your own account and everything of yours
       description: |
         The signed-in account removes itself for good, with the same clean-up as
-        `/api/admin/user/delete`: the user record, their passkeys, their push
-        subscriptions, their live presence, their training history file, their
-        uploaded photos and videos (`DATA_DIR/uploads/<uid>/`) and any Coach credential
-        stored for them. Not reversible. The body carries the account's name, typed back
-        by its owner, and the same proof as setting a password (see OwnerProof): a
-        passkey assertion made for this request, or the current password while
-        `PASSWORD_LOGIN` is on. A paired phone (Bearer token) cannot hold a passkey for
-        the server, so for a profile with no password that counts the pairing itself is
-        the proof (audited as `device`; the app asks the phone's own screen lock first);
-        a profile with one sends the current password from the phone too. Cookie
-        sessions always need the proof. The name and the last-admin rule are checked
-        before the proof is asked. The last admin is refused while any other profile remains (the
-        instance would be left with nobody to run it); the only profile on an instance
-        may delete itself. Clears the caller's cookie; every other session and Bearer
-        token of the account stops working with it. Audited as `auth.account.delete`,
-        with the name and the proof it was made with (`passkey`, `password`, `device`); a refused proof as
-        `auth.proof.fail` with `act: account-delete`.
+        `/api/admin/user/delete`: the user record and everything referencing it
+        (training state, sessions, identities, push subscriptions, uploaded
+        photos and videos) goes with it in one transaction-safe cascade. Not
+        reversible. The body carries the account's name, typed back by its owner.
+
+        Proof (owner verification) is stack-specific. Node stack: a passkey
+        assertion or the current password (see OwnerProof); a paired phone
+        without either counts the pairing itself as the proof (`device`). Go
+        stack (2026-10-29 auth refactor; passkeys and passwords are retired
+        there): the typed name alone — the session was itself issued over an
+        SMS code, CSRF guards the route, and typing the account name is the
+        deliberate step. An account with a bound phone may additionally pass a
+        fresh SMS code (`smsCode`, sent via `/api/auth/sms/send`) as a
+        stronger proof; when present it is verified and audited as `sms`, when
+        absent the delete still goes through audited as `name`. The name and
+        the last-admin rule are checked before anything else. The last admin
+        is refused while any other profile remains (the instance would be left
+        with nobody to run it); the only profile on an instance may delete
+        itself. Clears the caller's cookies; every other session of the
+        account stops working with it. Audited as `auth.account.delete`, with
+        the proof it was made with.
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              allOf:
-                - $ref: '#/components/schemas/OwnerProof'
-                - type: object
-                  required: [name]
-                  properties:
-                    name: { type: string, description: 'The account name, exactly (surrounding spaces are ignored).' }
-            example: { name: "Ada", current: "correct horse battery staple" }
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, description: 'The account name, exactly (surrounding spaces are ignored).' }
+                smsCode:
+                  type: string
+                  description: 'Go stack only: a fresh SMS code sent to the bound phone number.'
+            example: { name: "Ada" }
       responses:
         '200':
           description: The account and everything of theirs is gone.
@@ -864,7 +869,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Ok' }
         '400':
-          description: '`confirm-name`: the name is missing or is not this account''s.'
+          description: '`confirm-name`: the name is missing or is not this account''s; Go stack: `sms-code` when a bound phone''s code is wrong or expired.'
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -878,6 +883,53 @@ paths:
               schema: { $ref: '#/components/schemas/Error' }
               example: { error: "the last admin cannot leave while other profiles remain", code: "last-admin" }
         '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/account/export:
+    get:
+      tags: [auth]
+      operationId: accountExport
+      summary: Download everything the server has of yours
+      description: |
+        One JSON file with the signed-in account's server-side data: the account
+        record (id, name, created date), the bound identities (phone / WeChat,
+        identifier values included — this is your file), and the full training
+        state document exactly as stored (the same JSON `PUT /api/data` accepts,
+        with its revision). Served as an attachment (`Content-Disposition`) so
+        browsers download rather than render it. A profile with no state yet
+        exports an empty `state.doc`.
+      responses:
+        '200':
+          description: The account's data as a JSON attachment.
+          headers:
+            Content-Disposition:
+              description: 'attachment; filename="muhefit-export-<accountId>.json"'
+              schema: { type: string }
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  account:
+                    type: object
+                    properties:
+                      id: { type: string }
+                      name: { type: string }
+                      createdAt: { type: string, format: date-time }
+                  identities:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        kind: { type: string }
+                        identifier: { type: string }
+                        created: { type: string }
+                  state:
+                    type: object
+                    properties:
+                      doc: { type: object }
+                      rev: { type: integer }
+                  exportedAt: { type: string, format: date-time }
+        '401': { $ref: '#/components/responses/Unauthorized' }
 
   /api/pair/create:
     post:

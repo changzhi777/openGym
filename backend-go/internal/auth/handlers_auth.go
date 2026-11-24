@@ -34,6 +34,7 @@ type Service struct {
 	SmsStore     sms.Store
 	Wx           *wechat.MiniProgram  // 小程序扫码;nil/未配 = 503
 	InviteEnvDef bool                 // INVITE_ONLY env 兜底(instance_settings.invite_only 覆盖)
+	DataDir      string               // 媒体根目录(注销清理 <DATA_DIR>/media/<uid>;空=跳过)
 }
 
 type authBody struct {
@@ -44,6 +45,8 @@ type authBody struct {
 	WxCode      string `json:"wxCode"`
 	CaptchaID   string `json:"captchaId"`
 	CaptchaCode string `json:"captchaCode"`
+	Name        string `json:"name"`    // 注销回显账号名(accountDelete)
+	SmsCode     string `json:"smsCode"` // 注销 proof:绑定手机号新鲜码
 }
 
 func readBody(c *gin.Context) *authBody {

@@ -26,7 +26,7 @@ import { speak, speechSupported, SPEECH_RATES, speechRateOf } from '../lib/speec
 import { sampleCue } from '../lib/spoken-cues.js'
 import { muscleTargetsSheet } from '../components/WeeklySets.jsx'
 import { aboutYouSheet } from '../components/StrengthLevel.jsx'
-import { api, webauthnOK, IS_ANDROID, smsSend, bindPhone, authCaptcha } from '../lib/api.js'
+import { api, apiBlob, webauthnOK, IS_ANDROID, smsSend, bindPhone, authCaptcha } from '../lib/api.js'
 import { pushSupported, enablePush, disablePush, sendTestPush, syncPushSubscription } from '../lib/push.js'
 import { wakeLockSupported } from '../lib/wakelock.js'
 import { t, tn, LANGS, INSTR_LANGS, EXERCISE_NAME_LANGS, baseLang, dateLocale } from '../lib/i18n.js'
@@ -57,6 +57,7 @@ import AppIconRow from '../components/AppIconRow.jsx'
 import { AnimationQualityRow } from '../components/Animations.jsx'
 import { ServerSyncSection, KeptChangesRows, leaveServer, connectServer } from '../components/ServerSync.jsx'
 import { Section, Row, SelectRow, Switch, Segmented, Button, TextField, SearchField } from '../components/ui.jsx'
+import { DeleteAccountRow } from '../components/DeleteAccount.jsx'
 import { POLICIES_FOR, POLICY_NAME, POLICY_DESC, profileRule } from '../lib/progression.js'
 import { PAGES, ROOT_GROUPS, pageVisible, searchSettings, pageTrail } from './settings-pages.js'
 import { platformNow } from '../lib/platform-now.js'
@@ -344,6 +345,22 @@ export default function Settings({ page = null, find = null, via = null, entryKe
     const a = document.createElement('a'); a.href = URL.createObjectURL(out.blob); a.download = name; a.click()
     setTimeout(() => URL.revokeObjectURL(a.href), 60000)
     if (!out.missing) toast(t('Backup exported'))
+  }
+  // fork(阶段 2,2026-11-25):「导出我的数据」——服务器上的全部数据(账号 + 身份 + 完整训练
+  // 状态文档)一个 JSON 下载(GET /api/account/export,契约 accountExport)。与本地备份
+  // doExport 的差别:这是服务器视角的权威副本(PIPL 数据可携带权入口),含账号元数据。
+  const doServerExport = async () => {
+    try {
+      const blob = await apiBlob('/api/account/export')
+      const name = 'muhefit-export-' + user.id + '.json'
+      if (MOBILE) {
+        try { await shareExportBlob(blob, name); toast(t('Backup exported')) } catch (e) { /* share sheet dismissed */ }
+        return
+      }
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click()
+      setTimeout(() => URL.revokeObjectURL(a.href), 60000)
+      toast(t('Backup exported'))
+    } catch (e) { toast(t('Something went wrong')) }
   }
   // Import takes the JSON backup and the zip alike, told apart by their first bytes. A zip's
   // files go into the local store only once the import is confirmed, each checked against its
@@ -1180,8 +1197,11 @@ export default function Settings({ page = null, find = null, via = null, entryKe
           {user.roles?.includes('coach') && <Row icon="dumbbell" iconTint="var(--green)" title={t('教练工作台')} accessory="chevron" onClick={() => nav('/coach-console')} />}
           <Row icon="phone" iconTint="var(--blue)" title={t('Bind mobile number')} accessory="chevron"
             onClick={() => useUI.getState().openSheet(close => <BindPhoneSheet close={close} />)} />
+          <Row icon="share" iconTint="var(--indigo)" title={t('Export my data')} subtitle={t('Download everything the server has of yours as one JSON file.')}
+            onClick={doServerExport} />
           <Row icon="signOut" iconTint="var(--red)" title={t('Sign out')} danger onClick={signOutHere} />
           <Row icon="shield" iconTint="var(--red)" title={t('Sign out everywhere')} subtitle={t('Ends this profile’s sessions on all your devices.')} danger onClick={signOutEverywhere} />
+          <DeleteAccountRow exportBackup={doExport} exportBackupZip={doExportZip} hasMedia={hasMedia} done={() => nav('/home')} />
           <AccountIdRow id={user.id} />
         </> : <>
           <Row icon="phone" iconTint="var(--acc)" title={t('Mobile sign-in')} subtitle={t('Mobile number + SMS code, or WeChat scan.')} accessory="chevron" onClick={() => nav('/login')} />
@@ -1189,10 +1209,10 @@ export default function Settings({ page = null, find = null, via = null, entryKe
 
         </>}
       </Section>}
-      {/* Signed in or paired: the account can be deleted from here (App Store rule 5.1.1(v)). A
-          phone in local-only mode has no account; "Reset everything" in Data & backup wipes it. */}
-      {/* 删除账号行延后:上游 DeleteAccountRow 依赖 passkey proof 链(PasswordAuth 已删);
-          恢复需先设计无 passkey 的身份证明(如短信验证删除)。App Store 5.1.1(v) 合规项。 */}
+      {/* Signed in: the account can be deleted from here (App Store rule 5.1.1(v)). A phone in
+          local-only mode has no account; "Reset everything" in Data & backup wipes it. */}
+      {/* fork(2026-11-25 阶段 2):删除账号行已恢复——Go 栈 name-only 证明(输入账号名即本人),
+          上游 passkey/密码证明链不再需要;见 components/DeleteAccount.jsx fork 注记。 */}
       {/* The connection banner already says this to a guest; the line is for when it is switched
           off, or its × hid it (#454). */}
       {!user && !DEMO && !MOBILE && !(showsConnection(S) && showsLocalLine(S)) && <p className="sect-f" style={{ marginTop: -18, marginBottom: 22 }}>{t('Guest mode: your data lives only in this browser.')}</p>}

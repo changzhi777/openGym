@@ -1406,6 +1406,8 @@ export default {
   'This phone switches back to local-only and its copy of your account is removed. First it checks that your server has every change. If not, you choose what happens to them.': 'Этот телефон вернётся в локальный режим, а копия вашего аккаунта будет с него удалена. Сначала проверяется, что на вашем сервере есть все изменения. Если нет, вы сами решаете, что с ними делать.',
   'Your data is removed from this browser; your profile on the server keeps it. First it checks that the server has every change. If not, you choose what happens to them.': 'Ваши данные будут удалены из этого браузера; ваш профиль на сервере их сохранит. Сначала проверяется, что на сервере есть все изменения. Если нет, вы сами решаете, что с ними делать.',
   'Bind mobile number': 'Привязать номер телефона',
+  'Export my data': 'Экспортировать мои данные',
+  'Download everything the server has of yours as one JSON file.': 'Скачайте всё, что сервер хранит о вас, одним файлом JSON.',
   'Signs this profile out on every device, including this one. Phones paired with it are disconnected and have to be paired again. Your passkeys keep working, so you can sign in with them again anytime.': 'Выполняет выход из этого профиля на всех устройствах, включая это. Сопряжённые с ним телефоны отключаются, и их нужно будет сопрячь заново. Ваши ключи доступа продолжают работать, так что войти с ними снова можно в любое время.',
   // --- plan vs session: the routine's own reps, per-routine progress (#275, #216) ---
   'Default progression': 'Прогрессия по умолчанию',

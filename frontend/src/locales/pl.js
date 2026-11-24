@@ -1437,6 +1437,8 @@ export default {
   'This phone switches back to local-only and its copy of your account is removed. First it checks that your server has every change. If not, you choose what happens to them.': 'Ten telefon wraca do trybu lokalnego, a kopia twojego konta zostaje z niego usunięta. Najpierw sprawdzane jest, czy twój serwer ma wszystkie zmiany. Jeśli nie, sam decydujesz, co się z nimi stanie.',
   'Your data is removed from this browser; your profile on the server keeps it. First it checks that the server has every change. If not, you choose what happens to them.': 'Twoje dane zostają usunięte z tej przeglądarki; twój profil na serwerze je zachowuje. Najpierw sprawdzane jest, czy serwer ma wszystkie zmiany. Jeśli nie, sam decydujesz, co się z nimi stanie.',
   'Bind mobile number': 'Połącz numer telefonu',
+  'Export my data': 'Eksportuj moje dane',
+  'Download everything the server has of yours as one JSON file.': 'Pobierz wszystko, co ten serwer o Tobie ma, jako jeden plik JSON.',
   'Signs this profile out on every device, including this one. Phones paired with it are disconnected and have to be paired again. Your passkeys keep working, so you can sign in with them again anytime.': 'Wylogowuje ten profil na wszystkich urządzeniach, także na tym. Sparowane z nim telefony zostaną rozłączone i trzeba je będzie sparować ponownie. Twoje klucze dostępu nadal działają, więc w każdej chwili możesz się nimi znów zalogować.',
   '{0} change': '{0} zmiana',
   '{0} changes': { one: '{0} zmiana', few: '{0} zmiany', many: '{0} zmian' },

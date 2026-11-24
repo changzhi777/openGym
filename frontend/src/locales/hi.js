@@ -1437,6 +1437,8 @@ export default {
   'This phone switches back to local-only and its copy of your account is removed. First it checks that your server has every change. If not, you choose what happens to them.': 'यह फ़ोन वापस केवल-लोकल मोड में चला जाता है और आपके खाते की कॉपी इससे हटा दी जाती है। पहले जाँचा जाता है कि आपके सर्वर पर हर बदलाव है। अगर नहीं, तो आप तय करते हैं कि उनका क्या होगा।',
   'Your data is removed from this browser; your profile on the server keeps it. First it checks that the server has every change. If not, you choose what happens to them.': 'आपका डेटा इस ब्राउज़र से हटा दिया जाता है; सर्वर पर आपकी प्रोफ़ाइल उसे रखती है। पहले जाँचा जाता है कि सर्वर पर हर बदलाव है। अगर नहीं, तो आप तय करते हैं कि उनका क्या होगा।',
   'Bind mobile number': 'मोबाइल नंबर लिंक करें',
+  'Export my data': 'मेरा डेटा निर्यात करें',
+  'Download everything the server has of yours as one JSON file.': 'सर्वर पर आपका सारा डेटा एक JSON फ़ाइल में डाउनलोड करें।',
   'Signs this profile out on every device, including this one. Phones paired with it are disconnected and have to be paired again. Your passkeys keep working, so you can sign in with them again anytime.': 'इस प्रोफ़ाइल को इस डिवाइस समेत हर डिवाइस से साइन आउट करता है। इससे पेयर किए गए फ़ोन डिस्कनेक्ट हो जाते हैं और उन्हें फिर से पेयर करना होगा। आपकी पासकी काम करती रहेंगी, तो आप कभी भी उनसे फिर साइन इन कर सकते हैं।',
   '{0} change': '{0} बदलाव',
   '{0} changes': '{0} बदलाव',

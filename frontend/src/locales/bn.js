@@ -1496,6 +1496,8 @@ export default {
   'This phone switches back to local-only and its copy of your account is removed. First it checks that your server has every change. If not, you choose what happens to them.': 'এই ফোন আবার শুধু লোকাল মোডে ফেরে এবং আপনার অ্যাকাউন্টের কপি সরিয়ে দেওয়া হয়। আগে দেখা হয় আপনার সার্ভারে সব পরিবর্তন আছে কি না। না থাকলে, সেগুলোর কী হবে আপনি বেছে নেবেন।',
   'Your data is removed from this browser; your profile on the server keeps it. First it checks that the server has every change. If not, you choose what happens to them.': 'আপনার ডেটা এই ব্রাউজার থেকে সরানো হয়; সার্ভারে আপনার প্রোফাইলে তা থাকে। আগে দেখা হয় সার্ভারে সব পরিবর্তন আছে কি না। না থাকলে, সেগুলোর কী হবে আপনি বেছে নেবেন।',
   'Bind mobile number': 'মোবাইল নম্বর লিংক করুন',
+  'Export my data': 'আমার ডেটা রপ্ত করুন',
+  'Download everything the server has of yours as one JSON file.': 'সার্ভারে থাকা আপনার সব ডেটা একটি JSON ফাইলে নামান।',
   'Signs this profile out on every device, including this one. Phones paired with it are disconnected and have to be paired again. Your passkeys keep working, so you can sign in with them again anytime.': 'এটি সহ প্রতিটি ডিভাইসে এই প্রোফাইল সাইন আউট করে। এর সাথে পেয়ার করা ফোনগুলোর সংযোগ বিচ্ছিন্ন হয় এবং আবার পেয়ার করতে হয়। আপনার পাসকি কাজ করতে থাকে, তাই যেকোনো সময় আবার সেগুলো দিয়ে সাইন ইন করতে পারবেন।',
   '{0} change': '{0}টি পরিবর্তন',
   '{0} changes': '{0}টি পরিবর্তন',

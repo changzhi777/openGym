@@ -868,6 +868,8 @@ export const PT_BR_OVERRIDES = {
   'This phone switches back to local-only and its copy of your account is removed. First it checks that your server has every change. If not, you choose what happens to them.': 'Este celular volta para o modo só local e a cópia da sua conta é removida dele. Antes, ele verifica se o seu servidor tem todas as alterações. Se não tiver, você escolhe o que acontece com elas.',
   'Your data is removed from this browser; your profile on the server keeps it. First it checks that the server has every change. If not, you choose what happens to them.': 'Seus dados são removidos deste navegador; seu perfil no servidor continua com eles. Antes, ele verifica se o servidor tem todas as alterações. Se não tiver, você escolhe o que acontece com elas.',
   'Bind mobile number': 'Vincular número de celular',
+  'Export my data': 'Exportar meus dados',
+  'Download everything the server has of yours as one JSON file.': 'Baixe tudo o que este servidor tem seu em um único arquivo JSON.',
   'Signs this profile out on every device, including this one. Phones paired with it are disconnected and have to be paired again. Your passkeys keep working, so you can sign in with them again anytime.': 'Encerra a sessão deste perfil em todos os dispositivos, incluindo este. Os celulares pareados com ele são desconectados e precisam ser pareados de novo. Suas chaves de acesso continuam funcionando, então você pode entrar com elas de novo quando quiser.',
   // plan vs session (#275, #216) — pt-PT's "planeadas", "registado" and tu-forms read as
   // Portugal here; "Plano: {0}" and "hoje {0}" are shared and inherit

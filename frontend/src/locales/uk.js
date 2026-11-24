@@ -1303,6 +1303,8 @@ export default {
   'This phone switches back to local-only and its copy of your account is removed. First it checks that your server has every change. If not, you choose what happens to them.': 'Цей телефон повернеться до локального режиму, а копію твого акаунта з нього буде видалено. Спершу перевіряється, чи є на твоєму сервері всі зміни. Якщо ні, ти вирішуєш, що з ними робити.',
   'Your data is removed from this browser; your profile on the server keeps it. First it checks that the server has every change. If not, you choose what happens to them.': 'Твої дані буде видалено з цього браузера; твій профіль на сервері їх збереже. Спершу перевіряється, чи є на сервері всі зміни. Якщо ні, ти вирішуєш, що з ними робити.',
   'Bind mobile number': 'Прив’язати номер телефону',
+  'Export my data': 'Експортувати мої дані',
+  'Download everything the server has of yours as one JSON file.': 'Завантажте все, що сервер зберігає про вас, одним файлом JSON.',
   'Signs this profile out on every device, including this one. Phones paired with it are disconnected and have to be paired again. Your passkeys keep working, so you can sign in with them again anytime.': 'Виходить із цього профілю на всіх пристроях, зокрема на цьому. Спарені з ним телефони буде відключено, і їх доведеться спарувати знову. Твої ключі доступу й далі працюють, тож увійти з ними можна будь-коли.',
   '{0} change': '{0} зміна',
   '{0} changes': { one: '{0} зміна', few: '{0} зміни', many: '{0} змін' },

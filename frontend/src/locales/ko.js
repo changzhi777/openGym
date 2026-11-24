@@ -1437,6 +1437,8 @@ export default {
   'This phone switches back to local-only and its copy of your account is removed. First it checks that your server has every change. If not, you choose what happens to them.': '이 휴대폰은 로컬 모드로 돌아가고, 계정 사본이 휴대폰에서 삭제됩니다. 먼저 서버에 모든 변경 사항이 있는지 확인하며, 없으면 어떻게 할지 직접 선택합니다.',
   'Your data is removed from this browser; your profile on the server keeps it. First it checks that the server has every change. If not, you choose what happens to them.': '데이터가 이 브라우저에서 삭제되며, 서버의 프로필에는 그대로 남습니다. 먼저 서버에 모든 변경 사항이 있는지 확인하며, 없으면 어떻게 할지 직접 선택합니다.',
   'Bind mobile number': '휴대폰 번호 연결',
+  'Export my data': '내 데이터 내보내기',
+  'Download everything the server has of yours as one JSON file.': '이 서버에 있는 나의 모든 데이터를 하나의 JSON 파일로 다운로드합니다.',
   'Signs this profile out on every device, including this one. Phones paired with it are disconnected and have to be paired again. Your passkeys keep working, so you can sign in with them again anytime.': '이 기기를 포함한 모든 기기에서 이 프로필을 로그아웃합니다. 이 프로필과 페어링된 휴대폰은 연결이 해제되며 다시 페어링해야 합니다. 패스키는 계속 작동하므로 언제든 다시 로그인할 수 있습니다.',
   '{0} change': '변경 {0}개',
   '{0} changes': '변경 {0}개',

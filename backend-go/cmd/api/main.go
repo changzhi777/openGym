@@ -132,7 +132,8 @@ func main() {
 	smsStore := sms.Store{Rdb: rdb}
 	wxMini := wechat.New(os.Getenv("WX_MINI_APPID"), os.Getenv("WX_MINI_SECRET"), os.Getenv("WX_MINI_ENV"), rdb)
 	svc := &auth.Service{DB: db, Sessions: sessions, Rdb: rdb,
-		Sms: smsSender, SmsStore: smsStore, Wx: wxMini, InviteEnvDef: inviteEnvDefault()}
+		Sms: smsSender, SmsStore: smsStore, Wx: wxMini, InviteEnvDef: inviteEnvDefault(),
+		DataDir: os.Getenv("DATA_DIR")}
 	r.GET("/api/auth/captcha", svc.Captcha)
 	r.POST("/api/auth/sms/send", svc.SmsSend)
 	r.POST("/api/auth/sms/verify", svc.SmsVerify)
@@ -146,6 +147,10 @@ func main() {
 	r.GET("/api/auth/sessions", svc.SessionsList)
 	r.DELETE("/api/auth/sessions/current", svc.SessionsRevokeCurrent)
 	r.DELETE("/api/auth/sessions/:sid", svc.SessionsRevoke)
+
+	// 阶段 2:账号自助注销 + 数据导出。
+	r.POST("/api/account/delete", svc.DeleteAccount)
+	r.GET("/api/account/export", svc.ExportAccount)
 
 	// P3a:数据三端点。
 	dataSvc := &data.Service{DB: db, Sessions: sessions}

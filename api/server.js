@@ -2092,6 +2092,7 @@ const routes = {
   'POST /api/admin/roles/revoke': notYetGo,
   'POST /api/admin/step-up': notYetGo,
   // 认证重构(手机号+短信 / 微信扫码):契约已冻结,Go 栈实现中,Node 侧 501。
+  'GET /api/account/export': notYetGo,
   'GET /api/auth/captcha': notYetGo,
   'GET /api/auth/sessions': notYetGo,
   'DELETE /api/auth/sessions/current': notYetGo,
