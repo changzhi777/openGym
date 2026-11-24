@@ -3663,4 +3663,6 @@ export default {
   "Your webhooks stop sending while Integrations is off. They stay set up.": "เว็บฮุกจะหยุดส่งระหว่างที่ \"การเชื่อมต่อ\" ปิดอยู่ แต่ยังตั้งค่าไว้เหมือนเดิม",
   "{0} of {1} modules on.": "เปิดอยู่ {0} จาก {1} โมดูล",
   "{0} stops syncing while Health is off. Nothing is disconnected, and it catches up once Health is back.": "{0} จะหยุดซิงก์ระหว่างที่ \"สุขภาพ\" ปิดอยู่ ไม่มีอะไรถูกตัดการเชื่อมต่อ และจะตามทันเมื่อเปิด \"สุขภาพ\" อีกครั้ง",
+  "Uploading media {0} of {1}": "Uploading media {0} of {1}",
+  "Some media did not reach the server. Tap to retry.": "Some media did not reach the server. Tap to retry.",
 }

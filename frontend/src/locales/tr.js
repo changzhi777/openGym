@@ -3652,4 +3652,6 @@ export default {
   "Your webhooks stop sending while Integrations is off. They stay set up.": "“Entegrasyonlar” kapalıyken webhook'ların bir şey göndermez. Kurulu kalırlar.",
   "{0} of {1} modules on.": "{1} modülden {0} tanesi açık.",
   "{0} stops syncing while Health is off. Nothing is disconnected, and it catches up once Health is back.": "“Sağlık” kapalıyken {0} eşitlemeyi durdurur. Hiçbir bağlantı kesilmez, “Sağlık” geri gelince her şeyi yakalar.",
+  "Uploading media {0} of {1}": "Uploading media {0} of {1}",
+  "Some media did not reach the server. Tap to retry.": "Some media did not reach the server. Tap to retry.",
 }

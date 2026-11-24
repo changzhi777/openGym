@@ -83,6 +83,14 @@ export function createMediaSync(deps = {}) {
   const missBackoff = new Map()   // hash → { step, until }
   const fetching = new Map()      // hash → the download in flight
 
+  // Media upload progress, for the Settings row (ServerSync.jsx): the file in flight and how far
+  // it is, where this run stands (index of count), and what a stopped run left waiting. Plain
+  // snapshot + a subscribe set, so the component side just renders what it is handed.
+  let upState = { active: false, hash: null, loaded: 0, total: 0, index: 0, count: 0, waiting: 0 }
+  const upSubs = new Set()
+  const upNotify = () => { const snap = { ...upState }; for (const cb of upSubs) { try { cb(snap) } catch { /* a listener never breaks the run */ } } }
+  const upSet = patch => { upState = { ...upState, ...patch }; upNotify() }
+
   const bump = (map, hash, steps) => {
     const cur = map.get(hash)
     const step = cur ? Math.min(cur.step + 1, steps.length - 1) : 0
@@ -99,18 +107,18 @@ export function createMediaSync(deps = {}) {
   async function run({ force = false, retryRejected = false } = {}) {
     if (!store) return
     const st = store.getState()
-    if (!st.user) { await publishPending({ usage: null }); return }
+    if (!st.user) { upSet({ active: false, hash: null, waiting: 0 }); await publishPending({ usage: null }); return }
     // A boot without a network leaves the config unknown; ask again rather than decide on nothing.
     let cfg = st.config
     if (!cfg && typeof st.loadConfig === 'function') cfg = await st.loadConfig()
-    if (!cfg?.media) { await publishPending({ usage: null }); return }
+    if (!cfg?.media) { upSet({ active: false, hash: null, waiting: 0 }); await publishPending({ usage: null }); return }
     // A set's form video kept on its phone, or any set video on a server that does not keep
     // them (media.sets), is neither asked about nor sent (media-refs.js uploadableFiles).
     const files = uploadableFiles(st.S, { sets: !!cfg.media.sets })
     const refs = files.map(f => f.hash)
     // Nothing referenced (a reset, everything deleted) forgets the last run: the same files coming
     // back from a backup within ten minutes are new to the server again, not a repeat of that run.
-    if (!refs.length) { lastRun = { refs: '', at: 0, complete: false }; await publishPending({ deferred: 0, rejected: 0, unavailable: 0 }); return }
+    if (!refs.length) { lastRun = { refs: '', at: 0, complete: false }; upSet({ active: false, hash: null, waiting: 0 }); await publishPending({ deferred: 0, rejected: 0, unavailable: 0 }); return }
     const key = refs.join(',')
     if (!force && lastRun.complete && lastRun.refs === key && d.now() - lastRun.at < DEDUPE_MS) return
     if (!force && d.now() < retryNotBefore) return
@@ -148,7 +156,8 @@ export function createMediaSync(deps = {}) {
       rejected++
       if (!rejectTold.has(h)) { rejectTold.add(h); d.toast(t('The server refused the file as too large.')) }
     }
-    for (const h of missing) {
+    upSet({ active: true, index: 0, count: missing.length, hash: null, loaded: 0, total: 0, waiting: 0 })
+    for (const [mi, h] of missing.entries()) {
       const rec = await d.media.get(h)
       if (!rec) { unavailable++; continue }   // nobody here has it: shown as missing until someone sends it
       if (rec.rejected && !retryRejected) { rejected++; continue }
@@ -160,10 +169,12 @@ export function createMediaSync(deps = {}) {
       if (!force && rec.size > BG_UPLOAD_METERED_MAX_MB * MB && !d.allowed()) { deferred++; continue }   // big files wait for Wi-Fi
       if (!force && active(upBackoff, h)) { skipped++; continue }
       try {
-        const res = await d.apiUpload('/api/media/' + h, rec.blob, rec.mime)
+        upSet({ index: mi + 1, hash: h, loaded: 0, total: rec.size || 0 })
+        const res = await d.apiUpload('/api/media/' + h, rec.blob, rec.mime, { onProgress: (loaded, total) => upSet({ hash: h, loaded, total: total || rec.size || 0 }) })
         await d.media.markSynced(h)
         upBackoff.delete(h)
         quotaTold = false
+        upSet({ hash: null, loaded: 0, total: 0 })
         if (res && res.existed === false) added += rec.size
       } catch (e) {
         const code = e?.code
@@ -173,11 +184,13 @@ export function createMediaSync(deps = {}) {
             d.toast(t('Your photo and video space on the server is full ({0} of {1} MB).', fmtMB(Number(e.data?.usedMB) || 0), fmtMB(Number(e.data?.quotaMB) || 0)))
           }
           stopped = true
+          upSet({ hash: null, waiting: missing.length - mi })
           break
         }
         if (e?.status === 429) {
           retryNotBefore = d.now() + (Number(e.retryAfter) || 60) * 1000
           stopped = true
+          upSet({ hash: null, waiting: missing.length - mi })
           break
         }
         if (REJECTED.has(code) || e?.status === 413 || e?.status === 415) {
@@ -197,12 +210,14 @@ export function createMediaSync(deps = {}) {
         // sync) tries again.
         bump(upBackoff, h, UPLOAD_BACKOFF)
         stopped = true
+        upSet({ hash: null, waiting: missing.length - mi })
         break
       }
     }
     lastRun = { refs: key, at: d.now(), complete: !stopped && !deferred && !skipped }
     if (usage && added) usage = { ...usage, bytes: (usage.bytes || 0) + added }
     await publishPending({ usage, deferred, rejected, unavailable })
+    upSet({ active: false, hash: null, loaded: 0, total: 0 })
   }
 
   /** Makes the state's files and the server agree, once at a time (a second call while one runs
@@ -416,7 +431,7 @@ export function createMediaSync(deps = {}) {
     return () => { unsub(); stopPrefetch(); clearTimeout(timer); clearTimeout(gcTimer); globalThis.removeEventListener?.('online', online) }
   }
 
-  return { syncMedia, settle, fetchToStore, mayFetch, localMediaGc, startCustomMediaPrefetch, start, _setStore: s => { store = s } }
+  return { syncMedia, settle, fetchToStore, mayFetch, localMediaGc, startCustomMediaPrefetch, start, mediaProgress: () => upState, onMediaProgress: cb => { upSubs.add(cb); return () => upSubs.delete(cb) }, _setStore: s => { store = s } }
 }
 
 // The app's own instance, made on first use so importing this module costs nothing.
@@ -427,3 +442,5 @@ export const syncMedia = opts => inst().syncMedia(opts)
 export const fetchToStore = (hash, expect, opts) => inst().fetchToStore(hash, expect, opts)
 export const mayFetch = hash => inst().mayFetch(hash)
 export const localMediaGc = () => inst().localMediaGc()
+export const mediaProgress = () => inst().mediaProgress()
+export const onMediaProgress = cb => inst().onMediaProgress(cb)

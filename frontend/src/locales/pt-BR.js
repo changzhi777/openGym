@@ -4,6 +4,8 @@
 import pt from './pt.js'
 
 export const PT_BR_OVERRIDES = {
+  'Uploading media {0} of {1}': 'Enviando mídia {0} de {1}',
+  'Some media did not reach the server. Tap to retry.': 'Algumas mídias não chegaram ao servidor. Toque para tentar de novo.',
   'The search finds it by these too. Separate them with commas.': 'A busca também encontra o exercício por estes. Separe com vírgulas.',
   'Save names': 'Salvar nomes',
   'Handy when you compare with another app. Records ignore warm-ups either way.': 'Ajuda quando você compara com outro app. Os recordes ignoram o aquecimento de qualquer jeito.',

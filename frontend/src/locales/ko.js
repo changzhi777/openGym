@@ -1,5 +1,7 @@
 // Korean UI strings. Keys are the English source strings (see lib/i18n.js).
 export default {
+  "Uploading media {0} of {1}": "Uploading media {0} of {1}",
+  "Some media did not reach the server. Tap to retry.": "Some media did not reach the server. Tap to retry.",
   "Same muscle and exercise type. The movement may differ.": "같은 근육과 운동 유형입니다. 동작은 다를 수 있습니다.",
   "Related muscles and exercise type. The movement may differ.": "관련 근육과 같은 운동 유형입니다. 동작은 다를 수 있습니다.",
   "Same muscle, different exercise type. Check suitability.": "같은 근육이지만 운동 유형이 다릅니다. 적합한지 확인하세요.",

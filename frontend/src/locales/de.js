@@ -1,5 +1,7 @@
 // German UI strings. Keys are the English source strings (see lib/i18n.js).
 export default {
+  "Uploading media {0} of {1}": "Uploading media {0} of {1}",
+  "Some media did not reach the server. Tap to retry.": "Some media did not reach the server. Tap to retry.",
   "Same muscle and exercise type. The movement may differ.": "Gleicher Muskel und Übungstyp. Die Bewegung kann abweichen.",
   "Related muscles and exercise type. The movement may differ.": "Verwandte Muskeln und gleicher Übungstyp. Die Bewegung kann abweichen.",
   "Same muscle, different exercise type. Check suitability.": "Gleicher Muskel, anderer Übungstyp. Prüfe die Eignung.",

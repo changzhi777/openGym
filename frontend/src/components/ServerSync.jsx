@@ -9,7 +9,7 @@ import { t, tn } from '../lib/i18n.js'
 import { fmtAgo, changeCount } from '../lib/format.js'
 import { passkeyLogin, passkeyError, webauthnOK } from '../lib/api.js'
 import { MOBILE, shareExport } from '../lib/mobile.js'
-import { syncMedia } from '../lib/media-sync.js'
+import { syncMedia, mediaProgress, onMediaProgress } from '../lib/media-sync.js'
 import { DEMO } from '../lib/demo.js'
 import { askAddDeviceData, menuSheet } from '../sheets.jsx'
 import { ConnectSheet, CfAccessSheet } from '../views/MobileOnboarding.jsx'
@@ -232,6 +232,27 @@ export function OwedSheet({ kind, count: count0, media: media0 = 0, exportBackup
   </div>
 }
 
+
+// Media upload progress, straight from media-sync's per-run state: the file in flight with its
+// percentage, and — when a run was stopped by the network — what it left waiting, tap to retry.
+// Rendered inside "Server & sync", signed in only (nothing uploads otherwise).
+export function MediaUploadRows() {
+  const user = useStore(s => s.user)
+  const [p, setP] = useState(mediaProgress)
+  useEffect(() => onMediaProgress(setP), [])
+  if (!user) return null
+  if (p.active && p.count) {
+    const pct = p.total > 0 ? ` · ${Math.min(100, Math.round((p.loaded / p.total) * 100))}%` : ''
+    return <Row icon="reset" iconTint="var(--acc)"
+      title={t('Uploading media {0} of {1}', p.index, p.count)}
+      subtitle={pct || undefined} className="sync-status" />
+  }
+  if (p.waiting > 0) return <Row icon="warning" iconTint="var(--orange)"
+    title={t('Some media did not reach the server. Tap to retry.')}
+    onClick={() => syncMedia({ force: true })} />
+  return null
+}
+
 /* ---------------------------------------------------------------- Settings ------------------- */
 const TINT = { ok: 'var(--green)', wait: 'var(--orange)', off: 'var(--grey)', bad: 'var(--red)', quiet: 'var(--grey)' }
 
@@ -270,6 +291,7 @@ export function ServerSyncSection({ children }) {
       subtitle={t('Signed in as {0}', user.name)} />
     <Row icon={view.icon} iconTint={TINT[view.tone]} title={view.line} subtitle={sub} className="sync-status" />
     <Row icon="reset" iconTint="var(--acc)" title={busy ? t('Syncing…') : t('Sync now')} onClick={now} />
+    <MediaUploadRows />
     {MOBILE && <Row icon="key" iconTint="var(--orange)" title={t('Cloudflare Access')} accessory="chevron"
       onClick={() => ui().openSheet(close => <CfAccessSheet close={close} server={sync.server || ''} />)} />}
     {sync.status === 'auth' && (MOBILE

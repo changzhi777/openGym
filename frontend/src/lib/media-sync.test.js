@@ -473,3 +473,43 @@ describe('a workout\'s photos and videos', () => {
     } finally { stop() }
   })
 })
+
+describe('upload progress', () => {
+  it('reports the file in flight with its percentage and the run position, then settles', async () => {
+    const S = { customEx: [{ id: 'a', media: refOf(hex('a')) }, { id: 'c', media: refOf(hex('c')) }] }
+    await put(hex('a'), 100)
+    await put(hex('c'), 200)
+    const holds = []
+    apiUpload = vi.fn((path, blob, mime, opts = {}) => {
+      opts.onProgress?.(Math.round(blob.size / 2), blob.size)
+      return new Promise(res => holds.push(res))
+    })
+    const sync = make(appStore({ S }))
+    const run = sync.syncMedia()
+    await vi.waitFor(() => expect(sync.mediaProgress()).toMatchObject({ active: true, hash: hex('a'), loaded: 50, total: 100, index: 1, count: 2 }))
+    while (sync.mediaProgress().active) {
+      const pend = holds.splice(0)
+      if (!pend.length) { await new Promise(r => setTimeout(r, 5)); continue }
+      pend.forEach(res => res({ ok: true, existed: false }))
+      await new Promise(r => setTimeout(r, 5))
+    }
+    await run
+    expect(sync.mediaProgress()).toMatchObject({ active: false, hash: null, waiting: 0 })
+    expect(apiUpload.mock.calls.every(c => c[3] && typeof c[3].onProgress === 'function')).toBe(true)
+  })
+
+  it('a network stop leaves what is left waiting, and a forced run clears it', async () => {
+    const S = { customEx: [{ id: 'a', media: refOf(hex('a')) }, { id: 'c', media: refOf(hex('c')) }] }
+    await put(hex('a'))
+    await put(hex('c'))
+    apiUpload = vi.fn()
+      .mockRejectedValueOnce(Object.assign(new Error('offline'), { code: 'network' }))
+      .mockResolvedValueOnce({ ok: true, existed: false })
+    const sync = make(appStore({ S }))
+    await sync.syncMedia()
+    expect(sync.mediaProgress()).toMatchObject({ active: false, waiting: 2 })   // the failed one + the one never tried
+    await sync.syncMedia({ force: true })   // the tap on the Settings row
+    expect(sync.mediaProgress()).toMatchObject({ active: false, waiting: 0 })
+    expect(apiUpload).toHaveBeenCalledTimes(3)
+  })
+})
