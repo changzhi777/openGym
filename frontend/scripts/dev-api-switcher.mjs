@@ -14,6 +14,7 @@
 import { readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { resolve, fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+import { spawn } from 'node:child_process'
 import http from 'node:http'
 import https from 'node:https'
 
@@ -98,6 +99,29 @@ export default function devApiSwitcher() {
       server.middlewares.use((req, res, next) => {
         if (!req.url.startsWith('/api')) return next()
         forward(req, res, readApiTarget())
+      })
+      // fork(W2):数据库同步端点——spawn dev-db-sync.mjs(pull|push),同步等待收日志。
+      // push 覆盖生产(脚本内先自动备份);UI 侧另有强确认,此处只做执行与回传。
+      server.middlewares.use('/__dev-db-sync', (req, res) => {
+        if (req.method !== 'POST') { res.statusCode = 405; return res.end() }
+        let body = ''
+        req.on('data', c => { body += c })
+        req.on('end', () => {
+          const direction = String((() => { try { return JSON.parse(body || '{}').direction } catch { return '' } })())
+          if (!['pull', 'push'].includes(direction)) {
+            res.statusCode = 400
+            return res.end(JSON.stringify({ error: 'direction must be pull|push' }))
+          }
+          const script = join(here, 'dev-db-sync.mjs')
+          const child = spawn(process.execPath, [script, direction], { cwd: resolve(here, '..') })
+          let log = ''
+          child.stdout.on('data', d => { log += d })
+          child.stderr.on('data', d => { log += d })
+          child.on('close', code => {
+            res.setHeader('Content-Type', 'application/json')
+            res.end(JSON.stringify({ ok: code === 0, log: log.slice(-2000) }))
+          })
+        })
       })
     },
   }

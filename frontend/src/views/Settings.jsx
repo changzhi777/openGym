@@ -1842,6 +1842,7 @@ const DEV_TARGETS = [
 function DevServerSection() {
   const toast = useUI(s => s.toast)
   const [current, setCurrent] = useState(null)   // null=探测中;false=插件未启用
+  const [syncing, setSyncing] = useState(false)
   useEffect(() => {
     fetch('/__dev-api-target').then(r => (r.ok ? r.json() : null))
       .then(j => setCurrent(j ? j.target : false)).catch(() => setCurrent(false))
@@ -1856,6 +1857,29 @@ function DevServerSection() {
       setTimeout(() => location.reload(), 900)
     } catch { toast(t('Something went wrong')) }
   }
+  // fork(W2):数据库同步——经 dev server spawn dev-db-sync.mjs;push 覆盖生产,
+  // confirmSheet 强确认(脚本内会先自动备份云端现库到 118:/opt/muhe-fit/backups/)。
+  const runSync = async direction => {
+    if (syncing) return
+    setSyncing(true)
+    try {
+      const r = await fetch('/__dev-db-sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ direction }) })
+      const j = await r.json()
+      toast(j.ok ? (direction === 'pull' ? '已拉取：本地库=云端生产数据' : '已推送：本地数据已上云端') : '同步失败：' + (j.log || '').split('\n').pop())
+    } catch { toast(t('Something went wrong')) } finally { setSyncing(false) }
+  }
+  const pullConfirm = () => confirmSheet({
+    title: '从云端拉取数据？',
+    message: '把云端生产的整库数据（账号、训练记录等）拉到本地开发库，本地现有数据会被覆盖。拉取后重新登录即可看到云端账号。',
+    confirmText: '拉取覆盖本地', danger: true,
+    onConfirm: () => runSync('pull'),
+  })
+  const pushConfirm = () => confirmSheet({
+    title: '本地推送到云端？',
+    message: '本地开发数据将覆盖云端生产库（影响真实用户）。推送前会自动在服务器上备份现库，但请确认这正是你要的迁移。',
+    confirmText: '推送覆盖云端', danger: true,
+    onConfirm: () => runSync('push'),
+  })
   return <Section title="开发 · 后端">
     {DEV_TARGETS.map(item => (
       <Row key={item.key} icon="cloud" iconTint={item.target === current ? 'var(--green)' : 'var(--grey)'}
@@ -1864,6 +1888,10 @@ function DevServerSection() {
         accessory={item.target === current ? null : 'chevron'}
         onClick={() => switchTo(item)} />
     ))}
+    <Row icon="download" iconTint="var(--blue)" title="从云端拉取数据到本地"
+      subtitle="覆盖本地开发库（拉取生产整库，开发用）" onClick={pullConfirm} />
+    <Row icon="upload" iconTint="var(--red)" title="本地推送到云端" danger
+      subtitle="覆盖生产库（先自动备份到服务器）——仅迁移上线时用" onClick={pushConfirm} />
   </Section>
 }
 
