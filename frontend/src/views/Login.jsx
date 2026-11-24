@@ -1,9 +1,11 @@
 // views/Login.jsx — 登录/注册(认证重构:手机号+短信验证码 / 微信小程序码扫码)
 //
-// 设计规格(2026-10-29 十项决议):全屏沉浸式浅色(雾白→淡绿灰渐变,无卡片)、
-// LOGO 卡片居中、手机 tab:内嵌 +86 前缀 → 图形验证码(SVG 数字码,发码前置闸) →
-// 全宽绿钮『获取短信验证码』→ 6 格分段验证码(自动跳格/回退/粘贴) → 品牌绿 CTA；
-// 微信 tab:小程序码+轮询；双通道按钮平级互切；错误=字段级红字。全中文文案。
+// 设计规格(2026-10-29 十项决议;2026-11-25 阶段 3 视觉升级):全屏沉浸式浅色
+// (雾白→淡绿渐变 + 顶部品牌绿晕,无卡片)、LOGO 居中、**通道 segmented 置顶平级**
+// (Q7:手机/微信双通道互切)、手机 tab:内嵌 +86 前缀 → 图形验证码(SVG 数字码,
+// 发码前置闸) → 全宽『发送短信验证码』→ 6 格分段验证码(自动跳格/回退/粘贴) →
+// 品牌绿渐变 CTA;微信 tab:小程序码+轮询;错误=字段级红字。全中文文案。
+// 视觉升级只动样式与控件顺序(发码钮移到短信码之前,纠正主次),逻辑零改动。
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { smsSend, smsVerify, wechatQrcode, wechatPoll, authCaptcha, bindPhone } from '../lib/api.js'
@@ -16,21 +18,33 @@ import { Button } from '../components/ui.jsx'
 
 const PHONE_RE = /^1\d{10}$/
 
-// 浅色系设计 token(Q8 色板)。
+// 浅色系设计 token(Q8 色板;阶段 3 增加焦点光晕与渐变 CTA)。
 const C = {
-  bgTop: '#f2f2f7', bgBottom: '#e9efe9', ink: '#1c1c1e', sub: '#6e6e73',
-  green: '#248a3d', greenDark: '#1e7534', hair: '#c7c7cc', white: '#ffffff',
-  red: '#c62828',
+  bgTop: '#f4f7f4', bgBottom: '#e6eee7', ink: '#1c1c1e', sub: '#6e6e73',
+  green: '#248a3d', greenLight: '#2f9c47', greenDark: '#1e7534',
+  hair: '#d5dcd6', white: '#ffffff', red: '#c62828',
+  ring: 'rgba(36,138,61,.14)',
 }
 const loginInput = {
   width: '100%', background: C.white, color: C.ink,
-  border: `1.5px solid ${C.hair}`, borderRadius: 12,
-  padding: '11px 12px', fontSize: 15, outline: 'none',
+  border: `1.5px solid ${C.hair}`, borderRadius: 14,
+  padding: '12px 13px', fontSize: 15, outline: 'none',
+  transition: 'border-color .15s, box-shadow .15s',
 }
-const focusInput = e => { e.currentTarget.style.borderColor = C.green }
-const blurInput = e => { e.currentTarget.style.borderColor = C.hair }
+// 聚焦:品牌绿边 + 同色柔光晕(键盘进入感)。
+const focusInput = e => {
+  e.currentTarget.style.borderColor = C.green
+  e.currentTarget.style.boxShadow = `0 0 0 4px ${C.ring}`
+}
+const blurInput = e => { e.currentTarget.style.borderColor = C.hair; e.currentTarget.style.boxShadow = 'none' }
 const fieldErr = msg => <div style={{ color: C.red, fontSize: 12.5, marginTop: 5, textAlign: 'left' }}>{msg}</div>
-const label = txt => <div style={{ fontSize: 13.5, fontWeight: 600, color: C.ink, margin: '10px 0 5px', textAlign: 'left' }}>{txt}</div>
+const label = txt => <div style={{ fontSize: 13, fontWeight: 600, color: C.sub, margin: '12px 0 6px', textAlign: 'left', letterSpacing: '.02em' }}>{txt}</div>
+
+// 入场动效(一次 fade+up,克制;组件级 <style> 随登录页卸载)。
+const loginStyle = <style>{`
+  @keyframes muLoginUp { from { opacity: 0; transform: translateY(10px) } to { opacity: 1; transform: none } }
+  .mu-login-anim { animation: muLoginUp .38s cubic-bezier(.2,.7,.3,1) both }
+`}</style>
 
 // ── 6 格分段验证码(自动跳格/回退/粘贴分发;获焦绿边+微放大) ─────────────────
 function SixDigits({ value, onChange, disabled = false }) {
@@ -64,11 +78,13 @@ function SixDigits({ value, onChange, disabled = false }) {
           onChange={e => { if (!disabled) onInput(i, e) }} onKeyDown={e => { if (!disabled) onKey(i, e) }}
           tabIndex={disabled ? -1 : 0}
           style={{
-            width: '100%', textAlign: 'center', fontSize: 20, fontWeight: 700,
-            color: disabled ? C.hair : C.ink, background: C.white,
-            border: `1.5px solid ${disabled ? '#e5e5ea' : focusIdx === i ? C.green : C.hair}`,
-            borderRadius: 10, padding: '9px 0', outline: 'none', flex: 1,
-            transform: focusIdx === i ? 'scale(1.04)' : 'none', transition: 'border-color .12s, transform .12s',
+            width: '100%', textAlign: 'center', fontSize: 21, fontWeight: 700,
+            color: disabled ? '#b8c2ba' : C.ink, background: disabled ? '#f2f5f2' : C.white,
+            border: `1.5px ${disabled ? 'dashed' : 'solid'} ${disabled ? '#d9e0da' : focusIdx === i ? C.green : C.hair}`,
+            borderRadius: 12, padding: '10px 0', outline: 'none', flex: 1,
+            boxShadow: focusIdx === i ? `0 0 0 4px ${C.ring}` : 'none',
+            transform: focusIdx === i ? 'scale(1.05)' : 'none',
+            transition: 'border-color .12s, box-shadow .12s, transform .12s, background .12s',
           }} />
       ))}
     </div>
@@ -76,7 +92,7 @@ function SixDigits({ value, onChange, disabled = false }) {
 }
 
 // ── 手机号登录(主通道:平铺一屏式——图形码/短信码全部常驻可见) ──────────────
-// 逻辑流:①手机号+图形码 → 点『发送验证码』(校验图形码→发短信→倒计) 
+// 逻辑流:①手机号+图形码 → 点『发送短信验证码』(校验图形码→发短信→倒计)
 //        ②短信码 6 格常驻(发送前禁用置灰+提示) → 登录/注册(校验短信码)
 function PhoneForm({ config, onSignedIn }) {
   const { setUser, pushState, pullState, loadConfig } = useStore()
@@ -133,24 +149,27 @@ function PhoneForm({ config, onSignedIn }) {
     } catch (e) { setErr({ msg: e.message, field: 'digits' }) } finally { setBusy(false) }
   }
 
+  const sendReady = !(smsSent && countdown > 0)
   return <>
     {label('手机号')}
     <div style={{ display: 'flex', alignItems: 'stretch', background: C.white,
-      border: `1.5px solid ${err?.field === 'phone' ? C.red : C.hair}`, borderRadius: 12, overflow: 'hidden' }}>
-      <span style={{ padding: '11px 10px', background: '#eef1ee', color: C.sub, fontSize: 14,
+      border: `1.5px solid ${err?.field === 'phone' ? C.red : C.hair}`, borderRadius: 14,
+      overflow: 'hidden', transition: 'border-color .15s, box-shadow .15s',
+      boxShadow: '0 1px 2px rgba(28,28,30,.04)' }}>
+      <span style={{ padding: '12px 11px', background: '#f0f4f0', color: C.sub, fontSize: 14,
         borderRight: `1.5px solid ${C.hair}`, userSelect: 'none' }}>+86</span>
       <input ref={phoneRef} inputMode="numeric" maxLength={11} placeholder="请输入手机号" value={phone}
         onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 11))}
         onFocus={focusInput} onBlur={blurInput}
-        style={{ flex: 1, border: 'none', outline: 'none', fontSize: 15, padding: '11px 12px', background: 'transparent', color: C.ink }} />
+        style={{ flex: 1, border: 'none', outline: 'none', fontSize: 15, padding: '12px 13px', background: 'transparent', color: C.ink }} />
     </div>
     {err?.field === 'phone' && fieldErr(err.msg)}
 
     {label('图形验证码')}
     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
       {cap && <div dangerouslySetInnerHTML={{ __html: cap.svg }}
-        style={{ width: 150, height: 44, borderRadius: 8, overflow: 'hidden', cursor: 'pointer', flexShrink: 0,
-          border: `1.5px solid ${err?.field === 'captcha' ? C.red : C.hair}` }}
+        style={{ width: 148, height: 46, borderRadius: 12, overflow: 'hidden', cursor: 'pointer', flexShrink: 0,
+          border: `1.5px solid ${err?.field === 'captcha' ? C.red : C.hair}`, boxShadow: '0 1px 2px rgba(28,28,30,.04)' }}
         onClick={refreshCaptcha} title="点击刷新" />}
       <input inputMode="numeric" maxLength={4} placeholder="输入 4 位数字" value={capCode}
         onChange={e => setCapCode(e.target.value.replace(/\D/g, '').slice(0, 4))}
@@ -159,12 +178,22 @@ function PhoneForm({ config, onSignedIn }) {
     </div>
     {err?.field === 'captcha' && fieldErr(err.msg)}
 
+    {/* 发码钮:紧贴图形码之后(流程次序),描边次级样式——主 CTA 让位给登录 */}
+    <button onClick={sendSms} disabled={!sendReady}
+      style={{ width: '100%', marginTop: 14, padding: '11px 0', borderRadius: 12, cursor: sendReady ? 'pointer' : 'default',
+        background: sendReady ? 'rgba(36,138,61,.07)' : 'transparent',
+        border: `1.5px solid ${sendReady ? 'rgba(36,138,61,.35)' : C.hair}`,
+        color: sendReady ? C.green : '#9aa39b', fontSize: 14, fontWeight: 600,
+        transition: 'background .15s, border-color .15s, color .15s' }}>
+      {smsSent ? `重新发送短信验证码${countdown > 0 ? `（${countdown}s）` : ''}` : '发送短信验证码'}
+    </button>
+
     {label('短信验证码')}
     <SixDigits value={digits} onChange={setDigits} disabled={!smsSent} />
-    <div style={{ display: 'flex', justifyContent: 'space-between', margin: '6px 0 4px' }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', margin: '7px 0 4px' }}>
       <span style={{ fontSize: 12.5, color: C.sub }}>
-        {smsSent ? (countdown > 0 ? `已发送（${countdown}s 后可重发）` : '没收到？重新获取')
-                : '先填写图形码并点击发送'}
+        {smsSent ? (countdown > 0 ? `已发送（${countdown}s 后可重发）` : '没收到？点击上方重新发送')
+                : '发送后在此输入 6 位验证码'}
       </span>
     </div>
 
@@ -178,21 +207,21 @@ function PhoneForm({ config, onSignedIn }) {
       {err?.field === 'invite' && fieldErr(err.msg)}
     </>}
 
-    <div style={{ height: 16 }} />
+    <div style={{ height: 18 }} />
     <button onClick={signIn} disabled={busy || digits.length < 6}
-      style={{ width: '100%', padding: '13px 0', border: 'none', borderRadius: 14,
-        background: busy || digits.length < 6 ? '#a8d4b0' : C.green, color: '#fff',
-        fontSize: 16, fontWeight: 700, cursor: busy || digits.length < 6 ? 'default' : 'pointer' }}>
+      style={{ width: '100%', padding: '14px 0', border: 'none', borderRadius: 14,
+        background: busy || digits.length < 6
+          ? 'linear-gradient(180deg, #b9d6bf, #a9ccb1)'
+          : `linear-gradient(180deg, ${C.greenLight}, ${C.green})`,
+        color: busy || digits.length < 6 ? 'rgba(255,255,255,.85)' : '#fff',
+        fontSize: 16, fontWeight: 700, letterSpacing: '.04em',
+        boxShadow: busy || digits.length < 6 ? 'none' : '0 6px 18px rgba(36,138,61,.30)',
+        cursor: busy || digits.length < 6 ? 'default' : 'pointer',
+        transition: 'background .15s, box-shadow .15s' }}>
       登录 / 注册
     </button>
 
-    <div style={{ height: 14 }} />
-    <button onClick={sendSms} disabled={smsSent && countdown > 0}
-      style={{ width: '100%', padding: '11px 0', borderRadius: 12, cursor: 'pointer',
-        background: 'none', border: `1.5px solid ${C.hair}`, color: C.ink, fontSize: 14, fontWeight: 600 }}>
-      {smsSent ? `重新发送短信验证码${countdown > 0 ? `（${countdown}s）` : ''}` : '发送短信验证码'}
-    </button>
-    <div className="dim small" style={{ marginTop: 6, textAlign: 'left' }}>
+    <div className="dim small" style={{ marginTop: 10, textAlign: 'left', color: C.sub }}>
       注册即表示同意本实例的用户协议与隐私条款。
     </div>
   </>
@@ -225,42 +254,70 @@ function WechatForm({ onSwitchBack }) {
   }, [qr?.ticket])
 
   return <>
-    <div style={{ fontSize: 14, color: C.sub, marginBottom: 12 }}>
+    <div style={{ fontSize: 14, color: C.sub, marginBottom: 14, lineHeight: 1.6 }}>
       微信扫描二维码，在「沐禾健身」小程序中确认，网页将自动登录
     </div>
     {err && <div className="dim small" style={{ color: '#c62828' }}>{err}</div>}
     {qr?.image && <img alt="微信扫码" src={'data:image/png;base64,' + qr.image}
-      style={{ width: 220, height: 220, borderRadius: 12, background: '#fff', padding: 8,
-        border: `1px solid ${C.hair}`, margin: '0 auto', display: 'block' }} />}
+      style={{ width: 224, height: 224, borderRadius: 16, background: '#fff', padding: 10,
+        border: `1px solid ${C.hair}`, margin: '0 auto', display: 'block',
+        boxShadow: '0 4px 18px rgba(28,28,30,.08)' }} />}
     {status === 'confirmed'
-      ? <div style={{ color: C.green, fontWeight: 700, marginTop: 10 }}>已在微信中确认 ✓</div>
-      : qr && <div style={{ color: C.sub, fontSize: 13, marginTop: 10 }}>等待扫码中…</div>}
-    <div style={{ height: 10 }} />
+      ? <div style={{ color: C.green, fontWeight: 700, marginTop: 12 }}>已在微信中确认 ✓</div>
+      : qr && <div style={{ color: C.sub, fontSize: 13, marginTop: 12 }}>等待扫码中…</div>}
+    <div style={{ height: 12 }} />
     <button onClick={load} style={{ background: 'none', border: 'none', color: C.green,
       fontWeight: 600, cursor: 'pointer', fontSize: 13 }}>刷新二维码</button>
   </>
+}
+
+// 通道 segmented(Q7 平级互切;阶段 3 从底部孤立按钮升级为表单上方分段控件)。
+function ChannelTabs({ channel, setChannel }) {
+  const item = (key, txt, icon) => {
+    const on = channel === key
+    return <button key={key} onClick={() => setChannel(key)}
+      style={{ flex: 1, padding: '10px 0', border: 'none', borderRadius: 10, cursor: 'pointer',
+        background: on ? C.white : 'transparent', color: on ? C.green : C.sub,
+        fontSize: 14.5, fontWeight: on ? 700 : 600,
+        boxShadow: on ? '0 1px 4px rgba(28,28,30,.10)' : 'none',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+        transition: 'background .15s, color .15s, box-shadow .15s' }}>
+      {icon && <Icon name={icon} />}{txt}
+    </button>
+  }
+  return (
+    <div style={{ display: 'flex', gap: 4, background: 'rgba(28,28,30,.055)',
+      borderRadius: 12, padding: 4, marginBottom: 18 }}>
+      {item('phone', '手机号登录')}
+      {item('wechat', '微信扫码', 'qr')}
+    </div>
+  )
 }
 
 export default function Login() {
   const { setUser, setGuest } = useStore()
   const config = useStore(s => s.config)
   const canGuest = guestAllowed(config)
-  const [channel, setChannel] = useState('phone')   // phone | wechat 双按钮平级(Q7)
+  const [channel, setChannel] = useState('phone')   // phone | wechat 双通道平级(Q7)
   const head = <>
-    <img src="/icon-192.png" alt="沐禾健身" width={56} height={56}
-      style={{ borderRadius: 14, margin: '0 auto', display: 'block', boxShadow: '0 4px 16px rgba(36,138,61,.22)' }} />
-    <h1 style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-.02em', margin: '8px 0 2px', color: '#1c1c1e' }}>沐禾健身</h1>
-    <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '.22em', color: '#248a3d', textTransform: 'uppercase' }}>MUHE FIT</div>
+    <img src="/icon-192.png" alt="沐禾健身" width={64} height={64}
+      style={{ borderRadius: 16, margin: '0 auto', display: 'block',
+        boxShadow: '0 8px 24px rgba(36,138,61,.26), 0 2px 6px rgba(36,138,61,.14)' }} />
+    <h1 style={{ fontSize: 25, fontWeight: 800, letterSpacing: '-.02em', margin: '12px 0 3px', color: '#1c1c1e' }}>沐禾健身</h1>
+    <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.3em', color: C.green, textTransform: 'uppercase', textIndent: '.3em' }}>MUHE FIT</div>
   </>
   const wrap = {
-    display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'center',
-    minHeight: '100dvh', padding: '24px 20px 40px', background: 'linear-gradient(180deg, #f2f2f7 0%, #e9efe9 100%)', color: '#1c1c1e', justifyContent: 'flex-start', paddingTop: '9dvh',
+    display: 'flex', flexDirection: 'column', textAlign: 'center',
+    minHeight: '100dvh', padding: '24px 20px 40px', color: '#1c1c1e',
+    background: `radial-gradient(120% 42% at 50% -6%, rgba(36,138,61,.13) 0%, rgba(36,138,61,0) 60%), linear-gradient(180deg, ${C.bgTop} 0%, ${C.bgBottom} 100%)`,
+    justifyContent: 'flex-start', paddingTop: 'max(7dvh, 44px)',
     ['data-theme']: 'light',
   }
 
   // Demo build: no backend to sign in against — the only way in is the local guest profile.
   if (DEMO) return (
     <div className="narrow" style={wrap}>
+      {loginStyle}
       {head}
       <div className="muted" style={{ marginBottom: 30 }}>Live demo. Everything stays in this browser.</div>
       <Button variant="primary" icon="play" onClick={() => setGuest(true)}>Start the demo</Button>
@@ -276,33 +333,21 @@ export default function Login() {
   const signedIn = () => {}
 
   return (
-    <div className="narrow" style={wrap}>
+    <div className="narrow mu-login-anim" style={wrap}>
+      {loginStyle}
       {head}
-      <div style={{ margin: '8px 0 14px', fontSize: 13.5, color: '#6e6e73' }}>你的训练、你的重量、你的档案。</div>
+      <div style={{ margin: '10px 0 18px', fontSize: 13.5, color: C.sub }}>你的训练、你的重量、你的档案。</div>
       <div style={{ textAlign: 'start', maxWidth: 420, margin: '0 auto', width: '100%' }}>
-        {channel === 'phone' ? <>
-          <PhoneForm config={config} onSignedIn={signedIn} />
-          <div style={{ height: 14 }} />
-          <button onClick={() => setChannel('wechat')}
-            style={{ width: '100%', padding: '13px 0', borderRadius: 14, cursor: 'pointer',
-              background: 'none', border: `1.5px solid ${C.hair}`, color: '#1c1c1e',
-              fontSize: 15, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-            <Icon name="qr" /> 微信扫码登录
-          </button>
-        </> : <>
-          <WechatForm onSwitchBack={() => {}} />
-          <div style={{ height: 14 }} />
-          <button onClick={() => setChannel('phone')}
-            style={{ width: '100%', padding: '13px 0', borderRadius: 14, cursor: 'pointer',
-              background: 'none', border: `1.5px solid ${C.hair}`, color: '#1c1c1e',
-              fontSize: 15, fontWeight: 600 }}>用手机号登录</button>
-        </>}
+        <ChannelTabs channel={channel} setChannel={setChannel} />
+        {channel === 'phone'
+          ? <PhoneForm config={config} onSignedIn={signedIn} />
+          : <WechatForm onSwitchBack={() => {}} />}
       </div>
       {canGuest && <>
-        <div style={{ height: 14 }} />
+        <div style={{ height: 16 }} />
         <Button variant="ghost" className="dim" onClick={() => setGuest(true)}>暂不登录，随便看看</Button>
       </>}
-      <div className="dim small" style={{ marginTop: 26, lineHeight: 1.5, color: '#6e6e73' }}>
+      <div className="dim small" style={{ marginTop: 26, lineHeight: 1.5, color: C.sub }}>
         每个档案独立保存训练计划、训练记录与身体数据。
       </div>
     </div>

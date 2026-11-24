@@ -87,12 +87,12 @@ const fillPhoneCaptcha = async () => {
 }
 
 describe('Login 认证重构(手机/微信)', () => {
-  it('双 tab 可切换:手机表单 ↔ 微信扫码表单', async () => {
+  it('双 tab 可切换:手机表单 ↔ 微信扫码表单(阶段 3:通道 segmented 置顶)', async () => {
     mocks.wechatQrcode.mockResolvedValue({ ticket: 't1', image: 'AAAA' })
     await renderLogin()
     expect(document.body.textContent).toContain('图形验证码')
-    expect(document.body.textContent).toContain('微信扫码登录')
-    await click(btn('微信扫码登录'))
+    expect(document.body.textContent).toContain('微信扫码')      // segmented 通道钮(Q7 平级)
+    await click(btn('微信扫码'))
     expect(document.body.textContent).toContain('等待扫码中…')
   })
 
