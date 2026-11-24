@@ -60,3 +60,6 @@ assets/tee/
 assets/bmc-cover*
 # scripts/pdf/render-samples.mjs output (npm run pdf:check)
 frontend/pdf-samples/
+
+# fork(W1): dev-only API target switch file (dev-api-switcher.mjs)
+frontend/.dev-api-target

@@ -1209,6 +1209,10 @@ export default function Settings({ page = null, find = null, via = null, entryKe
 
         </>}
       </Section>}
+      {/* fork(W1,2026-11-25):开发·后端切换(dev-only)——本地 kiri 栈与云端生产之间
+          一键互切。机制见 scripts/dev-api-switcher.mjs(vite dev 动态反代);探测
+          /__dev-api-target 404(非 dev server 或开关未启用)时整块不渲染。 */}
+      {import.meta.env.DEV && <DevServerSection />}
       {/* Signed in: the account can be deleted from here (App Store rule 5.1.1(v)). A phone in
           local-only mode has no account; "Reset everything" in Data & backup wipes it. */}
       {/* fork(2026-11-25 阶段 2):删除账号行已恢复——Go 栈 name-only 证明(输入账号名即本人),
@@ -1825,6 +1829,42 @@ function AccountIdRow({ id }) {
   if (!id) return null
   const copy = async () => { if (await copyText(id)) toast(t('Account ID copied')) }
   return <Row icon="personCircle" iconTint="var(--grey)" title={t('Account ID')} subtitle={<span className="acct-id">{id}</span>} onClick={copy} />
+}
+
+// fork(W1,2026-11-25):开发·后端切换——本地 kiri 栈(:3100)与云端生产之间一键互切。
+// 仅 dev 构建渲染;探测 /__dev-api-target(vite 插件 dev-api-switcher.mjs 提供)404 时
+// 返回 null(开关未启用,不占版面)。切换 = POST 目标 → toast → reload,cookie 因
+// 对方 SECRET 不同自然 401,登录页重登即完成数据面切换。
+const DEV_TARGETS = [
+  { key: 'local', label: '本地后端', detail: 'http://127.0.0.1:3100', target: 'http://127.0.0.1:3100' },
+  { key: 'cloud', label: '云端生产', detail: 'app.qingmulife.com', target: 'https://app.qingmulife.com' },
+]
+function DevServerSection() {
+  const toast = useUI(s => s.toast)
+  const [current, setCurrent] = useState(null)   // null=探测中;false=插件未启用
+  useEffect(() => {
+    fetch('/__dev-api-target').then(r => (r.ok ? r.json() : null))
+      .then(j => setCurrent(j ? j.target : false)).catch(() => setCurrent(false))
+  }, [])
+  if (current === null || current === false) return null
+  const switchTo = async item => {
+    if (item.target === current) return
+    try {
+      const r = await fetch('/__dev-api-target', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ target: item.target }) })
+      if (!r.ok) throw new Error()
+      toast(`后端已切到${item.label}，正在刷新…`)
+      setTimeout(() => location.reload(), 900)
+    } catch { toast(t('Something went wrong')) }
+  }
+  return <Section title="开发 · 后端">
+    {DEV_TARGETS.map(item => (
+      <Row key={item.key} icon="cloud" iconTint={item.target === current ? 'var(--green)' : 'var(--grey)'}
+        title={item.label + (item.target === current ? '（当前）' : '')}
+        subtitle={item.detail}
+        accessory={item.target === current ? null : 'chevron'}
+        onClick={() => switchTo(item)} />
+    ))}
+  </Section>
 }
 
 // Lets the mobile app's "connect to my server" mode (lib/remote.js) authenticate without a

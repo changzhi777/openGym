@@ -6,6 +6,10 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { lazyAssets, stampSw } from './scripts/sw-stamp.mjs'
 import { mobileViewport } from './src/lib/viewport-zoom.js'
+// fork(W1,2026-11-25):双后端动态切换(本地 kiri :3100 ↔ 云端生产)——开关文件
+// frontend/.dev-api-target 存在时,本插件接管 /api 动态反代(移除下方原生 proxy),
+// 并提供 POST /__dev-api-target 切换端点;文件不存在则上游行为零改动。
+import devApiSwitcher from './scripts/dev-api-switcher.mjs'
 
 const backend = process.env.API_TARGET || 'http://127.0.0.1:3000'
 // The API refuses a state-changing request that a browser sent from anywhere other than its own
@@ -105,7 +109,7 @@ const appVersion = process.env.APP_BUILD ? `${pkgVersion}+${process.env.APP_BUIL
 
 export default defineConfig({
   define: { __APP_VERSION__: JSON.stringify(appVersion) },
-  plugins: [react(), umami, flavor, swStamp, catalogueMedia],
+  plugins: [react(), umami, flavor, swStamp, catalogueMedia, devApiSwitcher()],
   base: './',
   server: {
     // The Coach's core (payload, validator, prompts, HTTP adapters) lives in ../api/coach/core
