@@ -1356,7 +1356,7 @@ export default {
   'You have the latest version.': 'Masz najnowszą wersję.',
   'Couldn’t check for updates. Are you online?': 'Nie udało się sprawdzić aktualizacji. Czy jesteś online?',
   'Get the Android app': 'Pobierz aplikację na Androida',
-  'Download the APK from opengym.ch': 'Pobierz APK z opengym.ch',
+  'Download the APK from app.qingmulife.com': 'Pobierz APK z qingmulife.com',
   'Releases are checked on GitHub. The download is verified against its checksum before the installer opens.': 'Wydania są sprawdzane na GitHub. Pobrany plik jest weryfikowany sumą kontrolną przed otwarciem instalatora.',
   'The web app updates together with your server. The Android app installs its own updates from here.': 'Aplikacja webowa aktualizuje się razem z serwerem. Aplikacja na Androida instaluje aktualizacje stąd.',
   'Starting download…': 'Rozpoczynanie pobierania…',
@@ -3606,7 +3606,7 @@ export default {
   "F-Droid installs the updates for this build.": "Aktualizacje tej wersji instaluje F-Droid.",
   "Wear OS watch": "Zegarek z Wear OS",
   "Not in this build": "Nie w tej wersji",
-  "Wear OS watches talk to the phone through Google Play services, which F-Droid apps leave out. The APK from opengym.ch and the Google Play app have the watch link.": "Zegarki z Wear OS łączą się z telefonem przez usługi Google Play, których aplikacje z F-Droid nie zawierają. APK z opengym.ch i aplikacja z Google Play mają połączenie z zegarkiem.",
+  "Wear OS watches talk to the phone through Google Play services, which F-Droid apps leave out. The APK from qingmulife.com and the Google Play app have the watch link.": "Zegarki z Wear OS łączą się z telefonem przez usługi Google Play, których aplikacje z F-Droid nie zawierają. APK z opengym.ch i aplikacja z Google Play mają połączenie z zegarkiem.",
   // Stats redesign
   "Muscles": "Mięśnie",
   "Chart": "Wykres",

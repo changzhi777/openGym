@@ -154,9 +154,12 @@ describe('Settings — reset everything', () => {
 })
 
 describe('Settings — footer', () => {
-  it('links the source code to its home on GitHub, on About & updates', () => {
+  it('shows the version without upstream source links, on About & updates', () => {
+    // S6（2026-11-25）:fork 移除「free & open source / Source code」上游链接（AGPL §13
+    // 源码可用性由 FORK.md 承接）；Gym visual 署名块按授权 §8c 原样保留。
     act(() => root.render(<Settings page="about" />))
-    const link = [...host.querySelectorAll('a')].find(a => a.textContent === 'Source code')
-    expect(link.getAttribute('href')).toBe('https://github.com/DuarteSantos8/openGym')
+    expect([...host.querySelectorAll('a')].find(a => a.textContent === 'Source code')).toBeUndefined()
+    expect(host.textContent).toContain('v' + __APP_VERSION__)
+    expect(host.textContent).toContain('Gym visual')
   })
 })

@@ -1356,7 +1356,7 @@ export default {
   'You have the latest version.': '최신 버전입니다.',
   'Couldn’t check for updates. Are you online?': '업데이트를 확인할 수 없어요. 온라인 상태인가요?',
   'Get the Android app': 'Android 앱 받기',
-  'Download the APK from opengym.ch': 'opengym.ch에서 APK 다운로드',
+  'Download the APK from app.qingmulife.com': 'qingmulife.com에서 APK 다운로드',
   'Releases are checked on GitHub. The download is verified against its checksum before the installer opens.': '릴리스는 GitHub에서 확인합니다. 설치 프로그램이 열리기 전에 다운로드의 체크섬을 검증합니다.',
   'The web app updates together with your server. The Android app installs its own updates from here.': '웹 앱은 서버와 함께 업데이트됩니다. Android 앱은 여기서 직접 업데이트를 설치합니다.',
   'Starting download…': '다운로드 시작 중…',
@@ -3606,7 +3606,7 @@ export default {
   "F-Droid installs the updates for this build.": "이 빌드의 업데이트는 F-Droid가 설치해요.",
   "Wear OS watch": "Wear OS 워치",
   "Not in this build": "이 빌드에는 없어요",
-  "Wear OS watches talk to the phone through Google Play services, which F-Droid apps leave out. The APK from opengym.ch and the Google Play app have the watch link.": "Wear OS 워치는 Google Play 서비스를 통해 휴대폰과 연결되는데, F-Droid 앱에는 이게 빠져 있어요. opengym.ch의 APK와 Google Play 앱에는 워치 연결이 있어요.",
+  "Wear OS watches talk to the phone through Google Play services, which F-Droid apps leave out. The APK from qingmulife.com and the Google Play app have the watch link.": "Wear OS 워치는 Google Play 서비스를 통해 휴대폰과 연결되는데, F-Droid 앱에는 이게 빠져 있어요. opengym.ch의 APK와 Google Play 앱에는 워치 연결이 있어요.",
   // Stats redesign
   "Muscles": "근육",
   "Chart": "차트",

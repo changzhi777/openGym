@@ -1354,7 +1354,7 @@ export default {
   'You have the latest version.': '已是最新版本。',
   'Couldn’t check for updates. Are you online?': '无法检查更新。你在线吗？',
   'Get the Android app': '获取 Android 应用',
-  'Download the APK from opengym.ch': '从 opengym.ch 下载 APK',
+  'Download the APK from app.qingmulife.com': '从 qingmulife.com 下载 APK',
   'Releases are checked on GitHub. The download is verified against its checksum before the installer opens.': '版本在 GitHub 上检查。安装程序打开前会校验下载文件的校验和。',
   'The web app updates together with your server. The Android app installs its own updates from here.': '网页应用随服务器一起更新。Android 应用在这里自行安装更新。',
   'Starting download…': '正在开始下载…',
@@ -3604,7 +3604,7 @@ export default {
   "F-Droid installs the updates for this build.": "这个版本的更新由 F-Droid 安装。",
   "Wear OS watch": "Wear OS 手表",
   "Not in this build": "此版本没有",
-  "Wear OS watches talk to the phone through Google Play services, which F-Droid apps leave out. The APK from opengym.ch and the Google Play app have the watch link.": "Wear OS 手表通过 Google Play 服务和手机通信，而 F-Droid 的应用不包含它。opengym.ch 的 APK 和 Google Play 上的应用可以连接手表。",
+  "Wear OS watches talk to the phone through Google Play services, which F-Droid apps leave out. The APK from qingmulife.com and the Google Play app have the watch link.": "Wear OS 手表通过 Google Play 服务和手机通信，而 F-Droid 的应用不包含它。opengym.ch 的 APK 和 Google Play 上的应用可以连接手表。",
   // Stats redesign
   "Muscles": "肌肉",
   "Chart": "图表",

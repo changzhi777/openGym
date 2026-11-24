@@ -198,16 +198,20 @@ describe('Settings → About: which APK this is', () => {
 // registered charity, so the Play build has no coffee links, only its own rating row.
 describe('Settings: support links', () => {
   const row = text => [...host.querySelectorAll('.lrow')].find(r => r.textContent.includes(text))
-  it('the APK keeps the donation links and has no Play rating row', async () => {
+  it('the fork carries no donation rows and no store-rating rows, on web, phone or a Play build', async () => {
     mocks.MOBILE = true
     mocks.android = true
     await mount()
-    expect(row('Buy me a coffee')).toBeTruthy()
-    expect(row('Ko-fi')).toBeTruthy()
-    expect(row('GitHub Sponsors')).toBeTruthy()
+    expect(row('Buy me a coffee')).toBeUndefined()
+    expect(row('Ko-fi')).toBeUndefined()
+    expect(row('GitHub Sponsors')).toBeUndefined()
     expect(row('Rate Muhe Fit on Google Play')).toBeUndefined()
+    expect(row('Rate Muhe Fit on the App Store')).toBeUndefined()
+    expect(host.textContent).not.toContain('A coffee keeps it that way')
+    await mount()
+    expect(row('Buy me a coffee')).toBeUndefined()
   })
-  it('the Google Play build shows only the rating row', async () => {
+  it('the Google Play build likewise shows none of them', async () => {
     mocks.MOBILE = true
     mocks.android = true
     mocks.channel = 'play'
@@ -215,12 +219,12 @@ describe('Settings: support links', () => {
     expect(row('Buy me a coffee')).toBeUndefined()
     expect(row('Ko-fi')).toBeUndefined()
     expect(row('GitHub Sponsors')).toBeUndefined()
-    expect(row('Rate Muhe Fit on Google Play')).toBeTruthy()
+    expect(row('Rate Muhe Fit on Google Play')).toBeUndefined()
     expect(host.textContent).not.toContain('A coffee keeps it that way')
   })
-  it('the web keeps the donation links', async () => {
+  it('the web likewise shows none of them', async () => {
     await mount()
-    expect(row('Buy me a coffee')).toBeTruthy()
+    expect(row('Buy me a coffee')).toBeUndefined()
     expect(row('Rate Muhe Fit on Google Play')).toBeUndefined()
   })
 })

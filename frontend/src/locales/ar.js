@@ -1254,7 +1254,7 @@ export default {
   'You have the latest version.': 'لديك أحدث إصدار.',
   'Couldn’t check for updates. Are you online?': 'تعذّر التحقق من التحديثات. هل أنت متصل بالإنترنت؟',
   'Get the Android app': 'احصل على تطبيق أندرويد',
-  'Download the APK from opengym.ch': 'نزّل ملف APK من opengym.ch',
+  'Download the APK from app.qingmulife.com': 'نزّل ملف APK من qingmulife.com',
   'Releases are checked on GitHub. The download is verified against its checksum before the installer opens.': 'يُتحقق من الإصدارات على GitHub. ويُتحقق من التنزيل مقابل بصمته قبل فتح المثبّت.',
   'The web app updates together with your server. The Android app installs its own updates from here.': 'يتحدث تطبيق الويب مع خادمك. أما تطبيق أندرويد فيثبّت تحديثاته من هنا.',
   'Starting download…': 'جارٍ بدء التنزيل…',
@@ -3661,7 +3661,7 @@ export default {
   "F-Droid installs the updates for this build.": "يثبّت F-Droid تحديثات هذا الإصدار.",
   "Wear OS watch": "ساعة Wear OS",
   "Not in this build": "ليست في هذا الإصدار",
-  "Wear OS watches talk to the phone through Google Play services, which F-Droid apps leave out. The APK from opengym.ch and the Google Play app have the watch link.": "تتصل ساعات Wear OS بالهاتف عبر خدمات Google Play، وتطبيقات F-Droid لا تتضمنها. ملف APK من opengym.ch وتطبيق Google Play فيهما ربط الساعة.",
+  "Wear OS watches talk to the phone through Google Play services, which F-Droid apps leave out. The APK from qingmulife.com and the Google Play app have the watch link.": "تتصل ساعات Wear OS بالهاتف عبر خدمات Google Play، وتطبيقات F-Droid لا تتضمنها. ملف APK من opengym.ch وتطبيق Google Play فيهما ربط الساعة.",
   // Stats redesign
   "Muscles": "العضلات",
   "Chart": "الرسم البياني",

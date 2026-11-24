@@ -40,10 +40,10 @@ describe('checkForUpdate', () => {
   }
   const asset = (name, url = 'https://github.com/x/releases/download/v9/' + name) => ({ name, browser_download_url: url })
 
-  it('asks GitHub for the latest published release (never a draft or a beta)', async () => {
+  it('asks the project server for the latest published release (never a draft or a beta)', async () => {
     mockFetch({ tag_name: 'v' + __APP_VERSION__, assets: [] })
     await checkForUpdate()
-    expect(globalThis.fetch.mock.calls[0][0]).toBe('https://api.github.com/repos/DuarteSantos8/openGym/releases/latest')
+    expect(globalThis.fetch.mock.calls[0][0]).toBe('https://app.qingmulife.com/app/latest.json')
   })
 
   it('reports no update when the latest release matches the current version', async () => {

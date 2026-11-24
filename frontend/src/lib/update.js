@@ -1,9 +1,10 @@
-// Update check — compares the installed version (__APP_VERSION__) against
-// the latest release on GitHub and optionally downloads + installs the APK.
+// Update check — compares the installed version (__APP_VERSION__) against the latest release
+// manifest on the project's own server (qingmulife.com) and optionally downloads + installs the APK.
 //
-// The GitHub releases API is public, so no token is needed (60 requests an hour per address,
-// and the check runs once per app session). GitHub is openGym's home since v1.4.0; the GitLab
-// mirror stopped getting releases, so a phone that asked it saw no update.
+// The manifest (app/latest.json) carries the GitHub-API release shape (tag_name + assets with
+// browser_download_url), so the picking/verification logic below is untouched: swap the JSON,
+// not the code. Served from the project's own server since the fork — a phone must never be
+// pointed at upstream openGym's releases (wrong app, wrong package, wrong brand).
 // On Android (Capacitor) the APK is downloaded natively into the cache directory (an APK with
 // the animations is ~300 MB: read into the WebView's memory it ran phones out of it, and
 // github.com's download redirect has no CORS headers for a WebView fetch anyway), checked
@@ -12,9 +13,9 @@
 import { MOBILE } from './mobile.js'
 import { APK_VARIANTS, APK_VARIANT } from './apk-variant.js'
 
-const REPO = 'DuarteSantos8/openGym'
-const LATEST_URL = `https://api.github.com/repos/${REPO}/releases/latest`
-export const RELEASES_PAGE = `https://github.com/${REPO}/releases/latest`
+const APP_BASE = 'https://app.qingmulife.com/app'
+const LATEST_URL = `${APP_BASE}/latest.json`
+export const RELEASES_PAGE = `${APP_BASE}/`
 
 /**
  * Compares two semver strings (e.g. "1.2.11" vs "1.3.0").

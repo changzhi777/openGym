@@ -1354,7 +1354,7 @@ export default {
   'You have the latest version.': 'En son sürüme sahipsin.',
   'Couldn’t check for updates. Are you online?': 'Güncellemeler denetlenemedi. Çevrimiçi misin?',
   'Get the Android app': 'Android uygulamasını al',
-  'Download the APK from opengym.ch': 'APK’yı opengym.ch adresinden indir',
+  'Download the APK from app.qingmulife.com': 'APK’yı qingmulife.com adresinden indir',
   'Releases are checked on GitHub. The download is verified against its checksum before the installer opens.': 'Sürümler GitHub üzerinde denetlenir. İndirme, yükleyici açılmadan önce sağlama toplamıyla doğrulanır.',
   'The web app updates together with your server. The Android app installs its own updates from here.': 'Web uygulaması sunucunla birlikte güncellenir. Android uygulaması güncellemelerini buradan kurar.',
   'Starting download…': 'İndirme başlatılıyor…',
@@ -3604,7 +3604,7 @@ export default {
   "F-Droid installs the updates for this build.": "Bu sürümün güncellemelerini F-Droid yükler.",
   "Wear OS watch": "Wear OS saat",
   "Not in this build": "Bu sürümde yok",
-  "Wear OS watches talk to the phone through Google Play services, which F-Droid apps leave out. The APK from opengym.ch and the Google Play app have the watch link.": "Wear OS saatler telefonla Google Play hizmetleri üzerinden konuşur, F-Droid uygulamalarında bunlar yok. opengym.ch’deki APK ve Google Play uygulaması saat bağlantısına sahip.",
+  "Wear OS watches talk to the phone through Google Play services, which F-Droid apps leave out. The APK from qingmulife.com and the Google Play app have the watch link.": "Wear OS saatler telefonla Google Play hizmetleri üzerinden konuşur, F-Droid uygulamalarında bunlar yok. opengym.ch’deki APK ve Google Play uygulaması saat bağlantısına sahip.",
   // Stats redesign
   "Muscles": "Kaslar",
   "Chart": "Grafik",

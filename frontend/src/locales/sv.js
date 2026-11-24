@@ -1375,7 +1375,7 @@ export default {
   'You have the latest version.': 'Du har den senaste versionen.',
   'Couldn’t check for updates. Are you online?': 'Kunde inte söka efter uppdateringar. Är du ansluten?',
   'Get the Android app': 'Hämta Android-appen',
-  'Download the APK from opengym.ch': 'Ladda ner APK-filen från opengym.ch',
+  'Download the APK from app.qingmulife.com': 'Ladda ner APK-filen från qingmulife.com',
   'Releases are checked on GitHub. The download is verified against its checksum before the installer opens.': 'Nya versioner kontrolleras på GitHub. Nedladdningen verifieras mot sin kontrollsumma innan installationsprogrammet öppnas.',
   'The web app updates together with your server. The Android app installs its own updates from here.': 'Webbappen uppdateras tillsammans med din server. Android-appen installerar sina egna uppdateringar härifrån.',
   'Starting download…': 'Startar nedladdning…',
@@ -3651,7 +3651,7 @@ export default {
   "F-Droid installs the updates for this build.": "F-Droid installerar uppdateringarna för den här versionen.",
   "Wear OS watch": "Wear OS-klocka",
   "Not in this build": "Inte i den här versionen",
-  "Wear OS watches talk to the phone through Google Play services, which F-Droid apps leave out. The APK from opengym.ch and the Google Play app have the watch link.": "Wear OS-klockor pratar med telefonen via Google Play-tjänster, som appar från F-Droid lämnar bort. APK:n från opengym.ch och appen från Google Play har klockkopplingen.",
+  "Wear OS watches talk to the phone through Google Play services, which F-Droid apps leave out. The APK from qingmulife.com and the Google Play app have the watch link.": "Wear OS-klockor pratar med telefonen via Google Play-tjänster, som appar från F-Droid lämnar bort. APK:n från opengym.ch och appen från Google Play har klockkopplingen.",
   // Stats redesign
   "Muscles": "Muskler",
   "Chart": "Diagram",

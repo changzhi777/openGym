@@ -1325,7 +1325,7 @@ export default {
   'You have the latest version.': 'У вас последняя версия.',
   'Couldn’t check for updates. Are you online?': 'Не удалось проверить обновления. Вы онлайн?',
   'Get the Android app': 'Скачать приложение для Android',
-  'Download the APK from opengym.ch': 'Скачайте APK с opengym.ch',
+  'Download the APK from app.qingmulife.com': 'Скачайте APK с qingmulife.com',
   'Releases are checked on GitHub. The download is verified against its checksum before the installer opens.': 'Релизы проверяются на GitHub. Перед запуском установщика загрузка сверяется с контрольной суммой.',
   'The web app updates together with your server. The Android app installs its own updates from here.': 'Веб-приложение обновляется вместе с сервером. Приложение для Android устанавливает обновления отсюда.',
   'Starting download…': 'Начало загрузки…',
@@ -3608,7 +3608,7 @@ export default {
   "F-Droid installs the updates for this build.": "Обновления этой версии устанавливает F-Droid.",
   "Wear OS watch": "Часы Wear OS",
   "Not in this build": "Нет в этой версии",
-  "Wear OS watches talk to the phone through Google Play services, which F-Droid apps leave out. The APK from opengym.ch and the Google Play app have the watch link.": "Часы Wear OS общаются с телефоном через сервисы Google Play, а в приложениях из F-Droid их нет. В APK с opengym.ch и в приложении из Google Play связь с часами есть.",
+  "Wear OS watches talk to the phone through Google Play services, which F-Droid apps leave out. The APK from qingmulife.com and the Google Play app have the watch link.": "Часы Wear OS общаются с телефоном через сервисы Google Play, а в приложениях из F-Droid их нет. В APK с opengym.ch и в приложении из Google Play связь с часами есть.",
   // Stats redesign
   "Muscles": "Мышцы",
   "Chart": "График",

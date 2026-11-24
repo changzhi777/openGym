@@ -1365,7 +1365,7 @@ export default {
   'You have the latest version.': 'คุณใช้เวอร์ชันล่าสุดแล้ว',
   'Couldn’t check for updates. Are you online?': 'ตรวจสอบอัปเดตไม่ได้ คุณออนไลน์อยู่หรือเปล่า?',
   'Get the Android app': 'รับแอป Android',
-  'Download the APK from opengym.ch': 'ดาวน์โหลด APK จาก opengym.ch',
+  'Download the APK from app.qingmulife.com': 'ดาวน์โหลด APK จาก qingmulife.com',
   'Releases are checked on GitHub. The download is verified against its checksum before the installer opens.': 'ตรวจสอบรุ่นจาก GitHub ไฟล์ที่ดาวน์โหลดจะถูกตรวจ checksum ก่อนเปิดตัวติดตั้ง',
   'The web app updates together with your server. The Android app installs its own updates from here.': 'เว็บแอปอัปเดตพร้อมกับเซิร์ฟเวอร์ของคุณ แอป Android ติดตั้งอัปเดตจากที่นี่',
   'Starting download…': 'กำลังเริ่มดาวน์โหลด…',
@@ -3615,7 +3615,7 @@ export default {
   "F-Droid installs the updates for this build.": "F-Droid เป็นผู้ติดตั้งอัปเดตของบิลด์นี้",
   "Wear OS watch": "นาฬิกา Wear OS",
   "Not in this build": "ไม่มีในบิลด์นี้",
-  "Wear OS watches talk to the phone through Google Play services, which F-Droid apps leave out. The APK from opengym.ch and the Google Play app have the watch link.": "นาฬิกา Wear OS คุยกับโทรศัพท์ผ่านบริการ Google Play ซึ่งแอปใน F-Droid ไม่มี APK จาก opengym.ch และแอปจาก Google Play เชื่อมต่อนาฬิกาได้",
+  "Wear OS watches talk to the phone through Google Play services, which F-Droid apps leave out. The APK from qingmulife.com and the Google Play app have the watch link.": "นาฬิกา Wear OS คุยกับโทรศัพท์ผ่านบริการ Google Play ซึ่งแอปใน F-Droid ไม่มี APK จาก opengym.ch และแอปจาก Google Play เชื่อมต่อนาฬิกาได้",
   // Stats redesign
   "Muscles": "กล้ามเนื้อ",
   "Chart": "กราฟ",

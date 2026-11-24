@@ -1356,7 +1356,7 @@ export default {
   'You have the latest version.': 'Tienes la última versión.',
   'Couldn’t check for updates. Are you online?': 'No se pudo comprobar si hay actualizaciones. ¿Estás conectado?',
   'Get the Android app': 'Descargar la app de Android',
-  'Download the APK from opengym.ch': 'Descarga el APK desde opengym.ch',
+  'Download the APK from app.qingmulife.com': 'Descarga el APK desde qingmulife.com',
   'Releases are checked on GitHub. The download is verified against its checksum before the installer opens.': 'Las versiones se comprueban en GitHub. La descarga se verifica con su suma de comprobación antes de abrir el instalador.',
   'The web app updates together with your server. The Android app installs its own updates from here.': 'La app web se actualiza junto con tu servidor. La app de Android instala sus actualizaciones desde aquí.',
   'Starting download…': 'Iniciando descarga…',
@@ -3606,7 +3606,7 @@ export default {
   "F-Droid installs the updates for this build.": "F-Droid instala las actualizaciones de esta versión.",
   "Wear OS watch": "Reloj Wear OS",
   "Not in this build": "No en esta versión",
-  "Wear OS watches talk to the phone through Google Play services, which F-Droid apps leave out. The APK from opengym.ch and the Google Play app have the watch link.": "Los relojes Wear OS hablan con el móvil a través de los servicios de Google Play, que las apps de F-Droid dejan fuera. El APK de opengym.ch y la app de Google Play sí tienen la conexión con el reloj.",
+  "Wear OS watches talk to the phone through Google Play services, which F-Droid apps leave out. The APK from qingmulife.com and the Google Play app have the watch link.": "Los relojes Wear OS hablan con el móvil a través de los servicios de Google Play, que las apps de F-Droid dejan fuera. El APK de opengym.ch y la app de Google Play sí tienen la conexión con el reloj.",
   // Stats redesign
   "Muscles": "Músculos",
   "Chart": "Gráfico",

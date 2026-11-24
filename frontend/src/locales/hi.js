@@ -1356,7 +1356,7 @@ export default {
   'You have the latest version.': 'आपके पास नवीनतम संस्करण है।',
   'Couldn’t check for updates. Are you online?': 'अपडेट जाँच नहीं हो सकी। क्या आप ऑनलाइन हैं?',
   'Get the Android app': 'Android ऐप लें',
-  'Download the APK from opengym.ch': 'opengym.ch से APK डाउनलोड करें',
+  'Download the APK from app.qingmulife.com': 'qingmulife.com से APK डाउनलोड करें',
   'Releases are checked on GitHub. The download is verified against its checksum before the installer opens.': 'रिलीज़ GitHub पर जाँची जाती हैं। इंस्टॉलर खुलने से पहले डाउनलोड की चेकसम से पुष्टि होती है।',
   'The web app updates together with your server. The Android app installs its own updates from here.': 'वेब ऐप आपके सर्वर के साथ अपडेट होता है। Android ऐप अपने अपडेट यहीं से इंस्टॉल करता है।',
   'Starting download…': 'डाउनलोड शुरू हो रहा है…',
@@ -3606,7 +3606,7 @@ export default {
   "F-Droid installs the updates for this build.": "इस बिल्ड के अपडेट F-Droid इंस्टॉल करता है।",
   "Wear OS watch": "Wear OS घड़ी",
   "Not in this build": "इस बिल्ड में नहीं",
-  "Wear OS watches talk to the phone through Google Play services, which F-Droid apps leave out. The APK from opengym.ch and the Google Play app have the watch link.": "Wear OS घड़ियाँ Google Play सेवाओं के ज़रिए फ़ोन से बात करती हैं, और F-Droid ऐप्स में ये नहीं होतीं। opengym.ch का APK और Google Play वाला ऐप घड़ी से जुड़ते हैं।",
+  "Wear OS watches talk to the phone through Google Play services, which F-Droid apps leave out. The APK from qingmulife.com and the Google Play app have the watch link.": "Wear OS घड़ियाँ Google Play सेवाओं के ज़रिए फ़ोन से बात करती हैं, और F-Droid ऐप्स में ये नहीं होतीं। opengym.ch का APK और Google Play वाला ऐप घड़ी से जुड़ते हैं।",
   // Stats redesign
   "Muscles": "मांसपेशियाँ",
   "Chart": "चार्ट",

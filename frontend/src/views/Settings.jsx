@@ -1117,12 +1117,12 @@ export default function Settings({ page = null, find = null, via = null, entryKe
               accessory="chevron"
               onClick={() => (updateInfo?.hasUpdate ? onUpdateRowClick() : checkNow())} />
           : <Row icon="download" iconTint="var(--green)" title={t('Get the Android app')}
-              subtitle={t('Download the APK from opengym.ch')} accessory="chevron"
-              onClick={() => window.open('https://opengym.ch/#download', '_blank', 'noopener')} />}
+              subtitle={t('Download the APK from qingmulife.com')} accessory="chevron"
+              onClick={() => window.open('https://app.qingmulife.com/app/', '_blank', 'noopener')} />}
       </Section>
       {/* The F-Droid build has no Wear OS link (it would need Google Play services, which F-Droid
           leaves out): said here rather than having a watch that silently never connects. */}
-      {fdroid && <Section footer={t('Wear OS watches talk to the phone through Google Play services, which F-Droid apps leave out. The APK from opengym.ch and the Google Play app have the watch link.')}>
+      {fdroid && <Section footer={t('Wear OS watches talk to the phone through Google Play services, which F-Droid apps leave out. The APK from qingmulife.com and the Google Play app have the watch link.')}>
         <Row icon="watch" iconTint="var(--grey)" title={t('Wear OS watch')} value={t('Not in this build')} />
       </Section>}
       {/* Tutorials (components/Tour.jsx): the tour from the top, and the four short guided runs
@@ -1138,39 +1138,11 @@ export default function Settings({ page = null, find = null, via = null, entryKe
             onClick={() => (useStore.getState().S.active ? toast(t('Finish your workout first, then the tour is all yours.')) : startTour(null, f))} />
         })}
       </Section>
-      {/* Support: the project's own donation pages, and on the iPhone a straight line to writing a
-          review. Plain links, no pop-up asking for anything (App Store 5.6.1). The Google Play build
-          shows only its rating link: Play's payments policy wants Play billing for anything paid
-          inside an app, donations to a project that isn't a registered charity included, so the
-          coffee links stay on the APK, the iPhone and the web (docs/APP_STORES.md). */}
-      <Section title={t('Support openGym')} footer={play ? undefined : t('openGym is free: no ads, no subscriptions, no tracking. A coffee keeps it that way.')}>
-        {MOBILE && ios && <Row icon="star" iconTint="var(--orange)" title={t('Rate openGym on the App Store')} accessory="chevron"
-          onClick={() => window.open('https://apps.apple.com/app/id6822275400?action=write-review', '_blank', 'noopener')} />}
-        {play && <Row icon="star" iconTint="var(--orange)" title={t('Rate openGym on Google Play')} accessory="chevron"
-          onClick={() => window.open('https://play.google.com/store/apps/details?id=ch.duartesantos.opengym', '_blank', 'noopener')} />}
-        {!play && <>
-          <Row icon="heart" iconTint="var(--pink)" title={t('Buy me a coffee')} subtitle="Buy Me a Coffee" accessory="chevron"
-            onClick={() => window.open('https://buymeacoffee.com/duartesantos', '_blank', 'noopener')} />
-          <Row icon="heart" iconTint="var(--blue)" title="Ko-fi" accessory="chevron"
-            onClick={() => window.open('https://ko-fi.com/opengym', '_blank', 'noopener')} />
-          <Row icon="heart" iconTint="var(--purple)" title="GitHub Sponsors" accessory="chevron"
-            onClick={() => window.open('https://github.com/sponsors/DuarteSantos8', '_blank', 'noopener')} />
-        </>}
-      </Section>
-      {/* "Add to Home screen": not inside the phone app, and not once it is installed. Safari's
-          Share menu only on Apple (an iPad says Macintosh too); Windows and Linux get Chrome's
-          install icon instead of an iPhone tip. */}
-      {!MOBILE && !standalone() && <Section title={t('Tip')}>
-        <Row icon="share" iconTint="var(--blue)"
-          title={IS_ANDROID ? t('In Chrome: ⋮ menu → Add to Home screen') : APPLE_UA ? t('In Safari: Share → Add to Home Screen') : t('In Chrome or Edge: the install icon in the address bar')}
-          subtitle={t('to install openGym as a full-screen app.') + ' ' + (user ? t('Your data syncs with your profile. Sign in anywhere and it’s there.') : t('Guest data stays on this device, so export a backup now and then!'))} />
-      </Section>}
       {/* The version, where the support template tells people to look for it. On the phone
           build there is no address bar and no about box, so without this there is no way to tell
           which build you are running, or whether an update actually installed. */}
       <div className="dim small sp-version">
-        {t('openGym')} v{__APP_VERSION__} · {t('free & open source (AGPL v3)')}<br />
-        <a href="https://github.com/DuarteSantos8/openGym" target="_blank" rel="noopener">{t('Source code')}</a><br />
+        {t('openGym')} v{__APP_VERSION__}<br />
         {/* Attribution the media licence asks for word for word (agreement §8c), so it is not translated */}
         Exercise media © Aliaksandr Makatserchyk, <a href="https://gymvisual.com/" target="_blank" rel="noopener">Gym visual</a>, gymvisual.com.
         Media licensed for use in openGym only; see <a href="https://github.com/DuarteSantos8/openGym/blob/main/NOTICE.md" target="_blank" rel="noopener">NOTICE.md</a>

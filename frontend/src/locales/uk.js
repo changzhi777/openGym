@@ -1202,7 +1202,7 @@ export default {
   "You have the latest version.": "У тебе остання версія.",
   'Couldn’t check for updates. Are you online?': 'Не вдалося перевірити оновлення. Ти онлайн?',
   "Get the Android app": "Отримати застосунок для Android",
-  "Download the APK from opengym.ch": "Завантаж APK з opengym.ch",
+  "Download the APK from app.qingmulife.com": "Завантаж APK з qingmulife.com",
   "Releases are checked on GitHub. The download is verified against its checksum before the installer opens.": "Релізи перевіряються на GitHub. Перед відкриттям встановлювача завантаження звіряється з контрольною сумою.",
   "The web app updates together with your server. The Android app installs its own updates from here.": "Веб-застосунок оновлюється разом із сервером. Застосунок для Android встановлює свої оновлення звідси.",
   "Starting download…": "Починаю завантаження…",
@@ -3601,7 +3601,7 @@ export default {
   "F-Droid installs the updates for this build.": "Оновлення цієї версії встановлює F-Droid.",
   "Wear OS watch": "Годинник Wear OS",
   "Not in this build": "Немає в цій версії",
-  "Wear OS watches talk to the phone through Google Play services, which F-Droid apps leave out. The APK from opengym.ch and the Google Play app have the watch link.": "Годинники Wear OS спілкуються з телефоном через сервіси Google Play, а застосунки з F-Droid їх не мають. APK з opengym.ch і застосунок з Google Play мають зв’язок із годинником.",
+  "Wear OS watches talk to the phone through Google Play services, which F-Droid apps leave out. The APK from qingmulife.com and the Google Play app have the watch link.": "Годинники Wear OS спілкуються з телефоном через сервіси Google Play, а застосунки з F-Droid їх не мають. APK з opengym.ch і застосунок з Google Play мають зв’язок із годинником.",
   // Stats redesign
   "Muscles": "М’язи",
   "Chart": "Графік",
