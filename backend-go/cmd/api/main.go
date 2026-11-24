@@ -18,6 +18,7 @@ import (
 	"github.com/changzhi777/openGym/backend-go/internal/agent"
 	"github.com/changzhi777/openGym/backend-go/internal/auth"
 	"github.com/changzhi777/openGym/backend-go/internal/coach"
+	"github.com/changzhi777/openGym/backend-go/internal/coachconsole"
 	"github.com/changzhi777/openGym/backend-go/internal/data"
 	"github.com/changzhi777/openGym/backend-go/internal/httpx"
 	"github.com/changzhi777/openGym/backend-go/internal/llm"
@@ -100,6 +101,7 @@ func main() {
 	r.Use(gin.Recovery())
 	r.Use(httpx.CORS(origin())) // 预检 204 + Capacitor 源(Node APP_ORIGINS 同集)
 	r.Use(httpx.CSRF(origin())) // Node csrfOk 移植(Sec-Fetch-Site 优先)
+	r.Use(httpx.PathGuard())    // 安全对齐:反斜杠/点段路径一律 404(nginx 不归一化)
 	r.Use(httpx.BodyGuard())    // 5MiB cap → 413;坏 JSON → 400(全路由)
 
 	// 与 Node 版同形:容器 healthcheck 读状态码,写不进数据目录 = 不健康。
@@ -128,7 +130,7 @@ func main() {
 		log.Fatal("sms: SMS_* not configured and dev mode not allowed — set MUHE_ALLOW_SMS_DEV=1 for local development, or configure SMS_SECRET_ID/KEY/APP_ID/SIGN/TEMPLATE_ID")
 	}
 	smsStore := sms.Store{Rdb: rdb}
-	wxMini := wechat.New(os.Getenv("WX_MINI_APPID"), os.Getenv("WX_MINI_SECRET"), rdb)
+	wxMini := wechat.New(os.Getenv("WX_MINI_APPID"), os.Getenv("WX_MINI_SECRET"), os.Getenv("WX_MINI_ENV"), rdb)
 	svc := &auth.Service{DB: db, Sessions: sessions, Rdb: rdb,
 		Sms: smsSender, SmsStore: smsStore, Wx: wxMini, InviteEnvDef: inviteEnvDefault()}
 	r.GET("/api/auth/captcha", svc.Captcha)
@@ -149,7 +151,9 @@ func main() {
 	r.PUT("/api/data", dataSvc.Put)
 	// P4:Web Push 七端点(VAPID 与 Node 共用 data/vapid.json)。
 	pushSvc := push.New(os.Getenv("DATA_DIR"))
-	ph := &push.Handlers{DB: db, Sessions: sessions, Svc: pushSvc}
+	ph := &push.Handlers{DB: db, Sessions: sessions, Svc: pushSvc,
+		// 限频(安全对齐):rest-timer 60 次/分、测试推送 10 次/10 分,按账号
+		RestSets: push.NewRateWindow(60, time.Minute), PushTests: push.NewRateWindow(10, 10*time.Minute)}
 
 	// P5:AI 教练 sidecar 桥(过渡)——/api/coach/* 反代 Node sidecar,鉴权在此;
 	// /internal/coach/* 是 sidecar 的回读面(INTERNAL_TOKEN 相认,未设 token 不注册)。
@@ -282,6 +286,16 @@ func main() {
 	r.GET("/api/admin/coach/agent-config", support, agentSvc.AdminAgentConfigGet)
 	r.PUT("/api/admin/coach/agent-config", ops, stepUp, agentSvc.AdminAgentConfigPut)
 	go adminSvc.PurgeLoop(context.Background()) // 审计 90 天保留(§3.8)
+
+	// 教练工作台(fork):coach 角色绑定学员/白名单数据/计划下发;不走 admin step-up。
+	ccSvc := coachconsole.New(db, rdb, sessions, ph)
+	cc := r.Group("/api/coach-console", ccSvc.RequireCoach())
+	cc.GET("/students", ccSvc.Students)
+	cc.POST("/bindings", ccSvc.Bind)
+	cc.DELETE("/bindings/:studentId", ccSvc.Unbind)
+	cc.GET("/students/:id", ccSvc.StudentDetail)
+	cc.PUT("/students/:id/plan", ccSvc.PutPlan)
+	cc.GET("/students/:id/export", ccSvc.Export)
 
 	// 其余端点尚未实现 —— 与 Node 侧 501 stub 同语义。
 	r.NoRoute(func(c *gin.Context) {

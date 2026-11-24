@@ -40,6 +40,9 @@ fi
 echo "==> [3/5] 前端构建 + rsync(web 版;APK 走 build:mobile,见 frontend/android/README.md)"
 ( cd "$LOCAL_REPO/frontend" && npm run build >/dev/null 2>&1 )
 rsync -az --delete "$LOCAL_REPO/frontend/dist/" "$HOST:/opt/muhe-fit/web/"
+# CSP hash 守护:nginx 按 index.html 内联脚本 hash 白名单放行,漂移即静默白屏——rsync 后显式校验
+CSP_HASH="$(node "$LOCAL_REPO/scripts/check-csp.mjs")"
+r "grep -q '$CSP_HASH' /etc/nginx/sites-available/qingmulife.com.conf || { echo '❌ CSP hash 漂移:回滚 web 并更新 nginx 的 script-src hash(见 scripts/check-csp.mjs)'; exit 1; }"
 
 echo "==> [4/5] 验证"
 r bash -c "'curl -s -m 6 http://127.0.0.1:3100/api/health'"

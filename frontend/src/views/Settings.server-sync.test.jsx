@@ -303,3 +303,24 @@ describe('leaving the server', () => {
     expect(mocks.toast).toHaveBeenLastCalledWith('Couldn’t sign out everywhere. You’re still signed in.')
   })
 })
+
+/* "Delete my account" (App Store rule 5.1.1(v)): wherever there is a server account, a paired
+   phone or a signed-in browser, and nowhere there is none. Once it is gone, Settings goes home. */
+describe('deleting the account', () => {
+  it('the row is deferred: an account on a paired phone or a signed-in browser shows none', async () => {
+    // 上游的「Delete my account」行依赖 passkey proof 链(PasswordAuth 随认证重构退役)——
+    // fork 把这一行延后(Settings.jsx 账号段注释),有账号也不渲染;删除权由服务端
+    // /api/account/delete(契约已在)与后续短信 proof 版本单独排期承接。
+    expect(rowByTitle(mount(<Settings page="account" />), 'Delete my account')).toBeUndefined()
+    mocks.MOBILE = false
+    expect(rowByTitle(mount(<Settings page="account" />), 'Delete my account')).toBeUndefined()
+  })
+
+  it('no account, no row: a phone kept local, and a guest in a browser', async () => {
+    mocks.user = null
+    mocks.sync = sync('local', { server: null })
+    expect(rowByTitle(mount(<Settings page="account" />), 'Delete my account')).toBeUndefined()
+    mocks.MOBILE = false
+    expect(rowByTitle(mount(<Settings page="account" />), 'Delete my account')).toBeUndefined()
+  })
+})

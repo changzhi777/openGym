@@ -9,6 +9,7 @@ package wechat
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"bytes"
 	"crypto/rand"
@@ -33,22 +34,25 @@ type swerr string
 func (e swerr) Error() string { return string(e) }
 
 type MiniProgram struct {
-	AppID  string
-	Secret string
-	Rdb    *redis.Client
-	HTTP   *http.Client
+	AppID      string
+	Secret     string
+	EnvVersion string // 出码目标版本:release(默认,线上正式版)|trial(体验版)|develop(开发版)
+	Rdb        *redis.Client
+	HTTP       *http.Client
 }
 
-func New(appID, secret string, rdb *redis.Client) *MiniProgram {
-	return &MiniProgram{AppID: appID, Secret: secret, Rdb: rdb,
+func New(appID, secret, envVersion string, rdb *redis.Client) *MiniProgram {
+	return &MiniProgram{AppID: appID, Secret: secret, EnvVersion: envVersion, Rdb: rdb,
 		HTTP: &http.Client{Timeout: 10 * time.Second}}
 }
 
 func (m *MiniProgram) Enabled() bool { return m.AppID != "" && m.Secret != "" && m.Rdb != nil }
 
 // MintTicket 出一张一次性扫码票据(pending,TTL 5 分钟)。
+// ⚠️ 长度:scene 上限 32 字符,scene = "t=" + ticket ≤ 32 → ticket ≤ 30;
+// 曾用 wx+UnixNano(19)+hex(12)=33 超限出码 40169。改纯随机 28(wx+hex14)。
 func (m *MiniProgram) MintTicket(ctx context.Context) (ticket string, err error) {
-	ticket = fmt.Sprintf("wx%d%s", time.Now().UnixNano(), randHex(6))
+	ticket = "wx" + randHex(14)
 	err = m.Rdb.Set(ctx, ticketPre+ticket, "pending", ticketTTL).Err()
 	return ticket, err
 }
@@ -104,16 +108,42 @@ func (m *MiniProgram) Code2Session(ctx context.Context, wxCode string) (openid s
 }
 
 // QRCodePNG getUnlimitedQRCode:scene 携带 ticket 的 小程序码 PNG(base64 由调用方包)。
+// 凭据失效(40001/42001——外部刷新会作废 Redis 缓存)时强刷 token 重试一次。
 func (m *MiniProgram) QRCodePNG(ctx context.Context, ticket string) (png []byte, err error) {
-	at, err := m.accessToken(ctx)
+	at, err := m.accessToken(ctx, false)
 	if err != nil {
 		return nil, err
 	}
-	body, _ := json.Marshal(map[string]string{
-		"scene":     "t=" + ticket,
-		"page":      "pages/login-confirm/login-confirm", // 小程序确认页(对接文档 §3)
-		"check_path": "false",
-		"width":     "430",
+	for attempt := 0; ; attempt++ {
+		png, err = m.qrCall(ctx, at, ticket)
+		if err == nil {
+			return png, nil
+		}
+		var te tokenErr
+		if attempt > 0 || !errors.As(err, &te) || (te.Code != 40001 && te.Code != 42001) {
+			return nil, err
+		}
+		if at, err = m.accessToken(ctx, true); err != nil {
+			return nil, err
+		}
+	}
+}
+
+type tokenErr struct {
+	Code int
+}
+
+func (e tokenErr) Error() string { return fmt.Sprintf("wechat qrcode %d", e.Code) }
+
+func (m *MiniProgram) qrCall(ctx context.Context, at, ticket string) ([]byte, error) {
+	body, _ := json.Marshal(map[string]any{
+		"scene": "t=" + ticket,
+		"page":  "pages/login-confirm/login-confirm", // 小程序确认页(对接文档 §3)
+		"width": 430,
+		// ⚠️ 必须布尔:曾传字符串 "false" 被微信当 true 校验路径 → 41030 page 不存在
+		"check_path": m.EnvVersion == "" || m.EnvVersion == "release",
+		// 联调期出体验版/开发版码(WX_MINI_ENV=trial|develop);线上发布后清空 env 走正式版
+		"env_version": m.EnvVersion,
 	})
 	url := "https://api.weixin.qq.com/wxa/getwxacodeunlimit?access_token=" + at
 	resp, err := m.HTTP.Post(url, "application/json", bytes.NewReader(body))
@@ -121,7 +151,7 @@ func (m *MiniProgram) QRCodePNG(ctx context.Context, ticket string) (png []byte,
 		return nil, err
 	}
 	defer resp.Body.Close()
-	png, err = io.ReadAll(resp.Body)
+	png, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -132,15 +162,20 @@ func (m *MiniProgram) QRCodePNG(ctx context.Context, ticket string) (png []byte,
 			ErrMsg  string `json:"errmsg"`
 		}
 		_ = json.Unmarshal(png, &e)
+		if e.ErrCode == 40001 || e.ErrCode == 42001 {
+			return nil, tokenErr{Code: e.ErrCode}
+		}
 		return nil, fmt.Errorf("wechat qrcode %d: %s", e.ErrCode, e.ErrMsg)
 	}
 	return png, nil
 }
 
-// accessToken 稳定获取接口调用凭据(Redis 缓存,提前 200s 过期)。
-func (m *MiniProgram) accessToken(ctx context.Context) (string, error) {
-	if v, err := m.Rdb.Get(ctx, atKey).Result(); err == nil && v != "" {
-		return v, nil
+// accessToken 稳定获取接口调用凭据(Redis 缓存;force=true 跳过缓存强刷)。
+func (m *MiniProgram) accessToken(ctx context.Context, force bool) (string, error) {
+	if !force {
+		if v, err := m.Rdb.Get(ctx, atKey).Result(); err == nil && v != "" {
+			return v, nil
+		}
 	}
 	url := fmt.Sprintf(
 		"https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=%s&secret=%s",

@@ -1,4 +1,4 @@
-// session.go — 对话会话状态机与 pg 存取(方案 v2 五/六,0013_agent_chat_memory)。
+// session.go — 对话会话状态机与 pg 存取(方案 v2 五/六,0014_agent_chat_memory)。
 //
 // 状态机:active ⇄ waiting_confirm → closed。
 //   POST /chat:        active 会话追加轮次(状态不变);

@@ -149,7 +149,7 @@ func (s *Service) StepUpUntil(uid string) (time.Time, bool) {
 	return until, ok && until.After(time.Now())
 }
 
-// RequireStepUp 敏感操作闸门:窗口失效 → 403 code=passkey-required(前端 stepUp.js 拦截重放)。
+// RequireStepUp 敏感操作闸门:窗口失效 → 403 code=step-up-required(前端 stepUp.js 拦截重放)。
 func (s *Service) RequireStepUp() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		uid, _ := c.Get("adminUID")
@@ -157,7 +157,7 @@ func (s *Service) RequireStepUp() gin.HandlerFunc {
 			c.Next()
 			return
 		}
-		c.AbortWithStatusJSON(403, gin.H{"error": "confirm with your passkey first", "code": "passkey-required"})
+		c.AbortWithStatusJSON(403, gin.H{"error": "confirm with your SMS code first", "code": "step-up-required"})
 	}
 }
 

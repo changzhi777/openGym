@@ -24,12 +24,17 @@ type Service struct {
 	V      VAPID
 	mu     sync.Mutex
 	timers map[string]*time.Timer
+	order  map[string][]string // uid → 该用户 timer key 队列(旧→新);安全对齐上限用
 }
+
+// 上游 febb2b2b3:每账号最多 5 个活动 rest timer——新设备 id 每次请求都会留下
+// 一个 1 小时 timer,无上限会被滥用堆积(最旧的淘汰)。
+const maxRestTimersPerUser = 5
 
 // New 读/生成 data/vapid.json(Node 同文件格式)。
 func New(dataDir string) *Service {
 	path := filepath.Join(dataDir, "vapid.json")
-	s := &Service{timers: map[string]*time.Timer{}}
+	s := &Service{timers: map[string]*time.Timer{}, order: map[string][]string{}}
 	if raw, err := os.ReadFile(path); err == nil {
 		if json.Unmarshal(raw, &s.V) == nil && s.V.PublicKey != "" {
 			return s
@@ -76,7 +81,7 @@ func defaultUrgency(p []byte) string {
 
 type Endpoint struct{ Endpoint, P256dh, Auth string }
 
-// ScheduleRest 休息计时推送(同 device 新计时覆盖旧的)。
+// ScheduleRest 休息计时推送(同 device 新计时覆盖旧的;每账号上限 5,超限淘汰最旧)。
 func (s *Service) ScheduleRest(key string, d time.Duration, fire func()) {
 	s.mu.Lock()
 	if t, ok := s.timers[key]; ok {
@@ -85,10 +90,34 @@ func (s *Service) ScheduleRest(key string, d time.Duration, fire func()) {
 	s.timers[key] = time.AfterFunc(d, func() {
 		s.mu.Lock()
 		delete(s.timers, key)
+		s.forget(key)
 		s.mu.Unlock()
 		fire()
 	})
+	uid, _, _ := strings.Cut(key, "|")
+	s.order[uid] = append(s.order[uid], key)
+	if len(s.order[uid]) > maxRestTimersPerUser {
+		for _, old := range s.order[uid][:len(s.order[uid])-maxRestTimersPerUser] {
+			if t, ok := s.timers[old]; ok {
+				t.Stop()
+				delete(s.timers, old)
+			}
+		}
+		s.order[uid] = append([]string(nil), s.order[uid][len(s.order[uid])-maxRestTimersPerUser:]...)
+	}
 	s.mu.Unlock()
+}
+
+// forget timer 触发/取消时从该用户的队列摘除。
+func (s *Service) forget(key string) {
+	uid, _, _ := strings.Cut(key, "|")
+	q := s.order[uid]
+	for i, k := range q {
+		if k == key {
+			s.order[uid] = append(q[:i], q[i+1:]...)
+			return
+		}
+	}
 }
 
 func (s *Service) CancelRest(key string) {

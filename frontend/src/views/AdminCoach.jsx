@@ -120,25 +120,26 @@ export default function AdminCoach() {
     <div className="adm-lead">Force-disabled by <code>COACH_DISABLED</code> in the server's environment. Remove that variable and restart to configure the Coach here.</div>
   </div>
 
-  const meta = d.providers.find(p => p.id === d.provider) || {}
+  const providers = d.providers || []   // 形状异常不崩页(接口挂时 providers 缺失)
+  const meta = providers.find(p => p.id === d.provider) || {}
   const authState = d.auth?.state
   const authed = authState === 'connected' || authState === 'not-required' || authState === 'optional'
   const needsEndpoint = !!meta.baseUrl
   const hasEndpoint = !needsEndpoint || !!d.baseUrl
-  const live = d.enabled && d.runtime.ok && authed && hasEndpoint
+  const live = d.enabled && d.runtime?.ok && authed && hasEndpoint
 
   const status = !d.enabled ? 'Off. Users won’t see the Coach anywhere in the app.'
     : live ? <>On · {meta.label}{d.model ? ' · ' + d.model : ''}</>
       : !hasEndpoint ? 'On, but no endpoint yet. Finish step 2.'
         : !authed ? 'On, but no credential yet. Finish the Credential step.'
-          : !d.runtime.ok ? 'On, but the provider can’t be reached. See the Test step.'
+          : !d.runtime?.ok ? 'On, but the provider can’t be reached. See the Test step.'
             : 'On'
 
   // Chips, grouped.
   const groups = [
-    { title: 'Paste an API key', hint: 'Plain HTTPS to the provider. Works on the default api image, nothing extra to install.', items: d.providers.filter(p => p.http) },
-    { title: 'Runs a local AI runtime', hint: 'Needs the bigger api image built with --target coach.', items: d.providers.filter(p => RUNTIME_IDS.includes(p.id)) },
-    { title: 'Testing', hint: 'A built-in fake that answers instantly, so the whole loop can be tried without an account.', items: d.providers.filter(p => TESTING_IDS.includes(p.id)) }
+    { title: 'Paste an API key', hint: 'Plain HTTPS to the provider. Works on the default api image, nothing extra to install.', items: providers.filter(p => p.http) },
+    { title: 'Runs a local AI runtime', hint: 'Needs the bigger api image built with --target coach.', items: providers.filter(p => RUNTIME_IDS.includes(p.id)) },
+    { title: 'Testing', hint: 'A built-in fake that answers instantly, so the whole loop can be tried without an account.', items: providers.filter(p => TESTING_IDS.includes(p.id)) }
   ]
 
   const hasCredentialStep = !!(meta.setupToken || meta.apiKey)
@@ -159,7 +160,7 @@ export default function AdminCoach() {
   let n = 1
   let idx = 0
   const num = () => n++
-  const stepAt = () => { const i = idx++; return { open: i === (firstTodo === -1 ? -1 : firstTodo), key: i + ':' + (i === firstTodo) } }
+  const stepAt = () => { const i = idx++; return { open: i === (firstTodo === -1 ? -1 : firstTodo), stepKey: i + ':' + (i === firstTodo) } }
 
   // Off = a quiet, optional feature: one clean pitch and one button, no half-dimmed controls.
   if (!d.enabled) return <div className="card">
@@ -243,7 +244,7 @@ export default function AdminCoach() {
             {/* The key is encrypted at rest and never shown again, so this is the one action on the
                 card that cannot be walked back. Every other irreversible action in the app asks first;
                 until 2026-09-22 this one did not. */}
-            <Button size="sm" danger disabled={busy} onClick={() => confirmSheet({
+            <Button size="sm" variant="danger" disabled={busy} onClick={() => confirmSheet({
               title: 'Remove this credential?',
               message: 'The Coach stops working for everyone on this instance until a new key is added. The stored key cannot be recovered.',
               confirmText: 'Remove', danger: true, onConfirm: disconnect,
@@ -363,15 +364,15 @@ export default function AdminCoach() {
         <summary>Activity <Icon name="chevronRight" className="chev" /></summary>
         <div className="adm-fold-b">
           <div className="tiles" style={{ textAlign: 'start', marginBottom: 10 }}>
-            <div className="tile"><div className="l">Jobs today</div><div className="v" style={{ fontSize: '1.1rem' }}>{d.jobsToday}</div></div>
-            <div className="tile"><div className="l">Last success</div><div className="v" style={{ fontSize: '.85rem' }}>{rel(d.lastSuccess?.at)}</div></div>
+            <div className="tile"><div className="l">Jobs today</div><div className="v v-sm">{d.jobsToday}</div></div>
+            <div className="tile"><div className="l">Last success</div><div className="v" style={{ fontSize: 'var(--fs-footnote)' }}>{rel(d.lastSuccess?.at)}</div></div>
           </div>
           {d.lastError && <>
             <div className="adm-group-t">Last failure</div>
             <div className="adm-result bad" style={{ marginTop: 0, marginBottom: 10 }}>
               <b>{failureTitle(d.lastError.errorClass)}</b>
               {d.lastError.detail ? <span className="small">{d.lastError.detail}</span> : null}
-              <div className="dim" style={{ fontSize: '.72rem', marginTop: 4 }}>{rel(d.lastError.at)}</div>
+              <div className="dim" style={{ fontSize: 'var(--fs-caption2)', marginTop: 4 }}>{rel(d.lastError.at)}</div>
             </div>
           </>}
           <div className="adm-group-t">Recent jobs</div>
@@ -390,9 +391,10 @@ export default function AdminCoach() {
 
 /* ---------------------------------- pieces ---------------------------------- */
 
-function Step({ n, title, hint, done, open, forceOpen, children }) {
-  // `key` remounts the <details> when the wizard advances, so the next step unfolds itself.
-  return <details className={'adm-step ' + (done ? 'done' : 'todo')} open={open || forceOpen}>
+function Step({ n, title, hint, done, open, forceOpen, stepKey, children }) {
+  // `stepKey` remounts the <details> when the wizard advances, so the next step unfolds itself.
+  // On the element itself: React wants a key written out, not spread in with the other props.
+  return <details key={stepKey} className={'adm-step ' + (done ? 'done' : 'todo')} open={open || forceOpen}>
     <summary>
       <span className="adm-num">{done ? <Icon name="check" /> : n}</span>
       <span className="adm-step-t"><b>{title}</b><span>{hint}</span></span>

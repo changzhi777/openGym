@@ -112,7 +112,7 @@ export default function Overview() {
             </div>
           })}
         </div>
-        {coachUsage && (
+        {coachUsage?.day && (
           <div className="adm-card" data-testid="coach-usage">
             <h3>{adminT('AI 教练用量')} <span className="adm-usub">{adminT('今日活跃')} {coachUsage.users}</span></h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>

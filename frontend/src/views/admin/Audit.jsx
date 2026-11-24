@@ -11,6 +11,7 @@ import { api } from '../../lib/api.js'
 import { apiAdmin } from '../../lib/admin/stepUp.js'
 import { adminT } from '../../lib/admin/i18n.js'
 import { fmtWhen } from '../../lib/audit.js'
+import { dateLocale } from '../../lib/i18n-core.js'
 import { confirmSheet } from '../../sheets.jsx'
 import { useUI } from '../../store/useUI.js'
 
@@ -111,7 +112,7 @@ export default function Audit() {
 
       {byDay.map(([day, evs]) => (
         <div className="adm-table" key={day}>
-          <div className="adm-tr adm-th adm-day" role="row"><span role="columnheader">{day}</span></div>
+          <div className="adm-tr adm-th adm-day" role="row"><span role="columnheader">{new Date(day).toLocaleDateString(dateLocale(), { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' })}</span></div>
           {evs.map(e => {
             const open = expanded === e.id
             const target = e.targetName || e.tgt || e.targetId || '–'

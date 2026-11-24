@@ -99,13 +99,19 @@ export default function Users() {
             <span className="adm-ucell">
               <b>{u.name}</b>
               <span className="adm-usub">{u.email || u.id}</span>
+              {(u.hasPhone || u.hasWx) && (
+                <span className="adm-usub">
+                  {u.hasPhone && <span className="adm-badge">{adminT('手机')}</span>}
+                  {u.hasWx && <span className="adm-badge">{adminT('微信')}</span>}
+                </span>
+              )}
             </span>
             <span>{u.role ? <span className="adm-badge">{adminT(ROLE_NAME[u.role] || u.role)}</span>
               : <span className="adm-usub">{adminT('普通用户')}</span>}</span>
             <span className="adm-usub">{u.disabled ? adminT('已停用') : adminT('正常')}</span>
             <span className="num">{u.workouts}</span>
             <span className="adm-usub">{u.lastSync ? adminWhen(typeof u.lastSync === 'number' ? u.lastSync : Date.parse(u.lastSync)) : '–'}</span>
-            <span className="adm-usub">{u.created ? fmtDate(u.created) : '–'}</span>
+            <span className="adm-usub">{u.created ? fmtDate(u.created.slice(0, 10)) : '–'}</span>
           </button>
         ))}
         {rows.length === 0 && <div className="adm-empty">{adminT('暂无数据')}</div>}

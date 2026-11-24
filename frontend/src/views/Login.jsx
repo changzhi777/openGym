@@ -175,6 +175,7 @@ function PhoneForm({ config, onSignedIn }) {
         onFocus={focusInput} onBlur={blurInput}
         style={{ ...loginInput, letterSpacing: '.14em', fontWeight: 600, textAlign: 'center', marginTop: 10 }} />
       <div className="dim small" style={{ marginTop: 6 }}>本应用为邀请制，请输入你收到的邀请码。</div>
+      {err?.field === 'invite' && fieldErr(err.msg)}
     </>}
 
     <div style={{ height: 16 }} />

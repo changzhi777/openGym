@@ -78,11 +78,20 @@ Page({
   <button class="btn" bindtap="confirm" disabled="{{ status === 'done' }}">
     {{ status === 'done' ? '已确认 ✓' : '确认登录' }}
   </button>
-  <view class="err" wx-if="{{ status === 'fail' }}">{{ name }}</view>
+  <view class="err" wx:if="{{ status === 'fail' }}">{{ name }}</view>
 </view>
 ```
 
 **样式**（login-confirm.wxss）按小程序项目规范自定；确认按钮主色 `#0c0e12` 底/白字与品牌一致。
+
+## 点亮 Checklist（按序执行）
+
+1. **小程序后台**（mp.weixin.qq.com → 开发 → 开发管理）：
+   - 开发设置：取 **AppID / AppSecret**（首次生成 Secret 需管理员扫码）→ 发给后端管理员配 118
+   - 服务器域名 → request 合法域名：加 `https://app.qingmulife.com`（确认页 `wx.request` 用）
+2. **小程序端**：建 `pages/login-confirm/login-confirm`（下方代码可直接粘贴）→ 真机预览确认页可开
+3. **后端**：118 `/opt/muhe-fit/compose.yml` 加 `WX_MINI_APPID` / `WX_MINI_SECRET` → `docker compose up -d`
+4. **验证**：PC 开 `/login` → 切微信扫码 → 出小程序码即后端通（否则 502/503）；微信扫码 → 确认页点确认 → PC 自动跳转登录完成
 
 ## 配置与联调
 

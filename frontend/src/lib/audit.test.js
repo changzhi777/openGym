@@ -137,8 +137,8 @@ describe('fmtWhen', () => {
   const now = at(2026, 8, 23, 15, 0)   // Sunday
 
   it('says "today" for the same calendar day', () => {
-    expect(fmtWhen(at(2026, 8, 23, 9, 5), now)).toMatch(/^today /)
-    expect(fmtWhen(at(2026, 8, 23, 0, 1), now)).toMatch(/^today /)
+    expect(fmtWhen(at(2026, 8, 23, 9, 5), now)).toMatch(/^今天 /)
+    expect(fmtWhen(at(2026, 8, 23, 0, 1), now)).toMatch(/^今天 /)
   })
 
   it('uses the weekday inside the last six days', () => {

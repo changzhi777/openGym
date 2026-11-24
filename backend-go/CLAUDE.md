@@ -48,7 +48,7 @@
 | `internal/store/`（6 文件） | pgx 连接池 + users/states/invites/settings/identities 存取 + `Migrate()`（**`go:embed migrations/*.sql` + golang-migrate，启动自动 up，幂等**，无独立 migrate 容器） |
 | `internal/testmode/` | Node 测试双跑支撑：`Setup`（每测试独立 PG 库 + secret）/`Seed`/`FreePort`/`BootLine`（启动行与 Node 同序，供测试解析） |
 | `internal/wechat/` | 微信小程序码扫码登录（`WX_MINI_APPID`/`WX_MINI_SECRET` + Redis 态） |
-| `internal/store/migrations/` | **13 个迁移版本（0001–0013，2026-11-18 复核）**：0001_init / 0002_users_sv / 0003_passkeys_meta / 0004_device_links / 0005_push_subs / 0006_admin_extra / 0007_passkeys_last_used（🆕 批次 2 幂等化修复，见 FAQ）/ 0008_usage_per_user / 0009_users_invited_by / 0010_instance_settings / 0011_admin_invites / 0012_auth_identities / **0013_agent_chat_memory（AI-Native 五表，0009 起带 down；顶层 `migrations/` 为同内容副本，两处都要放）** |
+| `internal/store/migrations/` | **14 个迁移版本（0001–0014，2026-11-24 合并轮复核）**：0001_init / 0002_users_sv / 0003_passkeys_meta / 0004_device_links / 0005_push_subs / 0006_admin_extra / 0007_passkeys_last_used（批次 2 幂等化修复，见 FAQ）/ 0008_usage_per_user / 0009_users_invited_by / 0010_instance_settings / 0011_admin_invites / 0012_auth_identities / **0013_coach_console（教练工作台，自 94093b 生产线并入——生产库已按 13 记账）** / **0014_agent_chat_memory（AI-Native 五表；原 0013，两线撞号后让位改号——生产库 13 已被 coach_console 占用，改 14 才能全新应用）**；只此一处，无顶层副本 |
 | `compose.go.yml` | **fork 专属本地栈**（上游 `docker-compose.yml` 不动，两栈并存）：pg:16-alpine + redis:7-alpine + api(3100→3110)。`docker compose -f compose.go.yml up -d --build` |
 | `compose.weknora.yml` 🆕 | **WeKnora 独立部署编排**（批次 3）：仅内网无公网端口（D10）/ 独立 PG（D18）/ 一期关 LLM 生成（D19）/ Embedding-3 密钥 .env 注入 |
 | `Dockerfile` | 多阶段 → **scratch 运行层**（静态单二进制 + CA，非 root 65534）；`GOPROXY=https://goproxy.cn,direct` |
@@ -109,7 +109,7 @@ validate 安全边界语义（批任务翻译等价 + chat 走审核链）、零
 - 乐观并发：`PutStateDoc(doc, expect)` —— expect=0 首建 INSERT … ON CONFLICT DO NOTHING；expect>0 条件 UPDATE；冲突回 `ErrConflict`（409 带文档）
 - 会话 HMAC 密钥：env `SECRET` → `DATA_DIR/secret` 文件 → dev 兜底。**灰度切换时两栈必须同钥，cookie 才互通**（gray-switch 的前提之一）
 - 0012_auth_identities：认证重构后的身份表（手机号/微信 openid ↔ uid）
-- 🆕 **0013_agent_chat_memory（AI-Native 五表）**：`coach_chat_sessions`（会话状态机 + history jsonb + usage_in/out）· `coach_proposals`（提议队列，decision NULL=待决——**Agent 唯一写入口**）· `coach_constraints`（结构化硬约束，active 部分索引，删除=inactive 留审计）· `coach_memory_narrative`（叙事记忆，批次 3 起主写 WeKnora、本表为 D15 降级镜像）· `coach_usage_events`（三池用量流水）。用户 id 全库惯例 `text REFERENCES users(id)`
+- 🆕 **0014_agent_chat_memory（AI-Native 五表，原 0013 两线撞号后让位改号）**：`coach_chat_sessions`（会话状态机 + history jsonb + usage_in/out）· `coach_proposals`（提议队列，decision NULL=待决——**Agent 唯一写入口**）· `coach_constraints`（结构化硬约束，active 部分索引，删除=inactive 留审计）· `coach_memory_narrative`（叙事记忆，批次 3 起主写 WeKnora、本表为 D15 降级镜像）· `coach_usage_events`（三池用量流水）。用户 id 全库惯例 `text REFERENCES users(id)`；另有 **0013_coach_console**（教练工作台：admin_role 加 'coach' 值 + coach_assignments 绑定表，94093b 线并入，生产库已按 13 应用）
 
 ## 与 Node api 的关系（双栈并存，生产 = Go 栈）
 
