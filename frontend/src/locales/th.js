@@ -1445,6 +1445,7 @@ export default {
   'The changes your server has not seen are kept on this device, and added back when it connects as this account again.': 'การเปลี่ยนแปลงที่เซิร์ฟเวอร์ของคุณยังไม่มีจะเก็บไว้ในอุปกรณ์นี้ และจะถูกเพิ่มกลับเมื่อเชื่อมต่อด้วยบัญชีนี้อีกครั้ง',
   'This phone switches back to local-only and its copy of your account is removed. First it checks that your server has every change. If not, you choose what happens to them.': 'โทรศัพท์เครื่องนี้จะกลับไปเก็บข้อมูลในเครื่องอย่างเดียว และสำเนาบัญชีของคุณจะถูกลบออก ก่อนอื่นจะตรวจว่าเซิร์ฟเวอร์ของคุณมีการเปลี่ยนแปลงครบทุกอย่าง ถ้าไม่ครบ คุณเลือกได้ว่าจะทำอย่างไรกับมัน',
   'Your data is removed from this browser; your profile on the server keeps it. First it checks that the server has every change. If not, you choose what happens to them.': 'ข้อมูลของคุณจะถูกลบออกจากเบราว์เซอร์นี้ ส่วนโปรไฟล์บนเซิร์ฟเวอร์ยังเก็บไว้ ก่อนอื่นจะตรวจว่าเซิร์ฟเวอร์มีการเปลี่ยนแปลงครบทุกอย่าง ถ้าไม่ครบ คุณเลือกได้ว่าจะทำอย่างไรกับมัน',
+  'Bind mobile number': 'เชื่อมโยงหมายเลขโทรศัพท์มือถือ',
   'Signs this profile out on every device, including this one. Phones paired with it are disconnected and have to be paired again. Your passkeys keep working, so you can sign in with them again anytime.': 'ออกจากระบบโปรไฟล์นี้ในทุกอุปกรณ์ รวมถึงเครื่องนี้ โทรศัพท์ที่จับคู่ไว้จะถูกตัดการเชื่อมต่อและต้องจับคู่ใหม่ พาสคีย์ของคุณยังใช้ได้ จึงเข้าสู่ระบบด้วยพาสคีย์ได้ทุกเมื่อ',
   '{0} change': '{0} รายการ',
   '{0} changes': '{0} รายการ',

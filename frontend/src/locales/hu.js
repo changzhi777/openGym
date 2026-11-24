@@ -1439,6 +1439,7 @@ export default {
   'The changes your server has not seen are kept on this device, and added back when it connects as this account again.': 'Azok a módosítások, amelyek még nincsenek a szervereden, ezen az eszközön maradnak, és visszakerülnek, amikor újra csatlakozik ezzel a fiókkal.',
   'This phone switches back to local-only and its copy of your account is removed. First it checks that your server has every change. If not, you choose what happens to them.': 'Ez a telefon visszavált csak-helyi módba, és a fiókod másolata törlődik róla. Előtte ellenőrzi, hogy a szervereden megvan-e minden módosítás. Ha nem, te döntöd el, mi legyen velük.',
   'Your data is removed from this browser; your profile on the server keeps it. First it checks that the server has every change. If not, you choose what happens to them.': 'Az adataid törlődnek ebből a böngészőből; a szerveren lévő profilod megőrzi őket. Előtte ellenőrzi, hogy a szerveren megvan-e minden módosítás. Ha nem, te döntöd el, mi legyen velük.',
+  'Bind mobile number': 'Mobilszám hozzárendelése',
   'Signs this profile out on every device, including this one. Phones paired with it are disconnected and have to be paired again. Your passkeys keep working, so you can sign in with them again anytime.': 'Kijelentkezteti ezt a profilt minden eszközön, ezen is. A vele párosított telefonok leválasztódnak, és újra párosítani kell őket. A jelszókulcsaid továbbra is működnek, így bármikor bejelentkezhetsz velük újra.',
   '{0} change': '{0} módosítás',
   '{0} changes': '{0} módosítás',

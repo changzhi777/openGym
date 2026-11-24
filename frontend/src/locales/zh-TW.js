@@ -1418,7 +1418,8 @@ export default {
   'The changes your server has not seen are kept on this device, and added back when it connects as this account again.': '伺服器尚未收到的修改將保留在裝置上，並於下一次登入該帳號時補回。',
   'This phone switches back to local-only and its copy of your account is removed. First it checks that your server has every change. If not, you choose what happens to them.': '此手機將切換回純本機模式，並移除其中的帳號副本。系統會先確認伺服器是否已有全部變更。若沒有，由你決定如何處理。',
   'Your data is removed from this browser; your profile on the server keeps it. First it checks that the server has every change. If not, you choose what happens to them.': '你的資料將從此瀏覽器中移除；伺服器上的個人檔案會保留它們。系統會先確認伺服器是否已有全部變更。若沒有，由你決定如何處理。',
-  'Signs this profile out on every device, including this one. Phones paired with it are disconnected and have to be paired again. Your passkeys keep working, so you can sign in with them again anytime.': '在所有裝置（包括本裝置）上登出此個人檔案。與它配對的手機會中斷連線，需要重新配對。你的通行密鑰仍然有效，隨時可以用來再次登入。',
+  'Bind mobile number': '綁定手機號',
+  'Signs this profile out on every device, including this one. Phones paired with it are disconnected and have to be paired again. Your passkeys keep working, so you can sign in with them again anytime.': '在所有裝置（包括本裝置）上登出此帳號。配對的手機會中斷連線，需要重新綁定。你可以隨時用手機號驗證碼重新登入。',
   '{0} change': '{0} 項變更',
   '{0} changes': '{0} 項變更',
   // --- plan vs session: the routine's own reps, per-routine progress (#275, #216) ---

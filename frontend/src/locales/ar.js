@@ -1362,6 +1362,7 @@ export default {
   'The changes your server has not seen are kept on this device, and added back when it connects as this account again.': 'التغييرات التي لم يرها خادمك محفوظة على هذا الجهاز، وتُضاف من جديد عندما يتصل بهذا الحساب مجددًا.',
   'This phone switches back to local-only and its copy of your account is removed. First it checks that your server has every change. If not, you choose what happens to them.': 'يعود هذا الهاتف إلى الوضع المحلي فقط وتُحذف نسخة حسابك منه. يتحقق أولًا من أن خادمك لديه كل التغييرات. وإن لم يكن، فأنت تختار ما يحدث لها.',
   'Your data is removed from this browser; your profile on the server keeps it. First it checks that the server has every change. If not, you choose what happens to them.': 'تُحذف بياناتك من هذا المتصفح؛ ويحتفظ بها ملفك الشخصي على الخادم. يتحقق أولًا من أن الخادم لديه كل التغييرات. وإن لم يكن، فأنت تختار ما يحدث لها.',
+  'Bind mobile number': 'ربط رقم الهاتف',
   'Signs this profile out on every device, including this one. Phones paired with it are disconnected and have to be paired again. Your passkeys keep working, so you can sign in with them again anytime.': 'يسجّل خروج هذا الملف الشخصي من كل الأجهزة، بما فيها هذا الجهاز. تُفصل الهواتف المقترنة به ويجب إقرانها مجددًا. تظل مفاتيح المرور تعمل، لذا يمكنك تسجيل الدخول بها مجددًا في أي وقت.',
   '{0} change': '{0} تغيير',
   '{0} changes': '{0} تغييرات',

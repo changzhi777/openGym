@@ -1434,7 +1434,8 @@ export default {
   'The changes your server has not seen are kept on this device, and added back when it connects as this account again.': '服务器尚未收到的更改会保留在此设备上，并在它再次以此账号连接时重新加入。',
   'This phone switches back to local-only and its copy of your account is removed. First it checks that your server has every change. If not, you choose what happens to them.': '这部手机将切换回仅本地模式，并删除其中的账号副本。会先检查你的服务器是否已有全部更改。如果没有，由你决定如何处理。',
   'Your data is removed from this browser; your profile on the server keeps it. First it checks that the server has every change. If not, you choose what happens to them.': '你的数据将从此浏览器中删除；服务器上的个人资料会保留它们。会先检查服务器是否已有全部更改。如果没有，由你决定如何处理。',
-  'Signs this profile out on every device, including this one. Phones paired with it are disconnected and have to be paired again. Your passkeys keep working, so you can sign in with them again anytime.': '在所有设备（包括此设备）上退出此个人资料。与它配对的手机会断开连接，需要重新配对。你的通行密钥仍然有效，随时可以用它们重新登录。',
+  'Bind mobile number': '绑定手机号',
+  'Signs this profile out on every device, including this one. Phones paired with it are disconnected and have to be paired again. Your passkeys keep working, so you can sign in with them again anytime.': '在所有设备（包括此设备）上退出此账号。配对的手机会断开连接，需要重新绑定。你可以随时用手机号验证码重新登录。',
   '{0} change': '{0} 项更改',
   '{0} changes': '{0} 项更改',
   // --- plan vs session: the routine's own reps, per-routine progress (#275, #216) ---

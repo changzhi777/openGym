@@ -1455,6 +1455,7 @@ export default {
   'The changes your server has not seen are kept on this device, and added back when it connects as this account again.': 'De ändringar som din server inte har sett sparas på den här enheten och läggs tillbaka när den ansluter som det här kontot igen.',
   'This phone switches back to local-only and its copy of your account is removed. First it checks that your server has every change. If not, you choose what happens to them.': 'Telefonen går tillbaka till bara lokalt läge och dess kopia av ditt konto tas bort. Först kontrolleras att din server har alla ändringar. Om inte, väljer du vad som händer med dem.',
   'Your data is removed from this browser; your profile on the server keeps it. First it checks that the server has every change. If not, you choose what happens to them.': 'Din data tas bort från den här webbläsaren; din profil på servern behåller den. Först kontrolleras att servern har alla ändringar. Om inte, väljer du vad som händer med dem.',
+  'Bind mobile number': 'Koppla mobilnummer',
   'Signs this profile out on every device, including this one. Phones paired with it are disconnected and have to be paired again. Your passkeys keep working, so you can sign in with them again anytime.': 'Loggar ut profilen på alla enheter, även den här. Telefoner som är parkopplade med den kopplas från och måste parkopplas igen. Dina passkeys fungerar fortfarande, så du kan logga in med dem igen när som helst.',
   '{0} change': '{0} ändring',
   '{0} changes': '{0} ändringar',
