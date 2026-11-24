@@ -39,7 +39,12 @@ fi
 
 echo "==> [3/5] 前端构建 + rsync(web 版;APK 走 build:mobile,见 frontend/android/README.md)"
 ( cd "$LOCAL_REPO/frontend" && npm run build >/dev/null 2>&1 )
+# dist(web 构建)不含动作素材(stage-media 只在 build:mobile 跑)——素材独立同步,且必须在
+# dist 的 --delete 之后跑:2026-11-24 实测,--delete 曾把服务器上手拷的 exercise-media/
+# 清掉,全站图片/视频请求落 SPA 回退(index.html)整整一天无人察觉。素材子目录自持 --delete。
 rsync -az --delete "$LOCAL_REPO/frontend/dist/" "$HOST:/opt/muhe-fit/web/"
+echo "==> [3.5/5] 动作素材 exercise-media(独立于 dist --delete)"
+rsync -az --delete "$LOCAL_REPO/catalogue/media/" "$HOST:/opt/muhe-fit/web/exercise-media/"
 # CSP hash 守护:nginx 按 index.html 内联脚本 hash 白名单放行,漂移即静默白屏——rsync 后显式校验
 CSP_HASH="$(node "$LOCAL_REPO/scripts/check-csp.mjs")"
 r "grep -q '$CSP_HASH' /etc/nginx/sites-available/qingmulife.com.conf || { echo '❌ CSP hash 漂移:回滚 web 并更新 nginx 的 script-src hash(见 scripts/check-csp.mjs)'; exit 1; }"
