@@ -7,7 +7,7 @@ import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { t, tn } from '../lib/i18n.js'
 import { fmtAgo, changeCount } from '../lib/format.js'
-import { passkeyLogin, passkeyError, webauthnOK } from '../lib/api.js'
+import { api, passkeyLogin, passkeyError, webauthnOK } from '../lib/api.js'
 import { MOBILE, shareExport } from '../lib/mobile.js'
 import { syncMedia, mediaProgress, onMediaProgress } from '../lib/media-sync.js'
 import { DEMO } from '../lib/demo.js'
@@ -297,10 +297,31 @@ export function ServerSyncSection({ children }) {
     {sync.status === 'auth' && (MOBILE
       ? <Row icon="qr" iconTint="var(--indigo)" title={t('Pair again')} subtitle={t('Your changes are kept here, and merged into your account once it is paired again.')} accessory="chevron" onClick={pairAgain} />
       : canSignIn() && <Row icon={pwOn() ? 'person' : 'fingerprint'} iconTint="var(--blue)" title={pwOn() ? t('Sign in') : t('Sign in with passkey')} subtitle={t('Your changes are kept here, and merged into your account once you are signed in again.')} accessory="chevron" onClick={signInAgain} />)}
+    {/* 设备与会话:本账号全部活跃设备,踢出单台 */}
+    <DeviceSessionRows />
     {/* another account's, kept when this one signed in over a copy that still owed them */}
     <KeptChangesRows />
     {children}
   </Section>
+}
+
+// 设备与会话(账号页):当前账号全部活跃设备会话,踢出单台(该设备下次请求即 401)。
+// 数据来自 GET /api/auth/sessions(Go 栈),踢出 = DELETE /api/auth/sessions/{sid}。
+// 无会话可列(旧版登录或未登录)时整段隐藏。
+export function DeviceSessionRows() {
+  const [rows, setRows] = useState(null)
+  const load = () => api('/api/auth/sessions').then(d => setRows(d.sessions || [])).catch(() => setRows([]))
+  useEffect(() => { load() }, [])
+  const revoke = sid => api('/api/auth/sessions/' + sid, { method: 'DELETE' }).then(load).catch(() => {})
+  if (!rows || !rows.length) return null
+  return rows.map(r => {
+    const seen = new Date(r.lastSeenAt).getTime()
+    return <Row key={r.id} icon="fingerprint" iconTint={r.current ? 'var(--green)' : 'var(--grey)'}
+      title={(r.deviceName || t('Unknown device')) + (r.current ? ' · ' + t('This device') : '')}
+      subtitle={[r.ip, seen ? fmtAgo(seen) : ''].filter(Boolean).join(' · ')}
+      danger={!r.current}
+      onClick={!r.current ? () => revoke(r.id) : undefined} />
+  })
 }
 
 // The changes a forced sign-out or disconnect kept on this device, waiting for their server and

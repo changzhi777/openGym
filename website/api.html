@@ -250,7 +250,7 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   <p class="api-facts">
     <span>OpenAPI 3.1.0</span>
     <span>openGym v1.4.4</span>
-    <span>138 endpoints</span>
+    <span>141 endpoints</span>
     <span>AGPL-3.0-or-later</span>
   </p>
 
@@ -1738,6 +1738,94 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   <div class="prow rrow">
     <span class="r-code s4">401</span>
     <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-authSessions">
+  <summary>
+    <span class="m get">GET</span>
+    <span class="ep-path"><code>/api/auth/sessions</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">List active device sessions</span>
+  </summary>
+  <div class="ep-body">
+<p>The signed-in account's active device sessions (one row per login), newest first. The session this request came from carries <code>current: true</code>. Revoked sessions no longer appear here; cookies issued before sessions were introduced (no sid cookie) are not listed but remain valid until they expire or the account signs out everywhere.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">Active sessions, newest first.<span class="r-sig">{ sessions: <a href="#schema-SessionInfo">SessionInfo</a>[] }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-authSessionRevokeCurrent">
+  <summary>
+    <span class="m delete">DELETE</span>
+    <span class="ep-path"><code>/api/auth/sessions/current</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Sign out this device (revoke its session)</span>
+  </summary>
+  <div class="ep-body">
+<p>Revokes this device's session row and clears its cookies. Always succeeds: an invalid or missing session is a no-op.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">Session revoked and cookies cleared.<span class="r-sig"><a href="#schema-Ok">Ok</a></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-authSessionRevoke">
+  <summary>
+    <span class="m delete">DELETE</span>
+    <span class="ep-path"><code>/api/auth/sessions/{sid}</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Revoke one device session</span>
+  </summary>
+  <div class="ep-body">
+<p>Signs out one device by revoking its session: its cookie stops working on the next request. Only sessions of the signed-in account can be revoked; unknown or foreign sessions answer 404.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+<p class="ep-h">Query parameters</p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">sid <span class="p-hint">(path)</span><em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+</div>
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">Session revoked.<span class="r-sig"><a href="#schema-Ok">Ok</a></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">404</span>
+    <span class="p-desc">Session not found (or belongs to another account).</span>
   </div>
     </div>
   </div>
@@ -5855,6 +5943,59 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
     <span class="p-name">retryAfter</span>
     <span class="p-type">integer</span>
     <span class="p-desc">429 only. The same number of seconds as the Retry-After header.</span>
+  </div>
+</div>
+  </div>
+</details>
+
+<details class="ep sch" id="schema-SessionInfo">
+  <summary>
+    <span class="sch-name"><code>SessionInfo</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum"></span>
+  </summary>
+  <div class="ep-body">
+
+<div class="ptab">
+  <div class="prow">
+    <span class="p-name">id</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">Session id (matches the sid cookie).</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">deviceName</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">Short device label derived from the sign-in user agent.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">userAgent</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">Full sign-in user agent.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">ip</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">Sign-in IP.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">createdAt</span>
+    <span class="p-type">string <span class="p-hint">(date-time)</span></span>
+    <span class="p-desc">When this device signed in.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">lastSeenAt</span>
+    <span class="p-type">string <span class="p-hint">(date-time)</span></span>
+    <span class="p-desc">Last authenticated request from this device.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">revokedAt</span>
+    <span class="p-type">string <span class="p-hint">(date-time)</span></span>
+    <span class="p-desc">Present once the session has been revoked.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">current</span>
+    <span class="p-type">boolean</span>
+    <span class="p-desc">True for the session this request came from.</span>
   </div>
 </div>
   </div>

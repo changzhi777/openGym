@@ -753,6 +753,70 @@ paths:
               schema: { $ref: '#/components/schemas/Ok' }
         '401': { $ref: '#/components/responses/Unauthorized' }
 
+  /api/auth/sessions:
+    get:
+      tags: [auth]
+      operationId: authSessions
+      summary: List active device sessions
+      description: |
+        The signed-in account's active device sessions (one row per login), newest
+        first. The session this request came from carries `current: true`. Revoked
+        sessions no longer appear here; cookies issued before sessions were
+        introduced (no sid cookie) are not listed but remain valid until they
+        expire or the account signs out everywhere.
+      responses:
+        '200':
+          description: Active sessions, newest first.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sessions:
+                    type: array
+                    items: { $ref: '#/components/schemas/SessionInfo' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/auth/sessions/current:
+    delete:
+      tags: [auth]
+      operationId: authSessionRevokeCurrent
+      summary: Sign out this device (revoke its session)
+      description: |
+        Revokes this device's session row and clears its cookies. Always succeeds:
+        an invalid or missing session is a no-op.
+      responses:
+        '200':
+          description: Session revoked and cookies cleared.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/auth/sessions/{sid}:
+    delete:
+      tags: [auth]
+      operationId: authSessionRevoke
+      summary: Revoke one device session
+      description: |
+        Signs out one device by revoking its session: its cookie stops working on
+        the next request. Only sessions of the signed-in account can be revoked;
+        unknown or foreign sessions answer 404.
+      parameters:
+        - { name: sid, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: Session revoked.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404':
+          description: Session not found (or belongs to another account).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
   /api/account/delete:
     post:
       tags: [auth]
@@ -5222,6 +5286,22 @@ components:
         retryAfter:
           type: integer
           description: 429 only. The same number of seconds as the Retry-After header.
+
+    SessionInfo:
+      type: object
+      properties:
+        id: { type: string, description: Session id (matches the sid cookie). }
+        deviceName:
+          type: string
+          description: Short device label derived from the sign-in user agent.
+        userAgent: { type: string, description: Full sign-in user agent. }
+        ip: { type: string, description: Sign-in IP. }
+        createdAt: { type: string, format: date-time, description: When this device signed in. }
+        lastSeenAt: { type: string, format: date-time, description: Last authenticated request from this device. }
+        revokedAt: { type: string, format: date-time, description: Present once the session has been revoked. }
+        current:
+          type: boolean
+          description: True for the session this request came from.
 
     Ok:
       type: object

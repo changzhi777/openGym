@@ -4,17 +4,26 @@
 //   gymsid=<uid>:<expms>:<sv>.<HMAC-SHA256(uid:exp:sv, SECRET) 的 base64url>
 //   __Host-gymsid=<同上>  (仅 https;HttpOnly;SameSite=Lax;Path=/)
 // sv = session version,logout-all 时 +1 使全部旧 cookie 失效。
+//
+// 设备会话(2026-11-25):登录成功时另发旁路 cookie gymsid_sid=<随机 hex>,并在 PG
+// sessions 表落一行(见 store/sessions.go)——账号页据此列出设备/踢出。主 cookie 格式
+// 零改动(Node 兼容不破坏);无 sid 的旧会话兼容有效,重新登录即纳入设备管理。
 package auth
 
 import (
 	"crypto/hmac"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
 )
+
+// SIDCookieName 设备会话旁路 cookie(与主 cookie 同生命周期语义)。
+const SIDCookieName = "gymsid_sid"
 
 type Sessions struct {
 	secret []byte
@@ -79,6 +88,15 @@ func (s *Sessions) Verify(token string) (uid string, exp int64, sv int64, ok boo
 	return parts[0], e, v, true
 }
 
+// NewSID 生成新设备会话 id(16 字节随机 → 32 hex)。
+func NewSID() string {
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		panic("crypto/rand unavailable: " + err.Error())
+	}
+	return hex.EncodeToString(b)
+}
+
 func (s *Sessions) CookieName() string {
 	if s.secure {
 		return "__Host-gymsid"
@@ -107,7 +125,18 @@ func (s *Sessions) SetCookieValue(uid string, sv int64) []string {
 	return []string{fresh, s.expireCookie("gymsid")}
 }
 
+// SetSIDCookieValue 设备会话旁路 cookie 的 Set-Cookie 值(与主 cookie 同 Max-Age)。
+func (s *Sessions) SetSIDCookieValue(sid string) string {
+	return fmt.Sprintf("%s=%s; Path=/; Max-Age=%d; HttpOnly;%s SameSite=Lax",
+		SIDCookieName, sid, s.days*86400, secureAttr(s.secure))
+}
+
+// ClearSIDCookieValue 设备会话旁路 cookie 的过期 Set-Cookie。
+func (s *Sessions) ClearSIDCookieValue() string {
+	return s.expireCookie(SIDCookieName)
+}
+
 // ClearValue 登出用的过期 Set-Cookie。
 func (s *Sessions) ClearValue() []string {
-	return []string{s.expireCookie(s.CookieName())}
+	return []string{s.expireCookie(s.CookieName()), s.expireCookie(SIDCookieName)}
 }

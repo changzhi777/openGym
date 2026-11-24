@@ -143,6 +143,9 @@ func main() {
 	r.GET("/api/me", svc.Me)
 	r.POST("/api/logout", svc.Logout)
 	r.POST("/api/logout/all", svc.LogoutAll)
+	r.GET("/api/auth/sessions", svc.SessionsList)
+	r.DELETE("/api/auth/sessions/current", svc.SessionsRevokeCurrent)
+	r.DELETE("/api/auth/sessions/:sid", svc.SessionsRevoke)
 
 	// P3a:数据三端点。
 	dataSvc := &data.Service{DB: db, Sessions: sessions}

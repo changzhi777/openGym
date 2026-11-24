@@ -66,14 +66,61 @@ func (s *Service) setCookie(c *gin.Context, uid string, sv int64) {
 	}
 }
 
+// startSession 登录成功:签发设备会话 sid、落 PG 会话行、下发旁路 sid cookie。
+// 主 HMAC cookie 格式不动(Node 字节级兼容);会话行失败只影响设备列表,不阻断登录。
+func (s *Service) startSession(c *gin.Context, uid string) {
+	sid := NewSID()
+	ua := c.GetHeader("User-Agent")
+	if len(ua) > 200 {
+		ua = ua[:200]
+	}
+	if err := store.CreateSession(c.Request.Context(), s.DB, sid, uid, deviceName(ua), ua, c.ClientIP()); err != nil {
+		log.Println("auth: create session:", err)
+		return
+	}
+	c.Writer.Header().Add("Set-Cookie", s.Sessions.SetSIDCookieValue(sid))
+}
+
+// deviceName 从 UA 归纳易读设备名(列表展示用;完整 UA 另存)。
+func deviceName(ua string) string {
+	switch {
+	case strings.Contains(ua, "MicroMessenger"):
+		return "微信内置浏览器"
+	case strings.Contains(ua, "Android"):
+		return "Android 浏览器"
+	case strings.Contains(ua, "iPhone"), strings.Contains(ua, "iPad"):
+		return "iOS 浏览器"
+	case strings.Contains(ua, "Electron"):
+		return "桌面客户端"
+	}
+	return "浏览器"
+}
+
+// sidOf 从请求 cookie 解出设备会话 id(无则空串=旧会话)。
+func sidOf(c *gin.Context) string {
+	for _, raw := range strings.Split(c.GetHeader("Cookie"), ";") {
+		if i := strings.IndexByte(raw, '='); i >= 0 && strings.TrimSpace(raw[:i]) == SIDCookieName {
+			return strings.TrimSpace(raw[i+1:])
+		}
+	}
+	return ""
+}
+
 // UserOf 从 cookie/Bearer 解出有效用户(Node sessionOf 同义:disabled/sv 校验)。
 // 包级导出:admin/presence 等包复用同一会话判定。
+// 设备会话(2026-11-25):带 sid cookie 的会话顺带刷新最近活跃;被踢出的会话在此拒绝。
 func UserOf(c *gin.Context, db *pgxpool.Pool, ss *Sessions) (store.User, bool) {
 	s := &Service{DB: db, Sessions: ss}
 	tok := ""
+	sid := ""
 	for _, raw := range strings.Split(c.GetHeader("Cookie"), ";") {
-		if i := strings.IndexByte(raw, '='); i >= 0 && strings.TrimSpace(raw[:i]) == s.Sessions.CookieName() {
-			tok = strings.TrimSpace(raw[i+1:])
+		if i := strings.IndexByte(raw, '='); i >= 0 {
+			name := strings.TrimSpace(raw[:i])
+			if name == s.Sessions.CookieName() {
+				tok = strings.TrimSpace(raw[i+1:])
+			} else if name == SIDCookieName {
+				sid = strings.TrimSpace(raw[i+1:])
+			}
 		}
 	}
 	if h := c.GetHeader("Authorization"); strings.HasPrefix(h, "Bearer ") {
@@ -81,6 +128,10 @@ func UserOf(c *gin.Context, db *pgxpool.Pool, ss *Sessions) (store.User, bool) {
 	}
 	uid, _, sv, ok := s.Sessions.Verify(tok)
 	if !ok {
+		return store.User{}, false
+	}
+	// 有设备会话 sid 的:刷新 last_seen 并拒绝已踢出的(旧无 sid 会话兼容放行)。
+	if sid != "" && store.SessionCheckAndTouch(c.Request.Context(), db, sid) {
 		return store.User{}, false
 	}
 	u, err := store.UserByID(c.Request.Context(), db, uid)
@@ -118,6 +169,10 @@ func (s *Service) audit(c *gin.Context, actor, action string, detail map[string]
 
 // Logout POST /api/logout。
 func (s *Service) Logout(c *gin.Context) {
+	// 设备会话:撤销当前 sid(无 sid 的旧会话无行可撤,cookie 清除即登出)。
+	if sid := sidOf(c); sid != "" {
+		store.RevokeSession(c.Request.Context(), s.DB, sid, "")
+	}
 	for _, v := range s.Sessions.ClearValue() {
 		c.Writer.Header().Add("Set-Cookie", v)
 	}
@@ -132,6 +187,9 @@ func (s *Service) LogoutAll(c *gin.Context) {
 		return
 	}
 	s.DB.Exec(c.Request.Context(), `UPDATE users SET sv = sv + 1 WHERE id=$1`, u.ID)
+	if err := store.RevokeAllFor(c.Request.Context(), s.DB, u.ID); err != nil {
+		log.Println("auth: revoke all sessions:", err)
+	}
 	for _, v := range s.Sessions.ClearValue() {
 		c.Writer.Header().Add("Set-Cookie", v)
 	}
@@ -255,6 +313,7 @@ func (s *Service) SmsVerify(c *gin.Context) {
 		return
 	}
 	s.setCookie(c, uid, 0)
+	s.startSession(c, uid)
 	// 响应名取库中真名(老用户回登显示既有名,勿用手机号派生名覆盖)——新建号刚插入,同一路径可查
 	name := defaultName(b.Phone)
 	if u, err := store.UserByID(ct, s.DB, uid); err == nil && u.Name != "" {
@@ -334,6 +393,7 @@ func (s *Service) WechatPoll(c *gin.Context) {
 			out["user"] = gin.H{"id": u.ID, "name": u.Name}
 		}
 		s.setCookie(c, uid, 0)
+		s.startSession(c, uid)
 	}
 	c.JSON(200, out)
 }
@@ -439,4 +499,66 @@ func fastrand() uint64 {
 	_, _ = rand.Read(b)
 	return uint64(b[0])<<56 | uint64(b[1])<<48 | uint64(b[2])<<40 | uint64(b[3])<<32 |
 		uint64(b[4])<<24 | uint64(b[5])<<16 | uint64(b[6])<<8 | uint64(b[7])
+}
+
+/* --------------------------------------------- 设备会话管理(2026-11-25) ---
+   账号页「设备与会话」:列出当前账号全部活跃设备会话,踢出任意一台(含本机登出)。
+   契约:openapi.yaml authSessions/authSessionRevoke/authSessionRevokeCurrent。 */
+
+// SessionsList GET /api/auth/sessions — 当前账号的活跃设备会话(当前会话标记 current)。
+func (s *Service) SessionsList(c *gin.Context) {
+	u, ok := UserOf(c, s.DB, s.Sessions)
+	if !ok {
+		jsonFail(c, 401, "not signed in", "")
+		return
+	}
+	rows, err := store.ListSessions(c.Request.Context(), s.DB, u.ID)
+	if err != nil {
+		jsonFail(c, 500, "list", "")
+		return
+	}
+	cur := sidOf(c)
+	if rows == nil {
+		rows = []store.SessionRow{}
+	}
+	for i := range rows {
+		rows[i].Current = rows[i].ID == cur
+	}
+	c.JSON(200, gin.H{"sessions": rows})
+}
+
+// SessionsRevokeCurrent DELETE /api/auth/sessions/current — 登出当前设备(会话行撤销+cookie 清除)。
+func (s *Service) SessionsRevokeCurrent(c *gin.Context) {
+	sid := sidOf(c)
+	if sid == "" {
+		jsonFail(c, 404, "no device session", "")
+		return
+	}
+	u, ok := UserOf(c, s.DB, s.Sessions)
+	if ok {
+		store.RevokeSession(c.Request.Context(), s.DB, sid, u.ID)
+	}
+	for _, v := range s.Sessions.ClearValue() {
+		c.Writer.Header().Add("Set-Cookie", v)
+	}
+	c.JSON(200, gin.H{"ok": true})
+}
+
+// SessionsRevoke DELETE /api/auth/sessions/{sid} — 踢出一台设备(仅限本账号的会话)。
+func (s *Service) SessionsRevoke(c *gin.Context) {
+	u, ok := UserOf(c, s.DB, s.Sessions)
+	if !ok {
+		jsonFail(c, 401, "not signed in", "")
+		return
+	}
+	sid := c.Param("sid")
+	if sid == "" {
+		jsonFail(c, 400, "sid required", "")
+		return
+	}
+	if !store.RevokeSession(c.Request.Context(), s.DB, sid, u.ID) {
+		jsonFail(c, 404, "session not found", "")
+		return
+	}
+	c.JSON(200, gin.H{"ok": true})
 }
