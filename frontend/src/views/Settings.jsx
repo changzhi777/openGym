@@ -1205,6 +1205,8 @@ export default function Settings({ page = null, find = null, via = null, entryKe
         </> : user ? <>
           {user.admin && <Row icon="crown" iconTint="var(--indigo)" title={t('Admin dashboard')} accessory="chevron" onClick={() => nav('/admin')} />}
           {user.roles?.includes('coach') && <Row icon="dumbbell" iconTint="var(--green)" title={t('教练工作台')} accessory="chevron" onClick={() => nav('/coach-console')} />}
+          {/* 团队页(fork;团队模式):学员扫码加入/待接收计划装载;教练引导去教练台。 */}
+          <Row icon="dumbbell" iconTint="var(--green)" title={t('我的团队')} accessory="chevron" onClick={() => nav('/team')} />
           <Row icon="phone" iconTint="var(--blue)" title={t('Bind mobile number')}
             subtitle={boundPhone ? '已绑定：' + boundPhone : undefined}
             accessory="chevron"

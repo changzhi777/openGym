@@ -61,16 +61,16 @@ func (e AdminCoachAuthMode) Valid() bool {
 
 // Defines values for AdminCoachRecentTrigger.
 const (
-	Manual    AdminCoachRecentTrigger = "manual"
-	Scheduled AdminCoachRecentTrigger = "scheduled"
+	AdminCoachRecentTriggerManual    AdminCoachRecentTrigger = "manual"
+	AdminCoachRecentTriggerScheduled AdminCoachRecentTrigger = "scheduled"
 )
 
 // Valid indicates whether the value is a known member of the AdminCoachRecentTrigger enum.
 func (e AdminCoachRecentTrigger) Valid() bool {
 	switch e {
-	case Manual:
+	case AdminCoachRecentTriggerManual:
 		return true
-	case Scheduled:
+	case AdminCoachRecentTriggerScheduled:
 		return true
 	default:
 		return false
@@ -98,6 +98,48 @@ func (e AdminRoleRowRole) Valid() bool {
 	}
 }
 
+// Defines values for AdminSessionAdminRoles.
+const (
+	AdminSessionAdminRolesOps        AdminSessionAdminRoles = "ops"
+	AdminSessionAdminRolesSuperAdmin AdminSessionAdminRoles = "super_admin"
+	AdminSessionAdminRolesSupport    AdminSessionAdminRoles = "support"
+)
+
+// Valid indicates whether the value is a known member of the AdminSessionAdminRoles enum.
+func (e AdminSessionAdminRoles) Valid() bool {
+	switch e {
+	case AdminSessionAdminRolesOps:
+		return true
+	case AdminSessionAdminRolesSuperAdmin:
+		return true
+	case AdminSessionAdminRolesSupport:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AdminSessionRole.
+const (
+	AdminSessionRoleOps        AdminSessionRole = "ops"
+	AdminSessionRoleSuperAdmin AdminSessionRole = "super_admin"
+	AdminSessionRoleSupport    AdminSessionRole = "support"
+)
+
+// Valid indicates whether the value is a known member of the AdminSessionRole enum.
+func (e AdminSessionRole) Valid() bool {
+	switch e {
+	case AdminSessionRoleOps:
+		return true
+	case AdminSessionRoleSuperAdmin:
+		return true
+	case AdminSessionRoleSupport:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for AdminUserDetailUnit.
 const (
 	AdminUserDetailUnitKg AdminUserDetailUnit = "kg"
@@ -116,6 +158,45 @@ func (e AdminUserDetailUnit) Valid() bool {
 	}
 }
 
+// Defines values for AdminUserRowRole.
+const (
+	AdminUserRowRoleOps        AdminUserRowRole = "ops"
+	AdminUserRowRoleSuperAdmin AdminUserRowRole = "super_admin"
+	AdminUserRowRoleSupport    AdminUserRowRole = "support"
+)
+
+// Valid indicates whether the value is a known member of the AdminUserRowRole enum.
+func (e AdminUserRowRole) Valid() bool {
+	switch e {
+	case AdminUserRowRoleOps:
+		return true
+	case AdminUserRowRoleSuperAdmin:
+		return true
+	case AdminUserRowRoleSupport:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CoachChatSessionState.
+const (
+	CoachChatSessionStateActive         CoachChatSessionState = "active"
+	CoachChatSessionStateWaitingConfirm CoachChatSessionState = "waiting_confirm"
+)
+
+// Valid indicates whether the value is a known member of the CoachChatSessionState enum.
+func (e CoachChatSessionState) Valid() bool {
+	switch e {
+	case CoachChatSessionStateActive:
+		return true
+	case CoachChatSessionStateWaitingConfirm:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for CoachCohortUnit.
 const (
 	CoachCohortUnitKg CoachCohortUnit = "kg"
@@ -128,6 +209,24 @@ func (e CoachCohortUnit) Valid() bool {
 	case CoachCohortUnitKg:
 		return true
 	case CoachCohortUnitLb:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CoachMemoryEntryKind.
+const (
+	Constraint CoachMemoryEntryKind = "constraint"
+	Narrative  CoachMemoryEntryKind = "narrative"
+)
+
+// Valid indicates whether the value is a known member of the CoachMemoryEntryKind enum.
+func (e CoachMemoryEntryKind) Valid() bool {
+	switch e {
+	case Constraint:
+		return true
+	case Narrative:
 		return true
 	default:
 		return false
@@ -236,6 +335,21 @@ func (e CoachProposalKind) Valid() bool {
 	}
 }
 
+// Defines values for CoachProposalTrigger.
+const (
+	CoachProposalTriggerScheduled CoachProposalTrigger = "scheduled"
+)
+
+// Valid indicates whether the value is a known member of the CoachProposalTrigger enum.
+func (e CoachProposalTrigger) Valid() bool {
+	switch e {
+	case CoachProposalTriggerScheduled:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for CoachStatusJobKind.
 const (
 	CoachStatusJobKindCreate  CoachStatusJobKind = "create"
@@ -298,28 +412,61 @@ func (e CoachStatusLastKind) Valid() bool {
 
 // Defines values for CoachStatusLastOutcome.
 const (
-	Applied   CoachStatusLastOutcome = "applied"
-	Dismissed CoachStatusLastOutcome = "dismissed"
-	Expired   CoachStatusLastOutcome = "expired"
-	Failed    CoachStatusLastOutcome = "failed"
-	Nochange  CoachStatusLastOutcome = "nochange"
-	Ready     CoachStatusLastOutcome = "ready"
+	CoachStatusLastOutcomeApplied   CoachStatusLastOutcome = "applied"
+	CoachStatusLastOutcomeDismissed CoachStatusLastOutcome = "dismissed"
+	CoachStatusLastOutcomeExpired   CoachStatusLastOutcome = "expired"
+	CoachStatusLastOutcomeFailed    CoachStatusLastOutcome = "failed"
+	CoachStatusLastOutcomeNochange  CoachStatusLastOutcome = "nochange"
+	CoachStatusLastOutcomeReady     CoachStatusLastOutcome = "ready"
 )
 
 // Valid indicates whether the value is a known member of the CoachStatusLastOutcome enum.
 func (e CoachStatusLastOutcome) Valid() bool {
 	switch e {
-	case Applied:
+	case CoachStatusLastOutcomeApplied:
 		return true
-	case Dismissed:
+	case CoachStatusLastOutcomeDismissed:
 		return true
-	case Expired:
+	case CoachStatusLastOutcomeExpired:
 		return true
-	case Failed:
+	case CoachStatusLastOutcomeFailed:
 		return true
-	case Nochange:
+	case CoachStatusLastOutcomeNochange:
 		return true
-	case Ready:
+	case CoachStatusLastOutcomeReady:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CoachStatusLastTrigger.
+const (
+	CoachStatusLastTriggerScheduled CoachStatusLastTrigger = "scheduled"
+)
+
+// Valid indicates whether the value is a known member of the CoachStatusLastTrigger enum.
+func (e CoachStatusLastTrigger) Valid() bool {
+	switch e {
+	case CoachStatusLastTriggerScheduled:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CoachStudentDetailUnit.
+const (
+	CoachStudentDetailUnitKg CoachStudentDetailUnit = "kg"
+	CoachStudentDetailUnitLb CoachStudentDetailUnit = "lb"
+)
+
+// Valid indicates whether the value is a known member of the CoachStudentDetailUnit enum.
+func (e CoachStudentDetailUnit) Valid() bool {
+	switch e {
+	case CoachStudentDetailUnitKg:
+		return true
+	case CoachStudentDetailUnitLb:
 		return true
 	default:
 		return false
@@ -335,6 +482,78 @@ const (
 func (e CustomExerciseCustom) Valid() bool {
 	switch e {
 	case CustomExerciseCustomTrue:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for IntegrationConnectionStatus.
+const (
+	IntegrationConnectionStatusAttention IntegrationConnectionStatus = "attention"
+	IntegrationConnectionStatusConnected IntegrationConnectionStatus = "connected"
+	IntegrationConnectionStatusPaused    IntegrationConnectionStatus = "paused"
+)
+
+// Valid indicates whether the value is a known member of the IntegrationConnectionStatus enum.
+func (e IntegrationConnectionStatus) Valid() bool {
+	switch e {
+	case IntegrationConnectionStatusAttention:
+		return true
+	case IntegrationConnectionStatusConnected:
+		return true
+	case IntegrationConnectionStatusPaused:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for IntegrationEvent.
+const (
+	WeighinLogged   IntegrationEvent = "weighin.logged"
+	WorkoutFinished IntegrationEvent = "workout.finished"
+	WorkoutPr       IntegrationEvent = "workout.pr"
+)
+
+// Valid indicates whether the value is a known member of the IntegrationEvent enum.
+func (e IntegrationEvent) Valid() bool {
+	switch e {
+	case WeighinLogged:
+		return true
+	case WorkoutFinished:
+		return true
+	case WorkoutPr:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MediaConfigDays.
+const (
+	MediaConfigDaysTrue MediaConfigDays = true
+)
+
+// Valid indicates whether the value is a known member of the MediaConfigDays enum.
+func (e MediaConfigDays) Valid() bool {
+	switch e {
+	case MediaConfigDaysTrue:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MediaConfigSets.
+const (
+	MediaConfigSetsTrue MediaConfigSets = true
+)
+
+// Valid indicates whether the value is a known member of the MediaConfigSets enum.
+func (e MediaConfigSets) Valid() bool {
+	switch e {
+	case MediaConfigSetsTrue:
 		return true
 	default:
 		return false
@@ -358,31 +577,31 @@ func (e MediaConfigWorkouts) Valid() bool {
 
 // Defines values for MediaRefCodec.
 const (
-	Av01  MediaRefCodec = "av01"
-	Avc1  MediaRefCodec = "avc1"
-	Hvc1  MediaRefCodec = "hvc1"
-	Other MediaRefCodec = "other"
-	Vp09  MediaRefCodec = "vp09"
-	Vp8   MediaRefCodec = "vp8"
-	Vp9   MediaRefCodec = "vp9"
+	MediaRefCodecAv01  MediaRefCodec = "av01"
+	MediaRefCodecAvc1  MediaRefCodec = "avc1"
+	MediaRefCodecHvc1  MediaRefCodec = "hvc1"
+	MediaRefCodecOther MediaRefCodec = "other"
+	MediaRefCodecVp09  MediaRefCodec = "vp09"
+	MediaRefCodecVp8   MediaRefCodec = "vp8"
+	MediaRefCodecVp9   MediaRefCodec = "vp9"
 )
 
 // Valid indicates whether the value is a known member of the MediaRefCodec enum.
 func (e MediaRefCodec) Valid() bool {
 	switch e {
-	case Av01:
+	case MediaRefCodecAv01:
 		return true
-	case Avc1:
+	case MediaRefCodecAvc1:
 		return true
-	case Hvc1:
+	case MediaRefCodecHvc1:
 		return true
-	case Other:
+	case MediaRefCodecOther:
 		return true
-	case Vp09:
+	case MediaRefCodecVp09:
 		return true
-	case Vp8:
+	case MediaRefCodecVp8:
 		return true
-	case Vp9:
+	case MediaRefCodecVp9:
 		return true
 	default:
 		return false
@@ -491,6 +710,45 @@ func (e OkOk) Valid() bool {
 	}
 }
 
+// Defines values for PasskeyListDeleteBlocked.
+const (
+	PasskeyListDeleteBlockedLastAdmin PasskeyListDeleteBlocked = "last-admin"
+)
+
+// Valid indicates whether the value is a known member of the PasskeyListDeleteBlocked enum.
+func (e PasskeyListDeleteBlocked) Valid() bool {
+	switch e {
+	case PasskeyListDeleteBlockedLastAdmin:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PlanAssignmentStatus.
+const (
+	PlanAssignmentStatusDeclined    PlanAssignmentStatus = "declined"
+	PlanAssignmentStatusDistributed PlanAssignmentStatus = "distributed"
+	PlanAssignmentStatusLoaded      PlanAssignmentStatus = "loaded"
+	PlanAssignmentStatusReceived    PlanAssignmentStatus = "received"
+)
+
+// Valid indicates whether the value is a known member of the PlanAssignmentStatus enum.
+func (e PlanAssignmentStatus) Valid() bool {
+	switch e {
+	case PlanAssignmentStatusDeclined:
+		return true
+	case PlanAssignmentStatusDistributed:
+		return true
+	case PlanAssignmentStatusLoaded:
+		return true
+	case PlanAssignmentStatusReceived:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for StateEffort.
 const (
 	StateEffortNone StateEffort = "none"
@@ -524,6 +782,66 @@ func (e StateUnit) Valid() bool {
 	case StateUnitKg:
 		return true
 	case StateUnitLb:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TeamInsightFlags.
+const (
+	Drop TeamInsightFlags = "drop"
+	Gain TeamInsightFlags = "gain"
+	Hot  TeamInsightFlags = "hot"
+	Miss TeamInsightFlags = "miss"
+)
+
+// Valid indicates whether the value is a known member of the TeamInsightFlags enum.
+func (e TeamInsightFlags) Valid() bool {
+	switch e {
+	case Drop:
+		return true
+	case Gain:
+		return true
+	case Hot:
+		return true
+	case Miss:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TeamMemberRole.
+const (
+	TeamMemberRoleMember TeamMemberRole = "member"
+	TeamMemberRoleOwner  TeamMemberRole = "owner"
+)
+
+// Valid indicates whether the value is a known member of the TeamMemberRole enum.
+func (e TeamMemberRole) Valid() bool {
+	switch e {
+	case TeamMemberRoleMember:
+		return true
+	case TeamMemberRoleOwner:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TeamMemberScopeTier.
+const (
+	TeamMemberScopeTierBasic TeamMemberScopeTier = "basic"
+	TeamMemberScopeTierFull  TeamMemberScopeTier = "full"
+)
+
+// Valid indicates whether the value is a known member of the TeamMemberScopeTier enum.
+func (e TeamMemberScopeTier) Valid() bool {
+	switch e {
+	case TeamMemberScopeTierBasic:
+		return true
+	case TeamMemberScopeTierFull:
 		return true
 	default:
 		return false
@@ -695,6 +1013,21 @@ func (e SetAccountEmail200JSONResponseBodyOk) Valid() bool {
 	}
 }
 
+// Defines values for RemovePasskey200JSONResponseBodyDeleteBlocked.
+const (
+	RemovePasskey200JSONResponseBodyDeleteBlockedLastAdmin RemovePasskey200JSONResponseBodyDeleteBlocked = "last-admin"
+)
+
+// Valid indicates whether the value is a known member of the RemovePasskey200JSONResponseBodyDeleteBlocked enum.
+func (e RemovePasskey200JSONResponseBodyDeleteBlocked) Valid() bool {
+	switch e {
+	case RemovePasskey200JSONResponseBodyDeleteBlockedLastAdmin:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for RemovePasskey200JSONResponseBodyOk.
 const (
 	RemovePasskey200JSONResponseBodyOkTrue RemovePasskey200JSONResponseBodyOk = true
@@ -710,6 +1043,21 @@ func (e RemovePasskey200JSONResponseBodyOk) Valid() bool {
 	}
 }
 
+// Defines values for RenamePasskey200JSONResponseBodyDeleteBlocked.
+const (
+	RenamePasskey200JSONResponseBodyDeleteBlockedLastAdmin RenamePasskey200JSONResponseBodyDeleteBlocked = "last-admin"
+)
+
+// Valid indicates whether the value is a known member of the RenamePasskey200JSONResponseBodyDeleteBlocked enum.
+func (e RenamePasskey200JSONResponseBodyDeleteBlocked) Valid() bool {
+	switch e {
+	case RenamePasskey200JSONResponseBodyDeleteBlockedLastAdmin:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for RenamePasskey200JSONResponseBodyOk.
 const (
 	RenamePasskey200JSONResponseBodyOkTrue RenamePasskey200JSONResponseBodyOk = true
@@ -719,6 +1067,21 @@ const (
 func (e RenamePasskey200JSONResponseBodyOk) Valid() bool {
 	switch e {
 	case RenamePasskey200JSONResponseBodyOkTrue:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AddPasskeyVerify200JSONResponseBodyDeleteBlocked.
+const (
+	AddPasskeyVerify200JSONResponseBodyDeleteBlockedLastAdmin AddPasskeyVerify200JSONResponseBodyDeleteBlocked = "last-admin"
+)
+
+// Valid indicates whether the value is a known member of the AddPasskeyVerify200JSONResponseBodyDeleteBlocked enum.
+func (e AddPasskeyVerify200JSONResponseBodyDeleteBlocked) Valid() bool {
+	switch e {
+	case AddPasskeyVerify200JSONResponseBodyDeleteBlockedLastAdmin:
 		return true
 	default:
 		return false
@@ -820,19 +1183,52 @@ func (e AdminAudit200JSONResponseBodyIpMode) Valid() bool {
 
 // Defines values for PostAdminCoachConnectJSONBodyType.
 const (
-	Apikey   PostAdminCoachConnectJSONBodyType = "apikey"
-	CliToken PostAdminCoachConnectJSONBodyType = "cli-token"
-	Oauth    PostAdminCoachConnectJSONBodyType = "oauth"
+	PostAdminCoachConnectJSONBodyTypeApikey   PostAdminCoachConnectJSONBodyType = "apikey"
+	PostAdminCoachConnectJSONBodyTypeCliToken PostAdminCoachConnectJSONBodyType = "cli-token"
+	PostAdminCoachConnectJSONBodyTypeOauth    PostAdminCoachConnectJSONBodyType = "oauth"
 )
 
 // Valid indicates whether the value is a known member of the PostAdminCoachConnectJSONBodyType enum.
 func (e PostAdminCoachConnectJSONBodyType) Valid() bool {
 	switch e {
-	case Apikey:
+	case PostAdminCoachConnectJSONBodyTypeApikey:
 		return true
-	case CliToken:
+	case PostAdminCoachConnectJSONBodyTypeCliToken:
 		return true
-	case Oauth:
+	case PostAdminCoachConnectJSONBodyTypeOauth:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AdminOverview200JSONResponseBodyAttentionCode.
+const (
+	AdminOverview200JSONResponseBodyAttentionCodeDisabled  AdminOverview200JSONResponseBodyAttentionCode = "disabled"
+	AdminOverview200JSONResponseBodyAttentionCodeQuotaNear AdminOverview200JSONResponseBodyAttentionCode = "quota_near"
+)
+
+// Valid indicates whether the value is a known member of the AdminOverview200JSONResponseBodyAttentionCode enum.
+func (e AdminOverview200JSONResponseBodyAttentionCode) Valid() bool {
+	switch e {
+	case AdminOverview200JSONResponseBodyAttentionCodeDisabled:
+		return true
+	case AdminOverview200JSONResponseBodyAttentionCodeQuotaNear:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AdminOwnerTransfer200JSONResponseBodyOk.
+const (
+	AdminOwnerTransfer200JSONResponseBodyOkTrue AdminOwnerTransfer200JSONResponseBodyOk = true
+)
+
+// Valid indicates whether the value is a known member of the AdminOwnerTransfer200JSONResponseBodyOk enum.
+func (e AdminOwnerTransfer200JSONResponseBodyOk) Valid() bool {
+	switch e {
+	case AdminOwnerTransfer200JSONResponseBodyOkTrue:
 		return true
 	default:
 		return false
@@ -926,6 +1322,120 @@ func (e AdminPasswordReset200JSONResponseBodyOk) Valid() bool {
 	}
 }
 
+// Defines values for AdminRecoveryCode200JSONResponseBodyOk.
+const (
+	AdminRecoveryCode200JSONResponseBodyOkTrue AdminRecoveryCode200JSONResponseBodyOk = true
+)
+
+// Valid indicates whether the value is a known member of the AdminRecoveryCode200JSONResponseBodyOk enum.
+func (e AdminRecoveryCode200JSONResponseBodyOk) Valid() bool {
+	switch e {
+	case AdminRecoveryCode200JSONResponseBodyOkTrue:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AdminUserRole200JSONResponseBodyOk.
+const (
+	AdminUserRole200JSONResponseBodyOkTrue AdminUserRole200JSONResponseBodyOk = true
+)
+
+// Valid indicates whether the value is a known member of the AdminUserRole200JSONResponseBodyOk enum.
+func (e AdminUserRole200JSONResponseBodyOk) Valid() bool {
+	switch e {
+	case AdminUserRole200JSONResponseBodyOkTrue:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AdminUsersParamsRole.
+const (
+	AdminUsersParamsRoleNone       AdminUsersParamsRole = "none"
+	AdminUsersParamsRoleOps        AdminUsersParamsRole = "ops"
+	AdminUsersParamsRoleSuperAdmin AdminUsersParamsRole = "super_admin"
+	AdminUsersParamsRoleSupport    AdminUsersParamsRole = "support"
+)
+
+// Valid indicates whether the value is a known member of the AdminUsersParamsRole enum.
+func (e AdminUsersParamsRole) Valid() bool {
+	switch e {
+	case AdminUsersParamsRoleNone:
+		return true
+	case AdminUsersParamsRoleOps:
+		return true
+	case AdminUsersParamsRoleSuperAdmin:
+		return true
+	case AdminUsersParamsRoleSupport:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AdminUsersParamsStatus.
+const (
+	AdminUsersParamsStatusActive   AdminUsersParamsStatus = "active"
+	AdminUsersParamsStatusDisabled AdminUsersParamsStatus = "disabled"
+)
+
+// Valid indicates whether the value is a known member of the AdminUsersParamsStatus enum.
+func (e AdminUsersParamsStatus) Valid() bool {
+	switch e {
+	case AdminUsersParamsStatusActive:
+		return true
+	case AdminUsersParamsStatusDisabled:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AdminUsersParamsSort.
+const (
+	Created  AdminUsersParamsSort = "created"
+	LastSync AdminUsersParamsSort = "last_sync"
+	Workouts AdminUsersParamsSort = "workouts"
+)
+
+// Valid indicates whether the value is a known member of the AdminUsersParamsSort enum.
+func (e AdminUsersParamsSort) Valid() bool {
+	switch e {
+	case Created:
+		return true
+	case LastSync:
+		return true
+	case Workouts:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AuthWechatPoll200JSONResponseBodyStatus.
+const (
+	AuthWechatPoll200JSONResponseBodyStatusConfirmed AuthWechatPoll200JSONResponseBodyStatus = "confirmed"
+	AuthWechatPoll200JSONResponseBodyStatusExpired   AuthWechatPoll200JSONResponseBodyStatus = "expired"
+	AuthWechatPoll200JSONResponseBodyStatusPending   AuthWechatPoll200JSONResponseBodyStatus = "pending"
+)
+
+// Valid indicates whether the value is a known member of the AuthWechatPoll200JSONResponseBodyStatus enum.
+func (e AuthWechatPoll200JSONResponseBodyStatus) Valid() bool {
+	switch e {
+	case AuthWechatPoll200JSONResponseBodyStatusConfirmed:
+		return true
+	case AuthWechatPoll200JSONResponseBodyStatusExpired:
+		return true
+	case AuthWechatPoll200JSONResponseBodyStatusPending:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for GetCoachAccount200JSONResponseBodyMode.
 const (
 	GetCoachAccount200JSONResponseBodyModeInstance GetCoachAccount200JSONResponseBodyMode = "instance"
@@ -938,6 +1448,399 @@ func (e GetCoachAccount200JSONResponseBodyMode) Valid() bool {
 	case GetCoachAccount200JSONResponseBodyModeInstance:
 		return true
 	case GetCoachAccount200JSONResponseBodyModeProfile:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PostCoachAdaptJSONBodyReason.
+const (
+	PostCoachAdaptJSONBodyReasonBusy  PostCoachAdaptJSONBodyReason = "busy"
+	PostCoachAdaptJSONBodyReasonGreat PostCoachAdaptJSONBodyReason = "great"
+	PostCoachAdaptJSONBodyReasonOther PostCoachAdaptJSONBodyReason = "other"
+	PostCoachAdaptJSONBodyReasonPain  PostCoachAdaptJSONBodyReason = "pain"
+	PostCoachAdaptJSONBodyReasonShort PostCoachAdaptJSONBodyReason = "short"
+	PostCoachAdaptJSONBodyReasonTired PostCoachAdaptJSONBodyReason = "tired"
+)
+
+// Valid indicates whether the value is a known member of the PostCoachAdaptJSONBodyReason enum.
+func (e PostCoachAdaptJSONBodyReason) Valid() bool {
+	switch e {
+	case PostCoachAdaptJSONBodyReasonBusy:
+		return true
+	case PostCoachAdaptJSONBodyReasonGreat:
+		return true
+	case PostCoachAdaptJSONBodyReasonOther:
+		return true
+	case PostCoachAdaptJSONBodyReasonPain:
+		return true
+	case PostCoachAdaptJSONBodyReasonShort:
+		return true
+	case PostCoachAdaptJSONBodyReasonTired:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PostCoachAdapt403JSONResponseBodyCode.
+const (
+	PostCoachAdapt403JSONResponseBodyCodeBusy         PostCoachAdapt403JSONResponseBodyCode = "busy"
+	PostCoachAdapt403JSONResponseBodyCodeCap          PostCoachAdapt403JSONResponseBodyCode = "cap"
+	PostCoachAdapt403JSONResponseBodyCodeConsent      PostCoachAdapt403JSONResponseBodyCode = "consent"
+	PostCoachAdapt403JSONResponseBodyCodeOff          PostCoachAdapt403JSONResponseBodyCode = "off"
+	PostCoachAdapt403JSONResponseBodyCodeShared       PostCoachAdapt403JSONResponseBodyCode = "shared"
+	PostCoachAdapt403JSONResponseBodyCodeUnprivileged PostCoachAdapt403JSONResponseBodyCode = "unprivileged"
+)
+
+// Valid indicates whether the value is a known member of the PostCoachAdapt403JSONResponseBodyCode enum.
+func (e PostCoachAdapt403JSONResponseBodyCode) Valid() bool {
+	switch e {
+	case PostCoachAdapt403JSONResponseBodyCodeBusy:
+		return true
+	case PostCoachAdapt403JSONResponseBodyCodeCap:
+		return true
+	case PostCoachAdapt403JSONResponseBodyCodeConsent:
+		return true
+	case PostCoachAdapt403JSONResponseBodyCodeOff:
+		return true
+	case PostCoachAdapt403JSONResponseBodyCodeShared:
+		return true
+	case PostCoachAdapt403JSONResponseBodyCodeUnprivileged:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PostCoachAdapt409JSONResponseBodyCode.
+const (
+	PostCoachAdapt409JSONResponseBodyCodeBusy         PostCoachAdapt409JSONResponseBodyCode = "busy"
+	PostCoachAdapt409JSONResponseBodyCodeCap          PostCoachAdapt409JSONResponseBodyCode = "cap"
+	PostCoachAdapt409JSONResponseBodyCodeConsent      PostCoachAdapt409JSONResponseBodyCode = "consent"
+	PostCoachAdapt409JSONResponseBodyCodeOff          PostCoachAdapt409JSONResponseBodyCode = "off"
+	PostCoachAdapt409JSONResponseBodyCodeShared       PostCoachAdapt409JSONResponseBodyCode = "shared"
+	PostCoachAdapt409JSONResponseBodyCodeUnprivileged PostCoachAdapt409JSONResponseBodyCode = "unprivileged"
+)
+
+// Valid indicates whether the value is a known member of the PostCoachAdapt409JSONResponseBodyCode enum.
+func (e PostCoachAdapt409JSONResponseBodyCode) Valid() bool {
+	switch e {
+	case PostCoachAdapt409JSONResponseBodyCodeBusy:
+		return true
+	case PostCoachAdapt409JSONResponseBodyCodeCap:
+		return true
+	case PostCoachAdapt409JSONResponseBodyCodeConsent:
+		return true
+	case PostCoachAdapt409JSONResponseBodyCodeOff:
+		return true
+	case PostCoachAdapt409JSONResponseBodyCodeShared:
+		return true
+	case PostCoachAdapt409JSONResponseBodyCodeUnprivileged:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PostCoachAdapt429JSONResponseBodyCode.
+const (
+	PostCoachAdapt429JSONResponseBodyCodeBusy         PostCoachAdapt429JSONResponseBodyCode = "busy"
+	PostCoachAdapt429JSONResponseBodyCodeCap          PostCoachAdapt429JSONResponseBodyCode = "cap"
+	PostCoachAdapt429JSONResponseBodyCodeConsent      PostCoachAdapt429JSONResponseBodyCode = "consent"
+	PostCoachAdapt429JSONResponseBodyCodeOff          PostCoachAdapt429JSONResponseBodyCode = "off"
+	PostCoachAdapt429JSONResponseBodyCodeShared       PostCoachAdapt429JSONResponseBodyCode = "shared"
+	PostCoachAdapt429JSONResponseBodyCodeUnprivileged PostCoachAdapt429JSONResponseBodyCode = "unprivileged"
+)
+
+// Valid indicates whether the value is a known member of the PostCoachAdapt429JSONResponseBodyCode enum.
+func (e PostCoachAdapt429JSONResponseBodyCode) Valid() bool {
+	switch e {
+	case PostCoachAdapt429JSONResponseBodyCodeBusy:
+		return true
+	case PostCoachAdapt429JSONResponseBodyCodeCap:
+		return true
+	case PostCoachAdapt429JSONResponseBodyCodeConsent:
+		return true
+	case PostCoachAdapt429JSONResponseBodyCodeOff:
+		return true
+	case PostCoachAdapt429JSONResponseBodyCodeShared:
+		return true
+	case PostCoachAdapt429JSONResponseBodyCodeUnprivileged:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PostCoachAdapt503JSONResponseBodyCode.
+const (
+	PostCoachAdapt503JSONResponseBodyCodeOff PostCoachAdapt503JSONResponseBodyCode = "off"
+)
+
+// Valid indicates whether the value is a known member of the PostCoachAdapt503JSONResponseBodyCode enum.
+func (e PostCoachAdapt503JSONResponseBodyCode) Valid() bool {
+	switch e {
+	case PostCoachAdapt503JSONResponseBodyCodeOff:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PostCoachAsk403JSONResponseBodyCode.
+const (
+	PostCoachAsk403JSONResponseBodyCodeBusy         PostCoachAsk403JSONResponseBodyCode = "busy"
+	PostCoachAsk403JSONResponseBodyCodeCap          PostCoachAsk403JSONResponseBodyCode = "cap"
+	PostCoachAsk403JSONResponseBodyCodeConsent      PostCoachAsk403JSONResponseBodyCode = "consent"
+	PostCoachAsk403JSONResponseBodyCodeOff          PostCoachAsk403JSONResponseBodyCode = "off"
+	PostCoachAsk403JSONResponseBodyCodeShared       PostCoachAsk403JSONResponseBodyCode = "shared"
+	PostCoachAsk403JSONResponseBodyCodeUnprivileged PostCoachAsk403JSONResponseBodyCode = "unprivileged"
+)
+
+// Valid indicates whether the value is a known member of the PostCoachAsk403JSONResponseBodyCode enum.
+func (e PostCoachAsk403JSONResponseBodyCode) Valid() bool {
+	switch e {
+	case PostCoachAsk403JSONResponseBodyCodeBusy:
+		return true
+	case PostCoachAsk403JSONResponseBodyCodeCap:
+		return true
+	case PostCoachAsk403JSONResponseBodyCodeConsent:
+		return true
+	case PostCoachAsk403JSONResponseBodyCodeOff:
+		return true
+	case PostCoachAsk403JSONResponseBodyCodeShared:
+		return true
+	case PostCoachAsk403JSONResponseBodyCodeUnprivileged:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PostCoachAsk409JSONResponseBodyCode.
+const (
+	PostCoachAsk409JSONResponseBodyCodeBusy         PostCoachAsk409JSONResponseBodyCode = "busy"
+	PostCoachAsk409JSONResponseBodyCodeCap          PostCoachAsk409JSONResponseBodyCode = "cap"
+	PostCoachAsk409JSONResponseBodyCodeConsent      PostCoachAsk409JSONResponseBodyCode = "consent"
+	PostCoachAsk409JSONResponseBodyCodeOff          PostCoachAsk409JSONResponseBodyCode = "off"
+	PostCoachAsk409JSONResponseBodyCodeShared       PostCoachAsk409JSONResponseBodyCode = "shared"
+	PostCoachAsk409JSONResponseBodyCodeUnprivileged PostCoachAsk409JSONResponseBodyCode = "unprivileged"
+)
+
+// Valid indicates whether the value is a known member of the PostCoachAsk409JSONResponseBodyCode enum.
+func (e PostCoachAsk409JSONResponseBodyCode) Valid() bool {
+	switch e {
+	case PostCoachAsk409JSONResponseBodyCodeBusy:
+		return true
+	case PostCoachAsk409JSONResponseBodyCodeCap:
+		return true
+	case PostCoachAsk409JSONResponseBodyCodeConsent:
+		return true
+	case PostCoachAsk409JSONResponseBodyCodeOff:
+		return true
+	case PostCoachAsk409JSONResponseBodyCodeShared:
+		return true
+	case PostCoachAsk409JSONResponseBodyCodeUnprivileged:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PostCoachAsk429JSONResponseBodyCode.
+const (
+	PostCoachAsk429JSONResponseBodyCodeBusy         PostCoachAsk429JSONResponseBodyCode = "busy"
+	PostCoachAsk429JSONResponseBodyCodeCap          PostCoachAsk429JSONResponseBodyCode = "cap"
+	PostCoachAsk429JSONResponseBodyCodeConsent      PostCoachAsk429JSONResponseBodyCode = "consent"
+	PostCoachAsk429JSONResponseBodyCodeOff          PostCoachAsk429JSONResponseBodyCode = "off"
+	PostCoachAsk429JSONResponseBodyCodeShared       PostCoachAsk429JSONResponseBodyCode = "shared"
+	PostCoachAsk429JSONResponseBodyCodeUnprivileged PostCoachAsk429JSONResponseBodyCode = "unprivileged"
+)
+
+// Valid indicates whether the value is a known member of the PostCoachAsk429JSONResponseBodyCode enum.
+func (e PostCoachAsk429JSONResponseBodyCode) Valid() bool {
+	switch e {
+	case PostCoachAsk429JSONResponseBodyCodeBusy:
+		return true
+	case PostCoachAsk429JSONResponseBodyCodeCap:
+		return true
+	case PostCoachAsk429JSONResponseBodyCodeConsent:
+		return true
+	case PostCoachAsk429JSONResponseBodyCodeOff:
+		return true
+	case PostCoachAsk429JSONResponseBodyCodeShared:
+		return true
+	case PostCoachAsk429JSONResponseBodyCodeUnprivileged:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PostCoachAsk503JSONResponseBodyCode.
+const (
+	PostCoachAsk503JSONResponseBodyCodeOff PostCoachAsk503JSONResponseBodyCode = "off"
+)
+
+// Valid indicates whether the value is a known member of the PostCoachAsk503JSONResponseBodyCode enum.
+func (e PostCoachAsk503JSONResponseBodyCode) Valid() bool {
+	switch e {
+	case PostCoachAsk503JSONResponseBodyCodeOff:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PostCoachChat403JSONResponseBodyCode.
+const (
+	PostCoachChat403JSONResponseBodyCodeBusy         PostCoachChat403JSONResponseBodyCode = "busy"
+	PostCoachChat403JSONResponseBodyCodeCap          PostCoachChat403JSONResponseBodyCode = "cap"
+	PostCoachChat403JSONResponseBodyCodeConsent      PostCoachChat403JSONResponseBodyCode = "consent"
+	PostCoachChat403JSONResponseBodyCodeOff          PostCoachChat403JSONResponseBodyCode = "off"
+	PostCoachChat403JSONResponseBodyCodeShared       PostCoachChat403JSONResponseBodyCode = "shared"
+	PostCoachChat403JSONResponseBodyCodeUnprivileged PostCoachChat403JSONResponseBodyCode = "unprivileged"
+)
+
+// Valid indicates whether the value is a known member of the PostCoachChat403JSONResponseBodyCode enum.
+func (e PostCoachChat403JSONResponseBodyCode) Valid() bool {
+	switch e {
+	case PostCoachChat403JSONResponseBodyCodeBusy:
+		return true
+	case PostCoachChat403JSONResponseBodyCodeCap:
+		return true
+	case PostCoachChat403JSONResponseBodyCodeConsent:
+		return true
+	case PostCoachChat403JSONResponseBodyCodeOff:
+		return true
+	case PostCoachChat403JSONResponseBodyCodeShared:
+		return true
+	case PostCoachChat403JSONResponseBodyCodeUnprivileged:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PostCoachChat409JSONResponseBodyCode.
+const (
+	PostCoachChat409JSONResponseBodyCodeBusy         PostCoachChat409JSONResponseBodyCode = "busy"
+	PostCoachChat409JSONResponseBodyCodeCap          PostCoachChat409JSONResponseBodyCode = "cap"
+	PostCoachChat409JSONResponseBodyCodeConsent      PostCoachChat409JSONResponseBodyCode = "consent"
+	PostCoachChat409JSONResponseBodyCodeOff          PostCoachChat409JSONResponseBodyCode = "off"
+	PostCoachChat409JSONResponseBodyCodeShared       PostCoachChat409JSONResponseBodyCode = "shared"
+	PostCoachChat409JSONResponseBodyCodeUnprivileged PostCoachChat409JSONResponseBodyCode = "unprivileged"
+)
+
+// Valid indicates whether the value is a known member of the PostCoachChat409JSONResponseBodyCode enum.
+func (e PostCoachChat409JSONResponseBodyCode) Valid() bool {
+	switch e {
+	case PostCoachChat409JSONResponseBodyCodeBusy:
+		return true
+	case PostCoachChat409JSONResponseBodyCodeCap:
+		return true
+	case PostCoachChat409JSONResponseBodyCodeConsent:
+		return true
+	case PostCoachChat409JSONResponseBodyCodeOff:
+		return true
+	case PostCoachChat409JSONResponseBodyCodeShared:
+		return true
+	case PostCoachChat409JSONResponseBodyCodeUnprivileged:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PostCoachChat429JSONResponseBodyCode.
+const (
+	PostCoachChat429JSONResponseBodyCodeBusy         PostCoachChat429JSONResponseBodyCode = "busy"
+	PostCoachChat429JSONResponseBodyCodeCap          PostCoachChat429JSONResponseBodyCode = "cap"
+	PostCoachChat429JSONResponseBodyCodeConsent      PostCoachChat429JSONResponseBodyCode = "consent"
+	PostCoachChat429JSONResponseBodyCodeOff          PostCoachChat429JSONResponseBodyCode = "off"
+	PostCoachChat429JSONResponseBodyCodeShared       PostCoachChat429JSONResponseBodyCode = "shared"
+	PostCoachChat429JSONResponseBodyCodeUnprivileged PostCoachChat429JSONResponseBodyCode = "unprivileged"
+)
+
+// Valid indicates whether the value is a known member of the PostCoachChat429JSONResponseBodyCode enum.
+func (e PostCoachChat429JSONResponseBodyCode) Valid() bool {
+	switch e {
+	case PostCoachChat429JSONResponseBodyCodeBusy:
+		return true
+	case PostCoachChat429JSONResponseBodyCodeCap:
+		return true
+	case PostCoachChat429JSONResponseBodyCodeConsent:
+		return true
+	case PostCoachChat429JSONResponseBodyCodeOff:
+		return true
+	case PostCoachChat429JSONResponseBodyCodeShared:
+		return true
+	case PostCoachChat429JSONResponseBodyCodeUnprivileged:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PostCoachChat503JSONResponseBodyCode.
+const (
+	PostCoachChat503JSONResponseBodyCodeOff PostCoachChat503JSONResponseBodyCode = "off"
+)
+
+// Valid indicates whether the value is a known member of the PostCoachChat503JSONResponseBodyCode enum.
+func (e PostCoachChat503JSONResponseBodyCode) Valid() bool {
+	switch e {
+	case PostCoachChat503JSONResponseBodyCodeOff:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PostCoachChatConfirmJSONBodyDecision.
+const (
+	Accept PostCoachChatConfirmJSONBodyDecision = "accept"
+	Reject PostCoachChatConfirmJSONBodyDecision = "reject"
+)
+
+// Valid indicates whether the value is a known member of the PostCoachChatConfirmJSONBodyDecision enum.
+func (e PostCoachChatConfirmJSONBodyDecision) Valid() bool {
+	switch e {
+	case Accept:
+		return true
+	case Reject:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PostCoachChatConfirm503JSONResponseBodyCode.
+const (
+	PostCoachChatConfirm503JSONResponseBodyCodeOff PostCoachChatConfirm503JSONResponseBodyCode = "off"
+)
+
+// Valid indicates whether the value is a known member of the PostCoachChatConfirm503JSONResponseBodyCode enum.
+func (e PostCoachChatConfirm503JSONResponseBodyCode) Valid() bool {
+	switch e {
+	case PostCoachChatConfirm503JSONResponseBodyCodeOff:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GetCoachChatEvents503JSONResponseBodyCode.
+const (
+	GetCoachChatEvents503JSONResponseBodyCodeOff GetCoachChatEvents503JSONResponseBodyCode = "off"
+)
+
+// Valid indicates whether the value is a known member of the GetCoachChatEvents503JSONResponseBodyCode enum.
+func (e GetCoachChatEvents503JSONResponseBodyCode) Valid() bool {
+	switch e {
+	case GetCoachChatEvents503JSONResponseBodyCodeOff:
 		return true
 	default:
 		return false
@@ -1394,6 +2297,21 @@ func (e GetConfig200JSONResponseBodyCoachEnabled) Valid() bool {
 	}
 }
 
+// Defines values for GetConfig200JSONResponseBodyIntegrationsLan.
+const (
+	GetConfig200JSONResponseBodyIntegrationsLanTrue GetConfig200JSONResponseBodyIntegrationsLan = true
+)
+
+// Valid indicates whether the value is a known member of the GetConfig200JSONResponseBodyIntegrationsLan enum.
+func (e GetConfig200JSONResponseBodyIntegrationsLan) Valid() bool {
+	switch e {
+	case GetConfig200JSONResponseBodyIntegrationsLanTrue:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for GetConfig200JSONResponseBodyPasswordLogin.
 const (
 	GetConfig200JSONResponseBodyPasswordLoginTrue GetConfig200JSONResponseBodyPasswordLogin = true
@@ -1493,6 +2411,96 @@ const (
 func (e GetHealth503JSONResponseBodyWritable) Valid() bool {
 	switch e {
 	case GetHealth503JSONResponseBodyWritableFalse:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ListIntegrations200JSONResponseBodyProvidersKind.
+const (
+	ListIntegrations200JSONResponseBodyProvidersKindApikey  ListIntegrations200JSONResponseBodyProvidersKind = "apikey"
+	ListIntegrations200JSONResponseBodyProvidersKindOauth   ListIntegrations200JSONResponseBodyProvidersKind = "oauth"
+	ListIntegrations200JSONResponseBodyProvidersKindWebhook ListIntegrations200JSONResponseBodyProvidersKind = "webhook"
+)
+
+// Valid indicates whether the value is a known member of the ListIntegrations200JSONResponseBodyProvidersKind enum.
+func (e ListIntegrations200JSONResponseBodyProvidersKind) Valid() bool {
+	switch e {
+	case ListIntegrations200JSONResponseBodyProvidersKindApikey:
+		return true
+	case ListIntegrations200JSONResponseBodyProvidersKindOauth:
+		return true
+	case ListIntegrations200JSONResponseBodyProvidersKindWebhook:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GetTeam200JSONResponseBodyRole.
+const (
+	GetTeam200JSONResponseBodyRoleMember GetTeam200JSONResponseBodyRole = "member"
+	GetTeam200JSONResponseBodyRoleOwner  GetTeam200JSONResponseBodyRole = "owner"
+)
+
+// Valid indicates whether the value is a known member of the GetTeam200JSONResponseBodyRole enum.
+func (e GetTeam200JSONResponseBodyRole) Valid() bool {
+	switch e {
+	case GetTeam200JSONResponseBodyRoleMember:
+		return true
+	case GetTeam200JSONResponseBodyRoleOwner:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CreateTeam200JSONResponseBodyRole.
+const (
+	CreateTeam200JSONResponseBodyRoleOwner CreateTeam200JSONResponseBodyRole = "owner"
+)
+
+// Valid indicates whether the value is a known member of the CreateTeam200JSONResponseBodyRole enum.
+func (e CreateTeam200JSONResponseBodyRole) Valid() bool {
+	switch e {
+	case CreateTeam200JSONResponseBodyRoleOwner:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TeamMembers200JSONResponseBodyRole.
+const (
+	TeamMembers200JSONResponseBodyRoleMember TeamMembers200JSONResponseBodyRole = "member"
+	TeamMembers200JSONResponseBodyRoleOwner  TeamMembers200JSONResponseBodyRole = "owner"
+)
+
+// Valid indicates whether the value is a known member of the TeamMembers200JSONResponseBodyRole enum.
+func (e TeamMembers200JSONResponseBodyRole) Valid() bool {
+	switch e {
+	case TeamMembers200JSONResponseBodyRoleMember:
+		return true
+	case TeamMembers200JSONResponseBodyRoleOwner:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TeamPlanAckJSONBodyStatus.
+const (
+	TeamPlanAckJSONBodyStatusDeclined TeamPlanAckJSONBodyStatus = "declined"
+	TeamPlanAckJSONBodyStatusLoaded   TeamPlanAckJSONBodyStatus = "loaded"
+)
+
+// Valid indicates whether the value is a known member of the TeamPlanAckJSONBodyStatus enum.
+func (e TeamPlanAckJSONBodyStatus) Valid() bool {
+	switch e {
+	case TeamPlanAckJSONBodyStatusDeclined:
+		return true
+	case TeamPlanAckJSONBodyStatusLoaded:
 		return true
 	default:
 		return false
@@ -1604,6 +2612,9 @@ type AdminQuota struct {
 	CustomExercises *int     `json:"custom_exercises,omitempty"`
 	MediaMb         *int     `json:"media_mb,omitempty"`
 	UpdatedAt       *float32 `json:"updated_at,omitempty"`
+
+	// UsedAiCallsMonth Consumed AI calls in the current period (Go backend; absent when never used).
+	UsedAiCallsMonth *int `json:"used_ai_calls_month,omitempty"`
 }
 
 // AdminRoleRow One role assignment (fork, Go backend). Soft-revoked rows keep granted_by for the audit trail.
@@ -1622,6 +2633,30 @@ type AdminRoleRow struct {
 
 // AdminRoleRowRole defines model for AdminRoleRow.Role.
 type AdminRoleRowRole string
+
+// AdminSession Role resolution for the console shell (fork, Go backend).
+type AdminSession struct {
+	// AdminRoles All active roles (usually one).
+	AdminRoles *[]AdminSessionAdminRoles `json:"admin_roles,omitempty"`
+
+	// Role Highest active admin role; null for non-admins.
+	Role *AdminSessionRole `json:"role,omitempty"`
+
+	// StepUpUntil Step-up window deadline (ms), null when no window is open.
+	StepUpUntil *float32 `json:"step_up_until,omitempty"`
+}
+
+// AdminSessionAdminRoles defines model for AdminSession.AdminRoles.
+type AdminSessionAdminRoles string
+
+// AdminSessionRole defines model for AdminSession.Role.
+type AdminSessionRole string
+
+// AdminSettings Instance switches (fork, Go backend).
+type AdminSettings struct {
+	// InviteOnly Sign-up requires a valid invite code. Overrides the INVITE_ONLY env default; PUT persists the value, GET answers the effective one.
+	InviteOnly *bool `json:"invite_only,omitempty"`
+}
 
 // AdminUserDetail defines model for AdminUserDetail.
 type AdminUserDetail struct {
@@ -1646,8 +2681,14 @@ type AdminUserDetail struct {
 		InvitedBy *string `json:"invitedBy,omitempty"`
 		Name      *string `json:"name,omitempty"`
 
+		// Owner The one admin who manages the others.
+		Owner *bool `json:"owner,omitempty"`
+
 		// Password PASSWORD_LOGIN instances only.
 		Password *bool `json:"password,omitempty"`
+
+		// RecoveryUntil Expiry (ms) of an unused recovery code (POST /api/admin/user/recovery, recover.js).
+		RecoveryUntil *float32 `json:"recoveryUntil,omitempty"`
 
 		// ResetUntil PASSWORD_LOGIN instances only. Expiry (ms) of an unused reset code.
 		ResetUntil *float32 `json:"resetUntil,omitempty"`
@@ -1668,12 +2709,18 @@ type AdminUserRow struct {
 	Created  *string `json:"created,omitempty"`
 	Disabled *bool   `json:"disabled,omitempty"`
 
-	// Email PASSWORD_LOGIN instances only. The e-mail the profile signs in with, if any.
+	// Email Masked, `z***@example.com` (Go backend; list endpoints never return the full address — that is a step-up capability).
 	Email *string `json:"email,omitempty"`
 
+	// HasPhone Has a bound phone identity.
+	HasPhone *bool `json:"hasPhone,omitempty"`
+
 	// HasPush Has at least one push subscription.
-	HasPush *bool   `json:"hasPush,omitempty"`
-	Id      *string `json:"id,omitempty"`
+	HasPush *bool `json:"hasPush,omitempty"`
+
+	// HasWx Has a bound WeChat identity.
+	HasWx *bool   `json:"hasWx,omitempty"`
+	Id    *string `json:"id,omitempty"`
 
 	// InvitedBy The invite code this account was created with.
 	InvitedBy *string `json:"invitedBy,omitempty"`
@@ -1688,18 +2735,28 @@ type AdminUserRow struct {
 	Live *Presence `json:"live,omitempty"`
 	Name *string   `json:"name,omitempty"`
 
+	// Owner The one admin who manages the others.
+	Owner *bool `json:"owner,omitempty"`
+
 	// Password PASSWORD_LOGIN instances only. The profile has a password.
 	Password *bool `json:"password,omitempty"`
+
+	// Role Highest active admin role (Go backend); null = plain user.
+	Role *AdminUserRowRole `json:"role,omitempty"`
 
 	// Workouts Total logged workouts.
 	Workouts *int `json:"workouts,omitempty"`
 }
 
+// AdminUserRowRole defines model for AdminUserRow.Role.
+type AdminUserRowRole string
+
 // AuditEvent One line of the audit log.
 type AuditEvent struct {
 	// Ev Event name. Currently one of:
-	// `auth.register.ok|fail|denied`, `auth.login.ok|fail`, `auth.logout`,
-	// `auth.logout.all`, `auth.pair.create|ok|fail`,
+	// `auth.register.ok|fail|denied` (deprecated), `auth.login.ok|fail` (deprecated),
+	// `auth.sms.send|verify`, `auth.wx.bind`, `auth.logout`,
+	// `auth.logout.all`, `auth.account.delete`, `auth.pair.create|ok|fail`,
 	// `admin.denied`, `admin.user.disable|enable`,
 	// `admin.invite.create|revoke`, `admin.audit.clear`.
 	Ev string `json:"ev"`
@@ -1732,11 +2789,42 @@ type AuditEvent struct {
 	Uid *string `json:"uid,omitempty"`
 }
 
-// BodyweightEntry defines model for BodyweightEntry.
+// BodyweightEntry One day of weigh-ins. `w` is the day's one value, the one the profile's `bwDaily` setting picks from `ins` (first, the default; avg; last), so a reader that knows nothing of `ins` gets the same number the app charts. A day from before v1.4.4 has no `ins`: one weigh-in without a time. A client that writes `w` and `t` of a day with `ins` (an older app correcting the day) has that taken as a correction of the weigh-in `w` came from.
 type BodyweightEntry struct {
 	D *openapi_types.Date `json:"d,omitempty"`
 
-	// T Timestamp (ms).
+	// Gone Weigh-ins removed from a day that keeps others, id → when (ms).
+	Gone *map[string]float32 `json:"gone,omitempty"`
+
+	// Ins The day's weigh-ins, by time (#859).
+	Ins *[]BodyweightEntry_Ins_Item `json:"ins,omitempty"`
+
+	// Src Set when every weigh-in of the day was read from a health app or a file.
+	Src *string `json:"src,omitempty"`
+
+	// T When the day was last edited (ms)
+	T *float32 `json:"t,omitempty"`
+
+	// W The day's weight in `unit` (see the description).
+	W                    *float32               `json:"w,omitempty"`
+	AdditionalProperties map[string]interface{} `json:"-"`
+}
+
+// BodyweightEntry_Ins_Item defines model for BodyweightEntry.ins.Item.
+type BodyweightEntry_Ins_Item struct {
+	// At Local time of day, HH:MM; null when not known.
+	At *string `json:"at,omitempty"`
+
+	// Id Unique within the day. '0' is the weigh-in a day from before held.
+	Id *string `json:"id,omitempty"`
+
+	// Sid The health app's own id of the sample.
+	Sid *string `json:"sid,omitempty"`
+
+	// Src Read from a health app or a file.
+	Src *string `json:"src,omitempty"`
+
+	// T When this weigh-in was last edited (ms).
 	T *float32 `json:"t,omitempty"`
 
 	// W Weight in `unit`.
@@ -1750,6 +2838,18 @@ type CoachCap struct {
 	Limit *int `json:"limit,omitempty"`
 	Used  *int `json:"used,omitempty"`
 }
+
+// CoachChatSession A chat session's handle and where it stands.
+type CoachChatSession struct {
+	// Id 16 hex characters.
+	Id *string `json:"id,omitempty"`
+
+	// State `waiting_confirm` while one or more proposals await an answer.
+	State *CoachChatSessionState `json:"state,omitempty"`
+}
+
+// CoachChatSessionState `waiting_confirm` while one or more proposals await an answer.
+type CoachChatSessionState string
 
 // CoachCohort Medians across the profiles that opted in, and where this one stands among them.
 // `ok` is false whenever there is nothing to show, and the other flags say why:
@@ -1805,6 +2905,20 @@ type CoachIntake struct {
 	AdditionalProperties map[string]interface{} `json:"-"`
 }
 
+// CoachMemoryEntry One thing the Coach remembers. Both kinds share the shape. (2026-11-18 audit round: the `source` field was removed — no backing column exists; provenance lives in the proposals queue.)
+type CoachMemoryEntry struct {
+	// At When it was confirmed.
+	At   *string               `json:"at,omitempty"`
+	Id   *string               `json:"id,omitempty"`
+	Kind *CoachMemoryEntryKind `json:"kind,omitempty"`
+
+	// Text The entry
+	Text *string `json:"text,omitempty"`
+}
+
+// CoachMemoryEntryKind defines model for CoachMemoryEntry.Kind.
+type CoachMemoryEntryKind string
+
 // CoachProposal The answer waiting for a decision, from whichever kind of job produced it. It
 // expires 14 days after it was made; the first status poll after that retires it.
 // `changes` comes from a review, `bundle` from a plan, `score`/`highlights` from a
@@ -1843,9 +2957,12 @@ type CoachProposal struct {
 	PlanHash *string `json:"planHash,omitempty"`
 
 	// Score A debrief's score for the session.
-	Score   *int      `json:"score,omitempty"`
-	Summary *string   `json:"summary,omitempty"`
-	Watch   *[]string `json:"watch,omitempty"`
+	Score   *int    `json:"score,omitempty"`
+	Summary *string `json:"summary,omitempty"`
+
+	// Trigger Present when an automatic review made it, which nobody was watching for.
+	Trigger *CoachProposalTrigger `json:"trigger,omitempty"`
+	Watch   *[]string             `json:"watch,omitempty"`
 
 	// Workout Which session a debrief read.
 	Workout              *map[string]interface{} `json:"workout,omitempty"`
@@ -1886,6 +3003,9 @@ type CoachProposal_Changes_Item struct {
 // CoachProposalKind defines model for CoachProposal.Kind.
 type CoachProposalKind string
 
+// CoachProposalTrigger Present when an automatic review made it, which nobody was watching for.
+type CoachProposalTrigger string
+
 // CoachStatus defines model for CoachStatus.
 type CoachStatus struct {
 	// Cap What this profile has spent of its daily allowance.
@@ -1912,6 +3032,9 @@ type CoachStatus struct {
 
 		// Reading Present on `nochange`: why there was nothing to change.
 		Reading *string `json:"reading,omitempty"`
+
+		// Trigger Present when it was an automatic review.
+		Trigger *CoachStatusLastTrigger `json:"trigger,omitempty"`
 	} `json:"last,omitempty"`
 
 	// MaxMessageLen The longest note or refinement this instance keeps, in characters. It rides on the
@@ -1931,6 +3054,100 @@ type CoachStatusLastKind string
 
 // CoachStatusLastOutcome defines model for CoachStatus.Last.Outcome.
 type CoachStatusLastOutcome string
+
+// CoachStatusLastTrigger Present when it was an automatic review.
+type CoachStatusLastTrigger string
+
+// CoachStudentDetail Whitelist detail of a bound student — routines/week plan, workouts, bodyweight. No measurements, progress photos or other sensitive state fields.
+type CoachStudentDetail struct {
+	// Bodyweight Bodyweight curve, oldest first.
+	Bodyweight *[]struct {
+		D  *openapi_types.Date `json:"d,omitempty"`
+		Kg *float32            `json:"kg,omitempty"`
+	} `json:"bodyweight,omitempty"`
+
+	// LastSync The state's `_ts` (ms).
+	LastSync *float32 `json:"lastSync,omitempty"`
+
+	// Rev The state `_rev` — the `expect` base for the plan push.
+	Rev *float32 `json:"rev,omitempty"`
+
+	// Routines The student's routine templates (same shape as `state.routines`).
+	Routines *[]interface{} `json:"routines,omitempty"`
+
+	// Student Whitelist summary of a bound student (coach console list).
+	Student *CoachStudentSummary    `json:"student,omitempty"`
+	Unit    *CoachStudentDetailUnit `json:"unit,omitempty"`
+
+	// Week Week schedule mapping day numbers to routine ids (same as `state.week`).
+	Week *map[string]interface{} `json:"week,omitempty"`
+
+	// Workouts Full workout history, newest first.
+	Workouts *[]Workout `json:"workouts,omitempty"`
+}
+
+// CoachStudentDetailUnit defines model for CoachStudentDetail.Unit.
+type CoachStudentDetailUnit string
+
+// CoachStudentSummary Whitelist summary of a bound student (coach console list).
+type CoachStudentSummary struct {
+	// BoundAt ISO timestamp of the assignment.
+	BoundAt *string `json:"boundAt,omitempty"`
+
+	// Id The student user id.
+	Id *string `json:"id,omitempty"`
+
+	// LastSync The state's `_ts` (ms).
+	LastSync *float32 `json:"lastSync,omitempty"`
+
+	// LastWorkout ISO day of the newest workout.
+	LastWorkout *string `json:"lastWorkout,omitempty"`
+
+	// Live Currently training, or null.
+	Live *Presence `json:"live,omitempty"`
+	Name *string   `json:"name,omitempty"`
+
+	// PhoneTail Masked phone, e.g. "138****8884".
+	PhoneTail *string `json:"phoneTail,omitempty"`
+
+	// PlanDays How many days a week the student's current schedule plans (len of `week`).
+	PlanDays *int `json:"planDays,omitempty"`
+
+	// Workouts Total logged workouts.
+	Workouts *int `json:"workouts,omitempty"`
+}
+
+// CoachUsage Spend and limits for this profile, per pool, for the running day and month. Token counts are the Coach's own accounting, rounded; money never appears here.
+type CoachUsage struct {
+	Day *struct {
+		// Chat Generation tokens today.
+		Chat *int `json:"chat,omitempty"`
+
+		// Embedding Vector-lookup tokens today.
+		Embedding *int `json:"embedding,omitempty"`
+
+		// Messages Chat turns taken today.
+		Messages *int `json:"messages,omitempty"`
+
+		// Review Review-pass tokens today.
+		Review *int `json:"review,omitempty"`
+	} `json:"day,omitempty"`
+	Limits *struct {
+		MessagesPerDay *int `json:"messagesPerDay,omitempty"`
+
+		// ResetAt When the spent counters roll over.
+		ResetAt *string `json:"resetAt,omitempty"`
+
+		// TokensPerMonth Chat and review pools together.
+		TokensPerMonth *int `json:"tokensPerMonth,omitempty"`
+	} `json:"limits,omitempty"`
+	Month *struct {
+		Chat      *int `json:"chat,omitempty"`
+		Embedding *int `json:"embedding,omitempty"`
+		Messages  *int `json:"messages,omitempty"`
+		Review    *int `json:"review,omitempty"`
+	} `json:"month,omitempty"`
+}
 
 // CustomExercise One exercise the user made (representative shape). The server stores it as sent and reads only `media` from it, to know which uploaded files are still referenced.
 type CustomExercise struct {
@@ -1968,6 +3185,46 @@ type Error struct {
 	RetryAfter *int `json:"retryAfter,omitempty"`
 }
 
+// IntegrationConnection defines model for IntegrationConnection.
+type IntegrationConnection struct {
+	// CreatedAt Epoch ms.
+	CreatedAt *int                `json:"createdAt,omitempty"`
+	Events    *[]IntegrationEvent `json:"events,omitempty"`
+
+	// Failed Deliveries given up on; Retry sends them again.
+	Failed *int `json:"failed,omitempty"`
+
+	// Failures Failed attempts since the last success.
+	Failures *int    `json:"failures,omitempty"`
+	Id       *string `json:"id,omitempty"`
+	Info     *struct {
+		// Url Masked.
+		Url *string `json:"url,omitempty"`
+	} `json:"info,omitempty"`
+	Label     *string `json:"label,omitempty"`
+	LastError *struct {
+		At   *int    `json:"at,omitempty"`
+		Code *string `json:"code,omitempty"`
+		Msg  *string `json:"msg,omitempty"`
+	} `json:"lastError,omitempty"`
+
+	// LastOk Epoch ms of the last delivery that landed.
+	LastOk   *int    `json:"lastOk,omitempty"`
+	Paused   *bool   `json:"paused,omitempty"`
+	Provider *string `json:"provider,omitempty"`
+	Queued   *int    `json:"queued,omitempty"`
+
+	// RevokedAt Present on soft revoke.
+	RevokedAt *float32                     `json:"revoked_at,omitempty"`
+	Status    *IntegrationConnectionStatus `json:"status,omitempty"`
+}
+
+// IntegrationConnectionStatus defines model for IntegrationConnection.Status.
+type IntegrationConnectionStatus string
+
+// IntegrationEvent `workout.finished`: a workout reached the server (from any device). `workout.pr`: that workout set personal records. `weighin.logged`: a new or changed weigh-in. Only events from the last seven days that happened after the connection was made are sent.
+type IntegrationEvent string
+
 // Invite defines model for Invite.
 type Invite struct {
 	// Code 16 hex chars.
@@ -1991,19 +3248,30 @@ type Invite struct {
 
 // MediaConfig The instance's media caps (`MEDIA_*`), in MB of 2^20 bytes. Absent when the instance runs with `MEDIA_UPLOADS=0`.
 type MediaConfig struct {
-	GifMB *float32 `json:"gifMB,omitempty"`
+	// Days This instance also keeps the files of progress photos filed under a day (`dayPhotos`, a photo for a day without a workout). Absent on an instance from before; the app then only adds photos to logged workouts there.
+	Days  *MediaConfigDays `json:"days,omitempty"`
+	GifMB *float32         `json:"gifMB,omitempty"`
 
 	// ImageMB A photo after the app re-encoded it, or a poster.
 	ImageMB *float32 `json:"imageMB,omitempty"`
 
 	// QuotaMB Per profile; 0 = no cap.
-	QuotaMB  *float32 `json:"quotaMB,omitempty"`
-	VideoMB  *float32 `json:"videoMB,omitempty"`
-	VideoSec *float32 `json:"videoSec,omitempty"`
+	QuotaMB *float32 `json:"quotaMB,omitempty"`
+
+	// Sets This instance also keeps the files of a form video filmed for one set (`workouts[].entries[].sets[].media`, v1.4.4). Absent on an instance from before; the app then keeps a set's video on the phone that filmed it and never uploads it.
+	Sets     *MediaConfigSets `json:"sets,omitempty"`
+	VideoMB  *float32         `json:"videoMB,omitempty"`
+	VideoSec *float32         `json:"videoSec,omitempty"`
 
 	// Workouts This instance keeps the files a logged workout's `media` list names too, not only a custom exercise's. Absent on an instance from before; the app then offers photos and videos on custom exercises only.
 	Workouts *MediaConfigWorkouts `json:"workouts,omitempty"`
 }
+
+// MediaConfigDays This instance also keeps the files of progress photos filed under a day (`dayPhotos`, a photo for a day without a workout). Absent on an instance from before; the app then only adds photos to logged workouts there.
+type MediaConfigDays bool
+
+// MediaConfigSets This instance also keeps the files of a form video filmed for one set (`workouts[].entries[].sets[].media`, v1.4.4). Absent on an instance from before; the app then keeps a set's video on the phone that filmed it and never uploads it.
+type MediaConfigSets bool
 
 // MediaConfigWorkouts This instance keeps the files a logged workout's `media` list names too, not only a custom exercise's. Absent on an instance from before; the app then offers photos and videos on custom exercises only.
 type MediaConfigWorkouts bool
@@ -2096,6 +3364,9 @@ type OwnerProof struct {
 
 // PasskeyList defines model for PasskeyList.
 type PasskeyList struct {
+	// DeleteBlocked Present when deleting this profile (`POST /api/account/delete`) would be refused before any proof is checked: `last-admin`, the only admin while other profiles remain. The delete sheet says so before asking for a passkey or the password; the delete itself still checks.
+	DeleteBlocked *PasskeyListDeleteBlocked `json:"deleteBlocked,omitempty"`
+
 	// LastWayIn Removing any one passkey would be refused (409 `last-way-in`).
 	LastWayIn *bool `json:"lastWayIn,omitempty"`
 	Passkeys  *[]struct {
@@ -2114,6 +3385,38 @@ type PasskeyList struct {
 	// Password The profile has a password and `PASSWORD_LOGIN` is on, so `current` can prove an addition or a removal.
 	Password *bool `json:"password,omitempty"`
 }
+
+// PasskeyListDeleteBlocked Present when deleting this profile (`POST /api/account/delete`) would be refused before any proof is checked: `last-admin`, the only admin while other profiles remain. The delete sheet says so before asking for a passkey or the password; the delete itself still checks.
+type PasskeyListDeleteBlocked string
+
+// PlanAssignment defines model for PlanAssignment.
+type PlanAssignment struct {
+	// DistributedAt ISO timestamp.
+	DistributedAt *string             `json:"distributedAt,omitempty"`
+	Id            *openapi_types.UUID `json:"id,omitempty"`
+
+	// MemberDisplayName Filled in owner-facing lists.
+	MemberDisplayName *string `json:"memberDisplayName,omitempty"`
+
+	// MemberUid Opaque handle.
+	MemberUid *string `json:"memberUid,omitempty"`
+
+	// Plan Snapshot the member loads verbatim (W10 hand-off; the coach never writes the member's archive).
+	Plan *struct {
+		Name     *string                   `json:"name,omitempty"`
+		Routines *[]map[string]interface{} `json:"routines,omitempty"`
+		Week     *map[string]interface{}   `json:"week,omitempty"`
+	} `json:"plan,omitempty"`
+	PlanName  *string               `json:"planName,omitempty"`
+	SettledAt *string               `json:"settledAt,omitempty"`
+	Status    *PlanAssignmentStatus `json:"status,omitempty"`
+
+	// SupersededBy Newer assignment id when redistributed (version chain); null on the live row.
+	SupersededBy *openapi_types.UUID `json:"supersededBy,omitempty"`
+}
+
+// PlanAssignmentStatus defines model for PlanAssignment.Status.
+type PlanAssignmentStatus string
 
 // Presence Live-workout snapshot (from /api/activity heartbeats).
 type Presence struct {
@@ -2147,6 +3450,33 @@ type Routine struct {
 	AdditionalProperties map[string]interface{}    `json:"-"`
 }
 
+// SessionInfo defines model for SessionInfo.
+type SessionInfo struct {
+	// CreatedAt When this device signed in.
+	CreatedAt *time.Time `json:"createdAt,omitempty"`
+
+	// Current True for the session this request came from.
+	Current *bool `json:"current,omitempty"`
+
+	// DeviceName Short device label derived from the sign-in user agent.
+	DeviceName *string `json:"deviceName,omitempty"`
+
+	// Id Session id (matches the sid cookie).
+	Id *string `json:"id,omitempty"`
+
+	// Ip Sign-in IP.
+	Ip *string `json:"ip,omitempty"`
+
+	// LastSeenAt Last authenticated request from this device.
+	LastSeenAt *time.Time `json:"lastSeenAt,omitempty"`
+
+	// RevokedAt Present once the session has been revoked.
+	RevokedAt *time.Time `json:"revokedAt,omitempty"`
+
+	// UserAgent Full sign-in user agent.
+	UserAgent *string `json:"userAgent,omitempty"`
+}
+
 // SessionUser The caller's identity, as returned by /api/me and the sign-in routes.
 type SessionUser struct {
 	Admin *bool `json:"admin,omitempty"`
@@ -2154,6 +3484,12 @@ type SessionUser struct {
 	// Id Stable user id (16 base64url chars).
 	Id   *string `json:"id,omitempty"`
 	Name *string `json:"name,omitempty"`
+
+	// Owner Present (true) only for the instance owner.
+	Owner *bool `json:"owner,omitempty"`
+
+	// Roles Business roles beyond the admin console, e.g. `coach` (the coach console at /coach-console). Empty for plain members. (Fork, Go backend; Node answers `[]`.)
+	Roles *[]string `json:"roles,omitempty"`
 }
 
 // State The whole app state as one blob. The server treats it as opaque (it only
@@ -2232,6 +3568,136 @@ type StateEffort string
 
 // StateUnit defines model for State.Unit.
 type StateUnit string
+
+// TeamInfo defines model for TeamInfo.
+type TeamInfo struct {
+	// Id Team id (uuid).
+	Id   *string `json:"id,omitempty"`
+	Name *string `json:"name,omitempty"`
+}
+
+// TeamInsight Coach analysis card (rule-generated verdict; no AI).
+type TeamInsight struct {
+	// DisplayName Nickname or masked uid.
+	DisplayName *string `json:"displayName,omitempty"`
+
+	// Est1rm Best epley estimate over the trailing 28 days.
+	Est1rm *float32 `json:"est1rm,omitempty"`
+
+	// Est1rmDelta Estimate change vs previous window
+	Est1rmDelta *int `json:"est1rmDelta,omitempty"`
+
+	// Est1rmPrev4w Best epley estimate over days 29-56 before now.
+	Est1rmPrev4w *float32 `json:"est1rmPrev4w,omitempty"`
+
+	// Flags hot = week plan complete; miss = no workout this week; gain = est 1RM +≥5%; drop = volume -≤30%.
+	Flags *[]TeamInsightFlags `json:"flags,omitempty"`
+
+	// LastWorkout Latest session headline (d/name/vol); null when none.
+	LastWorkout *struct {
+		D    *string  `json:"d,omitempty"`
+		Name *string  `json:"name,omitempty"`
+		Vol  *float32 `json:"vol,omitempty"`
+	} `json:"lastWorkout,omitempty"`
+
+	// Rate Week completion rate 0-100; 0 when no plan is scheduled.
+	Rate        *int `json:"rate,omitempty"`
+	StreakWeeks *int `json:"streakWeeks,omitempty"`
+
+	// Uid Opaque management handle (裁定 #8).
+	Uid *string `json:"uid,omitempty"`
+
+	// Verdict Rule-generated Chinese coaching sentence (completion → streak → deltas → flags).
+	Verdict *string `json:"verdict,omitempty"`
+
+	// Vol4w Saved volume over the trailing 28 days.
+	Vol4w *float32 `json:"vol4w,omitempty"`
+
+	// VolDelta Volume change vs previous window, percent; +100 when the previous window is empty.
+	VolDelta *int `json:"volDelta,omitempty"`
+
+	// VolPrev4w Saved volume over days 29-56 before now.
+	VolPrev4w   *float32 `json:"volPrev4w,omitempty"`
+	WeekDone    *int     `json:"weekDone,omitempty"`
+	WeekPlanned *int     `json:"weekPlanned,omitempty"`
+
+	// Weekly Done counts for the last 12 weeks (oldest first).
+	Weekly *[]int `json:"weekly,omitempty"`
+}
+
+// TeamInsightFlags defines model for TeamInsight.Flags.
+type TeamInsightFlags string
+
+// TeamMember defines model for TeamMember.
+type TeamMember struct {
+	// DisplayName Nickname, or the masked uid when no nickname exists (裁定
+	DisplayName *string `json:"displayName,omitempty"`
+
+	// JoinedAt ISO timestamp; owner-facing rosters only.
+	JoinedAt *string         `json:"joinedAt,omitempty"`
+	Role     *TeamMemberRole `json:"role,omitempty"`
+
+	// Scope Data-authorization tier (W3); owner-facing rosters only.
+	Scope *struct {
+		Tier *TeamMemberScopeTier `json:"tier,omitempty"`
+	} `json:"scope,omitempty"`
+
+	// Uid Member user id — an opaque management handle for owner actions (kick, later transfer), never rendered as an identity.
+	Uid *string `json:"uid,omitempty"`
+}
+
+// TeamMemberRole defines model for TeamMember.Role.
+type TeamMemberRole string
+
+// TeamMemberScopeTier defines model for TeamMember.Scope.Tier.
+type TeamMemberScopeTier string
+
+// TeamMemberSummary defines model for TeamMemberSummary.
+type TeamMemberSummary struct {
+	// DisplayName Nickname or masked uid.
+	DisplayName *string `json:"displayName,omitempty"`
+
+	// LastWorkout Latest session headline (d/name/vol); null when none.
+	LastWorkout *struct {
+		D    *string  `json:"d,omitempty"`
+		Name *string  `json:"name,omitempty"`
+		Vol  *float32 `json:"vol,omitempty"`
+	} `json:"lastWorkout,omitempty"`
+	MonthCheckins *int `json:"monthCheckins,omitempty"`
+
+	// MonthVolume Saved canonical volume summed over the calendar month.
+	MonthVolume *float32 `json:"monthVolume,omitempty"`
+
+	// StreakWeeks Consecutive training weeks; the current week never breaks the chain.
+	StreakWeeks *int `json:"streakWeeks,omitempty"`
+
+	// TrendEst1rm Best epley estimate over completed sets in the trailing 28 days (server default formula).
+	TrendEst1rm *float32 `json:"trendEst1rm,omitempty"`
+
+	// TrendVolume4w Saved volume over the trailing 28 days.
+	TrendVolume4w *float32 `json:"trendVolume4w,omitempty"`
+
+	// Uid Opaque management handle (裁定 #8).
+	Uid *string `json:"uid,omitempty"`
+
+	// WeekDone Workouts logged this week (member's own week start).
+	WeekDone *int `json:"weekDone,omitempty"`
+
+	// WeekPlanned Week-schedule days pointing at live routines (server simplified radius).
+	WeekPlanned *int `json:"weekPlanned,omitempty"`
+
+	// Weekly Done counts for the last 12 weeks (oldest first), board heatmap column.
+	Weekly *[]int `json:"weekly,omitempty"`
+}
+
+// UserInfo defines model for UserInfo.
+type UserInfo struct {
+	Id *string `json:"id,omitempty"`
+
+	// IsNew Present on first sign-in of a fresh account.
+	IsNew *bool   `json:"isNew,omitempty"`
+	Name  *string `json:"name,omitempty"`
+}
 
 // WebAuthnAuthenticationCredential AuthenticationResponseJSON: the value `startAuthentication()` resolves with, sent back verbatim.
 type WebAuthnAuthenticationCredential struct {
@@ -2416,6 +3882,12 @@ type CoachRefusedCode string
 // Forbidden defines model for Forbidden.
 type Forbidden = Error
 
+// IntegrationsOff defines model for IntegrationsOff.
+type IntegrationsOff = Error
+
+// IntegrationsSlowDown defines model for IntegrationsSlowDown.
+type IntegrationsSlowDown = Error
+
 // LinkInvalid defines model for LinkInvalid.
 type LinkInvalid = Error
 
@@ -2436,6 +3908,15 @@ type TooManyRequests = Error
 
 // Unauthorized defines model for Unauthorized.
 type Unauthorized = Error
+
+// AccountDeleteJSONBody defines parameters for AccountDelete.
+type AccountDeleteJSONBody struct {
+	// Name The account name, exactly (surrounding spaces are ignored).
+	Name string `json:"name"`
+
+	// SmsCode Go stack only: a fresh SMS code sent to the bound phone number.
+	SmsCode *string `json:"smsCode,omitempty"`
+}
 
 // RemoveAccountEmail200JSONResponseBodyOk defines parameters for RemoveAccountEmail.
 type RemoveAccountEmail200JSONResponseBodyOk bool
@@ -2460,6 +3941,9 @@ type RemovePasskeyParams struct {
 	Id string `form:"id" json:"id"`
 }
 
+// RemovePasskey200JSONResponseBodyDeleteBlocked defines parameters for RemovePasskey.
+type RemovePasskey200JSONResponseBodyDeleteBlocked string
+
 // RemovePasskey200JSONResponseBodyOk defines parameters for RemovePasskey.
 type RemovePasskey200JSONResponseBodyOk bool
 
@@ -2468,6 +3952,9 @@ type RenamePasskeyJSONBody struct {
 	Id   string  `json:"id"`
 	Name *string `json:"name,omitempty"`
 }
+
+// RenamePasskey200JSONResponseBodyDeleteBlocked defines parameters for RenamePasskey.
+type RenamePasskey200JSONResponseBodyDeleteBlocked string
 
 // RenamePasskey200JSONResponseBodyOk defines parameters for RenamePasskey.
 type RenamePasskey200JSONResponseBodyOk bool
@@ -2482,6 +3969,9 @@ type AddPasskeyVerifyJSONBody struct {
 	// Name A label of the owner's choosing ("Work laptop").
 	Name *string `json:"name,omitempty"`
 }
+
+// AddPasskeyVerify200JSONResponseBodyDeleteBlocked defines parameters for AddPasskeyVerify.
+type AddPasskeyVerify200JSONResponseBodyDeleteBlocked string
 
 // AddPasskeyVerify200JSONResponseBodyOk defines parameters for AddPasskeyVerify.
 type AddPasskeyVerify200JSONResponseBodyOk bool
@@ -2535,6 +4025,9 @@ type AdminAuditParams struct {
 
 	// Cat Filter: `fail` keeps only failed events; any other value keeps events whose name starts with `<cat>.` (in practice `auth` or `admin`).
 	Cat *AdminAuditParamsCat `form:"cat,omitempty" json:"cat,omitempty"`
+
+	// Q Substring filter over event name, actor and target names (case-insensitive). Implemented by the Go backend; Node answers unfiltered when the parameter is present.
+	Q *string `form:"q,omitempty" json:"q,omitempty"`
 }
 
 // AdminAuditParamsCat defines parameters for AdminAudit.
@@ -2542,6 +4035,12 @@ type AdminAuditParamsCat string
 
 // AdminAudit200JSONResponseBodyIpMode defines parameters for AdminAudit.
 type AdminAudit200JSONResponseBodyIpMode string
+
+// PutAdminCoachAgentConfigJSONBody defines parameters for PutAdminCoachAgentConfig.
+type PutAdminCoachAgentConfigJSONBody struct {
+	MaxTurns    *int      `json:"maxTurns,omitempty"`
+	ReviewWords *[]string `json:"reviewWords,omitempty"`
+}
 
 // PostAdminCoachConfigJSONBody defines parameters for PostAdminCoachConfig.
 type PostAdminCoachConfigJSONBody struct {
@@ -2592,6 +4091,12 @@ type PostAdminCoachDisconnectJSONBody struct {
 	Provider *string `json:"provider,omitempty"`
 }
 
+// PutAdminCoachLimitsJSONBody defines parameters for PutAdminCoachLimits.
+type PutAdminCoachLimitsJSONBody struct {
+	MessagesPerDay *int `json:"messagesPerDay,omitempty"`
+	TokensPerMonth *int `json:"tokensPerMonth,omitempty"`
+}
+
 // AdminInviteNewJSONBody defines parameters for AdminInviteNew.
 type AdminInviteNewJSONBody struct {
 	// Note Free-form label ("for Alex").
@@ -2602,6 +4107,18 @@ type AdminInviteNewJSONBody struct {
 type AdminInviteRevokeJSONBody struct {
 	Code string `json:"code"`
 }
+
+// AdminOverview200JSONResponseBodyAttentionCode defines parameters for AdminOverview.
+type AdminOverview200JSONResponseBodyAttentionCode string
+
+// AdminOwnerTransferJSONBody defines parameters for AdminOwnerTransfer.
+type AdminOwnerTransferJSONBody struct {
+	// Id The user id.
+	Id string `json:"id"`
+}
+
+// AdminOwnerTransfer200JSONResponseBodyOk defines parameters for AdminOwnerTransfer.
+type AdminOwnerTransfer200JSONResponseBodyOk bool
 
 // AdminRoleGrantJSONBody defines parameters for AdminRoleGrant.
 type AdminRoleGrantJSONBody struct {
@@ -2623,8 +4140,11 @@ type AdminRoleRevokeJSONBodyRole string
 
 // AdminStepUpJSONBody defines parameters for AdminStepUp.
 type AdminStepUpJSONBody struct {
-	// Credential Second call: the WebAuthn assertion.
-	Credential *map[string]interface{} `json:"credential,omitempty"`
+	// Code The 6-digit SMS code.
+	Code string `json:"code"`
+
+	// Phone Must be bound to the signed-in admin.
+	Phone string `json:"phone"`
 }
 
 // AdminUserParams defines parameters for AdminUser.
@@ -2662,8 +4182,225 @@ type AdminPasswordResetJSONBody struct {
 // AdminPasswordReset200JSONResponseBodyOk defines parameters for AdminPasswordReset.
 type AdminPasswordReset200JSONResponseBodyOk bool
 
+// AdminRecoveryCodeJSONBody defines parameters for AdminRecoveryCode.
+type AdminRecoveryCodeJSONBody struct {
+	// Id The user id.
+	Id string `json:"id"`
+}
+
+// AdminRecoveryCode200JSONResponseBodyOk defines parameters for AdminRecoveryCode.
+type AdminRecoveryCode200JSONResponseBodyOk bool
+
+// AdminUserRoleJSONBody defines parameters for AdminUserRole.
+type AdminUserRoleJSONBody struct {
+	Admin bool `json:"admin"`
+
+	// Id The user id.
+	Id string `json:"id"`
+}
+
+// AdminUserRole200JSONResponseBodyOk defines parameters for AdminUserRole.
+type AdminUserRole200JSONResponseBodyOk bool
+
+// AdminUsersParams defines parameters for AdminUsers.
+type AdminUsersParams struct {
+	// Q Substring match over name and email (case-insensitive).
+	Q *string `form:"q,omitempty" json:"q,omitempty"`
+
+	// Role Filter by highest active admin role; `none` = plain users.
+	Role    *AdminUsersParamsRole   `form:"role,omitempty" json:"role,omitempty"`
+	Status  *AdminUsersParamsStatus `form:"status,omitempty" json:"status,omitempty"`
+	Sort    *AdminUsersParamsSort   `form:"sort,omitempty" json:"sort,omitempty"`
+	Page    *int                    `form:"page,omitempty" json:"page,omitempty"`
+	PerPage *int                    `form:"per_page,omitempty" json:"per_page,omitempty"`
+}
+
+// AdminUsersParamsRole defines parameters for AdminUsers.
+type AdminUsersParamsRole string
+
+// AdminUsersParamsStatus defines parameters for AdminUsers.
+type AdminUsersParamsStatus string
+
+// AdminUsersParamsSort defines parameters for AdminUsers.
+type AdminUsersParamsSort string
+
+// AliveHeartbeatJSONBody defines parameters for AliveHeartbeat.
+type AliveHeartbeatJSONBody struct {
+	// Action Exercise name; null when the session ended.
+	Action    *string `json:"action,omitempty"`
+	SetsDone  *int    `json:"sets_done,omitempty"`
+	SetsTotal *int    `json:"sets_total,omitempty"`
+
+	// StartedAt Session start (ms).
+	StartedAt *float32 `json:"started_at,omitempty"`
+}
+
+// AuthBindPhoneJSONBody defines parameters for AuthBindPhone.
+type AuthBindPhoneJSONBody struct {
+	Code  string `json:"code"`
+	Phone string `json:"phone"`
+}
+
+// AuthSmsSendJSONBody defines parameters for AuthSmsSend.
+type AuthSmsSendJSONBody struct {
+	// CaptchaCode The 4 digits read from the captcha SVG.
+	CaptchaCode string `json:"captchaCode"`
+
+	// CaptchaId Id from GET /api/auth/captcha.
+	CaptchaId string `json:"captchaId"`
+
+	// Phone Mainland mobile number, 11 digits.
+	Phone string `json:"phone"`
+}
+
+// AuthSmsVerifyJSONBody defines parameters for AuthSmsVerify.
+type AuthSmsVerifyJSONBody struct {
+	// Code 6 digits.
+	Code string `json:"code"`
+
+	// Invite Invite code
+	Invite *string `json:"invite,omitempty"`
+	Phone  string  `json:"phone"`
+}
+
+// AuthWechatConfirmJSONBody defines parameters for AuthWechatConfirm.
+type AuthWechatConfirmJSONBody struct {
+	Ticket string `json:"ticket"`
+
+	// WxCode From wx.login in the mini program.
+	WxCode string `json:"wxCode"`
+}
+
+// AuthWechatPollParams defines parameters for AuthWechatPoll.
+type AuthWechatPollParams struct {
+	Ticket string `form:"ticket" json:"ticket"`
+}
+
+// AuthWechatPoll200JSONResponseBodyStatus defines parameters for AuthWechatPoll.
+type AuthWechatPoll200JSONResponseBodyStatus string
+
+// CoachBindStudentJSONBody defines parameters for CoachBindStudent.
+type CoachBindStudentJSONBody struct {
+	// Phone The student's 11-digit mainland mobile number.
+	Phone string `json:"phone"`
+}
+
+// CoachPutStudentPlanJSONBody defines parameters for CoachPutStudentPlan.
+type CoachPutStudentPlanJSONBody struct {
+	// Expect The student state `_rev` this edit was based on (optimistic concurrency).
+	Expect *float32 `json:"expect,omitempty"`
+
+	// Notify Send a Web Push to the student (default true).
+	Notify *bool `json:"notify,omitempty"`
+
+	// Routines Routine templates (same shape as `state.routines`).
+	Routines []interface{} `json:"routines"`
+
+	// Week Week schedule mapping day numbers ("1".."7") to routine ids.
+	Week map[string]string `json:"week"`
+}
+
 // GetCoachAccount200JSONResponseBodyMode defines parameters for GetCoachAccount.
 type GetCoachAccount200JSONResponseBodyMode string
+
+// PostCoachAdaptJSONBody defines parameters for PostCoachAdapt.
+type PostCoachAdaptJSONBody struct {
+	// ActiveId The running session's id, handed back on the proposal.
+	ActiveId *string `json:"activeId,omitempty"`
+
+	// Entry The index in `today.entries` of the exercise asked about.
+	Entry int `json:"entry"`
+
+	// Lang The language the app is showing, which the Coach answers in.
+	Lang   *string                       `json:"lang,omitempty"`
+	Reason *PostCoachAdaptJSONBodyReason `json:"reason,omitempty"`
+
+	// Text What the lifter typed, optional. Cut at the instance's message length.
+	Text *string `json:"text,omitempty"`
+
+	// Today The session running on the device (`entries` with their sets).
+	Today map[string]interface{} `json:"today"`
+}
+
+// PostCoachAdaptJSONBodyReason defines parameters for PostCoachAdapt.
+type PostCoachAdaptJSONBodyReason string
+
+// PostCoachAdapt403JSONResponseBodyCode defines parameters for PostCoachAdapt.
+type PostCoachAdapt403JSONResponseBodyCode string
+
+// PostCoachAdapt409JSONResponseBodyCode defines parameters for PostCoachAdapt.
+type PostCoachAdapt409JSONResponseBodyCode string
+
+// PostCoachAdapt429JSONResponseBodyCode defines parameters for PostCoachAdapt.
+type PostCoachAdapt429JSONResponseBodyCode string
+
+// PostCoachAdapt503JSONResponseBodyCode defines parameters for PostCoachAdapt.
+type PostCoachAdapt503JSONResponseBodyCode string
+
+// PostCoachAskJSONBody defines parameters for PostCoachAsk.
+type PostCoachAskJSONBody struct {
+	// Lang The language the app is showing, which the Coach answers in.
+	Lang *string `json:"lang,omitempty"`
+
+	// Text The question. Cut at the instance's message length.
+	Text string `json:"text"`
+
+	// Today The session running on the device (`entries` with their sets), or absent.
+	Today *map[string]interface{} `json:"today,omitempty"`
+}
+
+// PostCoachAsk403JSONResponseBodyCode defines parameters for PostCoachAsk.
+type PostCoachAsk403JSONResponseBodyCode string
+
+// PostCoachAsk409JSONResponseBodyCode defines parameters for PostCoachAsk.
+type PostCoachAsk409JSONResponseBodyCode string
+
+// PostCoachAsk429JSONResponseBodyCode defines parameters for PostCoachAsk.
+type PostCoachAsk429JSONResponseBodyCode string
+
+// PostCoachAsk503JSONResponseBodyCode defines parameters for PostCoachAsk.
+type PostCoachAsk503JSONResponseBodyCode string
+
+// PostCoachChatJSONBody defines parameters for PostCoachChat.
+type PostCoachChatJSONBody struct {
+	// Id The chat session to continue. Absent, a new session opens.
+	Id *string `json:"id,omitempty"`
+
+	// Lang The language the app is showing, which the Coach writes in. Absent or not a
+	// language tag, the profile's stored `lang` is used.
+	Lang *string `json:"lang,omitempty"`
+
+	// Message One user turn. Cut to the instance's `maxMessageLen` (1000 unless the
+	// admin changed it; 200–4000).
+	Message string `json:"message"`
+}
+
+// PostCoachChat403JSONResponseBodyCode defines parameters for PostCoachChat.
+type PostCoachChat403JSONResponseBodyCode string
+
+// PostCoachChat409JSONResponseBodyCode defines parameters for PostCoachChat.
+type PostCoachChat409JSONResponseBodyCode string
+
+// PostCoachChat429JSONResponseBodyCode defines parameters for PostCoachChat.
+type PostCoachChat429JSONResponseBodyCode string
+
+// PostCoachChat503JSONResponseBodyCode defines parameters for PostCoachChat.
+type PostCoachChat503JSONResponseBodyCode string
+
+// PostCoachChatConfirmJSONBody defines parameters for PostCoachChatConfirm.
+type PostCoachChatConfirmJSONBody struct {
+	Decision   PostCoachChatConfirmJSONBodyDecision `json:"decision"`
+	ProposalId string                               `json:"proposalId"`
+}
+
+// PostCoachChatConfirmJSONBodyDecision defines parameters for PostCoachChatConfirm.
+type PostCoachChatConfirmJSONBodyDecision string
+
+// PostCoachChatConfirm503JSONResponseBodyCode defines parameters for PostCoachChatConfirm.
+type PostCoachChatConfirm503JSONResponseBodyCode string
+
+// GetCoachChatEvents503JSONResponseBodyCode defines parameters for GetCoachChatEvents.
+type GetCoachChatEvents503JSONResponseBodyCode string
 
 // GetCoachCohort503JSONResponseBodyCode defines parameters for GetCoachCohort.
 type GetCoachCohort503JSONResponseBodyCode string
@@ -2703,6 +4440,11 @@ type PostCoachDebrief503JSONResponseBodyCode string
 
 // GetCoachDisclosure200JSONResponseBodyCategories defines parameters for GetCoachDisclosure.
 type GetCoachDisclosure200JSONResponseBodyCategories string
+
+// PutCoachMemoryJSONBody defines parameters for PutCoachMemory.
+type PutCoachMemoryJSONBody struct {
+	Text string `json:"text"`
+}
 
 // PostCoachResolveJSONBody defines parameters for PostCoachResolve.
 type PostCoachResolveJSONBody struct {
@@ -2777,6 +4519,9 @@ type GetConfig200JSONResponseBodyCoachAuthMode string
 // GetConfig200JSONResponseBodyCoachEnabled defines parameters for GetConfig.
 type GetConfig200JSONResponseBodyCoachEnabled bool
 
+// GetConfig200JSONResponseBodyIntegrationsLan defines parameters for GetConfig.
+type GetConfig200JSONResponseBodyIntegrationsLan bool
+
 // GetConfig200JSONResponseBodyPasswordLogin defines parameters for GetConfig.
 type GetConfig200JSONResponseBodyPasswordLogin bool
 
@@ -2835,6 +4580,48 @@ type GetHealth503JSONResponseBodyOk bool
 // GetHealth503JSONResponseBodyWritable defines parameters for GetHealth.
 type GetHealth503JSONResponseBodyWritable bool
 
+// ListIntegrations200JSONResponseBodyProvidersKind defines parameters for ListIntegrations.
+type ListIntegrations200JSONResponseBodyProvidersKind string
+
+// ConnectIntegrationJSONBody defines parameters for ConnectIntegration.
+type ConnectIntegrationJSONBody struct {
+	Events   *[]IntegrationEvent `json:"events,omitempty"`
+	Label    *string             `json:"label,omitempty"`
+	Provider string              `json:"provider"`
+	Url      string              `json:"url"`
+}
+
+// DisconnectIntegrationJSONBody defines parameters for DisconnectIntegration.
+type DisconnectIntegrationJSONBody struct {
+	Id string `json:"id"`
+}
+
+// IntegrationLogParams defines parameters for IntegrationLog.
+type IntegrationLogParams struct {
+	Id string `form:"id" json:"id"`
+}
+
+// RetryIntegrationJSONBody defines parameters for RetryIntegration.
+type RetryIntegrationJSONBody struct {
+	Id string `json:"id"`
+}
+
+// TestIntegrationJSONBody defines parameters for TestIntegration.
+type TestIntegrationJSONBody struct {
+	Id string `json:"id"`
+
+	// Type `workout.finished`: a workout reached the server (from any device). `workout.pr`: that workout set personal records. `weighin.logged`: a new or changed weigh-in. Only events from the last seven days that happened after the connection was made are sent.
+	Type *IntegrationEvent `json:"type,omitempty"`
+}
+
+// UpdateIntegrationJSONBody defines parameters for UpdateIntegration.
+type UpdateIntegrationJSONBody struct {
+	Events *[]IntegrationEvent `json:"events,omitempty"`
+	Id     string              `json:"id"`
+	Label  *string             `json:"label,omitempty"`
+	Paused *bool               `json:"paused,omitempty"`
+}
+
 // LoginPasswordJSONBody defines parameters for LoginPassword.
 type LoginPasswordJSONBody struct {
 	// Email An e-mail address only.
@@ -2877,6 +4664,12 @@ type MediaMissingJSONBody struct {
 
 // MediaSweepJSONBody defines parameters for MediaSweep.
 type MediaSweepJSONBody = map[string]interface{}
+
+// NudgeCheckParams defines parameters for NudgeCheck.
+type NudgeCheckParams struct {
+	// Date The day, YYYY-MM-DD, in the phone's own calendar.
+	Date openapi_types.Date `form:"date" json:"date"`
+}
 
 // PairRedeemJSONBody defines parameters for PairRedeem.
 type PairRedeemJSONBody struct {
@@ -2944,25 +4737,123 @@ type RegisterVerifyJSONBody struct {
 	Credential WebAuthnRegistrationCredential `json:"credential"`
 }
 
+// GetTeam200JSONResponseBodyRole defines parameters for GetTeam.
+type GetTeam200JSONResponseBodyRole string
+
+// CreateTeamJSONBody defines parameters for CreateTeam.
+type CreateTeamJSONBody struct {
+	// Name Team display name (clamped to 80 runes).
+	Name string `json:"name"`
+}
+
+// CreateTeam200JSONResponseBodyRole defines parameters for CreateTeam.
+type CreateTeam200JSONResponseBodyRole string
+
+// RenameTeamJSONBody defines parameters for RenameTeam.
+type RenameTeamJSONBody struct {
+	Name string `json:"name"`
+}
+
+// TeamJoinJSONBody defines parameters for TeamJoin.
+type TeamJoinJSONBody struct {
+	// Code Case, spaces and dashes are ignored.
+	Code string `json:"code"`
+}
+
+// TeamMembers200JSONResponseBodyRole defines parameters for TeamMembers.
+type TeamMembers200JSONResponseBodyRole string
+
+// TeamPlansListParams defines parameters for TeamPlansList.
+type TeamPlansListParams struct {
+	// Uid Owner-only member filter.
+	Uid *string `form:"uid,omitempty" json:"uid,omitempty"`
+}
+
+// TeamPlanDistributeJSONBody defines parameters for TeamPlanDistribute.
+type TeamPlanDistributeJSONBody struct {
+	Plan struct {
+		Name     string                    `json:"name"`
+		Routines *[]map[string]interface{} `json:"routines,omitempty"`
+		Week     *map[string]interface{}   `json:"week,omitempty"`
+	} `json:"plan"`
+
+	// Uid Target member (opaque handle).
+	Uid string `json:"uid"`
+}
+
+// TeamPlanAckJSONBody defines parameters for TeamPlanAck.
+type TeamPlanAckJSONBody struct {
+	Status TeamPlanAckJSONBodyStatus `json:"status"`
+}
+
+// TeamPlanAckJSONBodyStatus defines parameters for TeamPlanAck.
+type TeamPlanAckJSONBodyStatus string
+
+// TeamTransferJSONBody defines parameters for TeamTransfer.
+type TeamTransferJSONBody struct {
+	ToUid string `json:"to_uid"`
+}
+
+// WatchAckJSONBody defines parameters for WatchAck.
+type WatchAckJSONBody struct {
+	Ids *[]string `json:"ids,omitempty"`
+}
+
+// WatchBoxSendJSONBody defines parameters for WatchBoxSend.
+type WatchBoxSendJSONBody struct {
+	Events *[]map[string]interface{} `json:"events,omitempty"`
+}
+
+// WatchRedeemJSONBody defines parameters for WatchRedeem.
+type WatchRedeemJSONBody struct {
+	Code string `json:"code"`
+
+	// Name The watch's name for Settings (40 characters).
+	Name *string `json:"name,omitempty"`
+}
+
+// WatchSnapshotJSONBody defines parameters for WatchSnapshot.
+type WatchSnapshotJSONBody struct {
+	Json string `json:"json"`
+}
+
+// WatchUnlinkJSONBody defines parameters for WatchUnlink.
+type WatchUnlinkJSONBody struct {
+	Id *string `json:"id,omitempty"`
+}
+
+// AccountDeleteJSONRequestBody defines body for AccountDelete for application/json ContentType.
+type AccountDeleteJSONRequestBody AccountDeleteJSONBody
+
 // CreateDeviceLinkJSONRequestBody defines body for CreateDeviceLink for application/json ContentType.
+//
+// Deprecated: this type has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 type CreateDeviceLinkJSONRequestBody = OwnerProof
 
 // RemoveAccountEmailJSONRequestBody defines body for RemoveAccountEmail for application/json ContentType.
 type RemoveAccountEmailJSONRequestBody = OwnerProof
 
 // SetAccountEmailJSONRequestBody defines body for SetAccountEmail for application/json ContentType.
+//
+// Deprecated: this type has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 type SetAccountEmailJSONRequestBody SetAccountEmailJSONBody
 
 // RemovePasskeyJSONRequestBody defines body for RemovePasskey for application/json ContentType.
 type RemovePasskeyJSONRequestBody = OwnerProof
 
 // AddPasskeyOptionsJSONRequestBody defines body for AddPasskeyOptions for application/json ContentType.
+//
+// Deprecated: this type has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 type AddPasskeyOptionsJSONRequestBody = OwnerProof
 
 // RenamePasskeyJSONRequestBody defines body for RenamePasskey for application/json ContentType.
+//
+// Deprecated: this type has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 type RenamePasskeyJSONRequestBody RenamePasskeyJSONBody
 
 // AddPasskeyVerifyJSONRequestBody defines body for AddPasskeyVerify for application/json ContentType.
+//
+// Deprecated: this type has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 type AddPasskeyVerifyJSONRequestBody AddPasskeyVerifyJSONBody
 
 // RemoveAccountPasswordJSONRequestBody defines body for RemoveAccountPassword for application/json ContentType.
@@ -2974,6 +4865,9 @@ type SetAccountPasswordJSONRequestBody SetAccountPasswordJSONBody
 // PostActivityJSONRequestBody defines body for PostActivity for application/json ContentType.
 type PostActivityJSONRequestBody PostActivityJSONBody
 
+// PutAdminCoachAgentConfigJSONRequestBody defines body for PutAdminCoachAgentConfig for application/json ContentType.
+type PutAdminCoachAgentConfigJSONRequestBody PutAdminCoachAgentConfigJSONBody
+
 // PostAdminCoachConfigJSONRequestBody defines body for PostAdminCoachConfig for application/json ContentType.
 type PostAdminCoachConfigJSONRequestBody PostAdminCoachConfigJSONBody
 
@@ -2983,17 +4877,26 @@ type PostAdminCoachConnectJSONRequestBody PostAdminCoachConnectJSONBody
 // PostAdminCoachDisconnectJSONRequestBody defines body for PostAdminCoachDisconnect for application/json ContentType.
 type PostAdminCoachDisconnectJSONRequestBody PostAdminCoachDisconnectJSONBody
 
+// PutAdminCoachLimitsJSONRequestBody defines body for PutAdminCoachLimits for application/json ContentType.
+type PutAdminCoachLimitsJSONRequestBody PutAdminCoachLimitsJSONBody
+
 // AdminInviteNewJSONRequestBody defines body for AdminInviteNew for application/json ContentType.
 type AdminInviteNewJSONRequestBody AdminInviteNewJSONBody
 
 // AdminInviteRevokeJSONRequestBody defines body for AdminInviteRevoke for application/json ContentType.
 type AdminInviteRevokeJSONRequestBody AdminInviteRevokeJSONBody
 
+// AdminOwnerTransferJSONRequestBody defines body for AdminOwnerTransfer for application/json ContentType.
+type AdminOwnerTransferJSONRequestBody AdminOwnerTransferJSONBody
+
 // AdminRoleGrantJSONRequestBody defines body for AdminRoleGrant for application/json ContentType.
 type AdminRoleGrantJSONRequestBody AdminRoleGrantJSONBody
 
 // AdminRoleRevokeJSONRequestBody defines body for AdminRoleRevoke for application/json ContentType.
 type AdminRoleRevokeJSONRequestBody AdminRoleRevokeJSONBody
+
+// AdminSettingsPutJSONRequestBody defines body for AdminSettingsPut for application/json ContentType.
+type AdminSettingsPutJSONRequestBody = AdminSettings
 
 // AdminStepUpJSONRequestBody defines body for AdminStepUp for application/json ContentType.
 type AdminStepUpJSONRequestBody AdminStepUpJSONBody
@@ -3005,16 +4908,60 @@ type AdminUserDeleteJSONRequestBody AdminUserDeleteJSONBody
 type AdminUserDisableJSONRequestBody AdminUserDisableJSONBody
 
 // AdminPasswordResetJSONRequestBody defines body for AdminPasswordReset for application/json ContentType.
+//
+// Deprecated: this type has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 type AdminPasswordResetJSONRequestBody AdminPasswordResetJSONBody
+
+// AdminRecoveryCodeJSONRequestBody defines body for AdminRecoveryCode for application/json ContentType.
+type AdminRecoveryCodeJSONRequestBody AdminRecoveryCodeJSONBody
+
+// AdminUserRoleJSONRequestBody defines body for AdminUserRole for application/json ContentType.
+type AdminUserRoleJSONRequestBody AdminUserRoleJSONBody
 
 // AdminUserQuotaPutJSONRequestBody defines body for AdminUserQuotaPut for application/json ContentType.
 type AdminUserQuotaPutJSONRequestBody = AdminQuota
+
+// AliveHeartbeatJSONRequestBody defines body for AliveHeartbeat for application/json ContentType.
+type AliveHeartbeatJSONRequestBody AliveHeartbeatJSONBody
+
+// AuthBindPhoneJSONRequestBody defines body for AuthBindPhone for application/json ContentType.
+type AuthBindPhoneJSONRequestBody AuthBindPhoneJSONBody
+
+// AuthSmsSendJSONRequestBody defines body for AuthSmsSend for application/json ContentType.
+type AuthSmsSendJSONRequestBody AuthSmsSendJSONBody
+
+// AuthSmsVerifyJSONRequestBody defines body for AuthSmsVerify for application/json ContentType.
+type AuthSmsVerifyJSONRequestBody AuthSmsVerifyJSONBody
+
+// AuthWechatConfirmJSONRequestBody defines body for AuthWechatConfirm for application/json ContentType.
+type AuthWechatConfirmJSONRequestBody AuthWechatConfirmJSONBody
+
+// CoachBindStudentJSONRequestBody defines body for CoachBindStudent for application/json ContentType.
+type CoachBindStudentJSONRequestBody CoachBindStudentJSONBody
+
+// CoachPutStudentPlanJSONRequestBody defines body for CoachPutStudentPlan for application/json ContentType.
+type CoachPutStudentPlanJSONRequestBody CoachPutStudentPlanJSONBody
+
+// PostCoachAdaptJSONRequestBody defines body for PostCoachAdapt for application/json ContentType.
+type PostCoachAdaptJSONRequestBody PostCoachAdaptJSONBody
+
+// PostCoachAskJSONRequestBody defines body for PostCoachAsk for application/json ContentType.
+type PostCoachAskJSONRequestBody PostCoachAskJSONBody
+
+// PostCoachChatJSONRequestBody defines body for PostCoachChat for application/json ContentType.
+type PostCoachChatJSONRequestBody PostCoachChatJSONBody
+
+// PostCoachChatConfirmJSONRequestBody defines body for PostCoachChatConfirm for application/json ContentType.
+type PostCoachChatConfirmJSONRequestBody PostCoachChatConfirmJSONBody
 
 // PostCoachCohortShareJSONRequestBody defines body for PostCoachCohortShare for application/json ContentType.
 type PostCoachCohortShareJSONRequestBody PostCoachCohortShareJSONBody
 
 // PostCoachDebriefJSONRequestBody defines body for PostCoachDebrief for application/json ContentType.
 type PostCoachDebriefJSONRequestBody PostCoachDebriefJSONBody
+
+// PutCoachMemoryJSONRequestBody defines body for PutCoachMemory for application/json ContentType.
+type PutCoachMemoryJSONRequestBody PutCoachMemoryJSONBody
 
 // PostCoachResolveJSONRequestBody defines body for PostCoachResolve for application/json ContentType.
 type PostCoachResolveJSONRequestBody PostCoachResolveJSONBody
@@ -3029,18 +4976,43 @@ type PostCoachReviewJSONRequestBody PostCoachReviewJSONBody
 type PutDataJSONRequestBody PutDataJSONBody
 
 // DeviceLinkOptionsJSONRequestBody defines body for DeviceLinkOptions for application/json ContentType.
+//
+// Deprecated: this type has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 type DeviceLinkOptionsJSONRequestBody DeviceLinkOptionsJSONBody
 
 // DeviceLinkVerifyJSONRequestBody defines body for DeviceLinkVerify for application/json ContentType.
+//
+// Deprecated: this type has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 type DeviceLinkVerifyJSONRequestBody DeviceLinkVerifyJSONBody
 
+// ConnectIntegrationJSONRequestBody defines body for ConnectIntegration for application/json ContentType.
+type ConnectIntegrationJSONRequestBody ConnectIntegrationJSONBody
+
+// DisconnectIntegrationJSONRequestBody defines body for DisconnectIntegration for application/json ContentType.
+type DisconnectIntegrationJSONRequestBody DisconnectIntegrationJSONBody
+
+// RetryIntegrationJSONRequestBody defines body for RetryIntegration for application/json ContentType.
+type RetryIntegrationJSONRequestBody RetryIntegrationJSONBody
+
+// TestIntegrationJSONRequestBody defines body for TestIntegration for application/json ContentType.
+type TestIntegrationJSONRequestBody TestIntegrationJSONBody
+
+// UpdateIntegrationJSONRequestBody defines body for UpdateIntegration for application/json ContentType.
+type UpdateIntegrationJSONRequestBody UpdateIntegrationJSONBody
+
 // LoginPasswordJSONRequestBody defines body for LoginPassword for application/json ContentType.
+//
+// Deprecated: this type has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 type LoginPasswordJSONRequestBody LoginPasswordJSONBody
 
 // RedeemPasswordResetJSONRequestBody defines body for RedeemPasswordReset for application/json ContentType.
+//
+// Deprecated: this type has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 type RedeemPasswordResetJSONRequestBody RedeemPasswordResetJSONBody
 
 // LoginVerifyJSONRequestBody defines body for LoginVerify for application/json ContentType.
+//
+// Deprecated: this type has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 type LoginVerifyJSONRequestBody LoginVerifyJSONBody
 
 // MediaMissingJSONRequestBody defines body for MediaMissing for application/json ContentType.
@@ -3049,7 +5021,14 @@ type MediaMissingJSONRequestBody MediaMissingJSONBody
 // MediaSweepJSONRequestBody defines body for MediaSweep for application/json ContentType.
 type MediaSweepJSONRequestBody = MediaSweepJSONBody
 
+// PairCreateJSONRequestBody defines body for PairCreate for application/json ContentType.
+//
+// Deprecated: this type has been marked as deprecated upstream, but no `x-deprecated-reason` was set
+type PairCreateJSONRequestBody = OwnerProof
+
 // PairRedeemJSONRequestBody defines body for PairRedeem for application/json ContentType.
+//
+// Deprecated: this type has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 type PairRedeemJSONRequestBody PairRedeemJSONBody
 
 // PushRestTimerJSONRequestBody defines body for PushRestTimer for application/json ContentType.
@@ -3065,13 +5044,52 @@ type PushSubscribeJSONRequestBody PushSubscribeJSONBody
 type PushUnsubscribeJSONRequestBody PushUnsubscribeJSONBody
 
 // RegisterOptionsJSONRequestBody defines body for RegisterOptions for application/json ContentType.
+//
+// Deprecated: this type has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 type RegisterOptionsJSONRequestBody RegisterOptionsJSONBody
 
 // RegisterPasswordJSONRequestBody defines body for RegisterPassword for application/json ContentType.
+//
+// Deprecated: this type has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 type RegisterPasswordJSONRequestBody RegisterPasswordJSONBody
 
 // RegisterVerifyJSONRequestBody defines body for RegisterVerify for application/json ContentType.
+//
+// Deprecated: this type has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 type RegisterVerifyJSONRequestBody RegisterVerifyJSONBody
+
+// CreateTeamJSONRequestBody defines body for CreateTeam for application/json ContentType.
+type CreateTeamJSONRequestBody CreateTeamJSONBody
+
+// RenameTeamJSONRequestBody defines body for RenameTeam for application/json ContentType.
+type RenameTeamJSONRequestBody RenameTeamJSONBody
+
+// TeamJoinJSONRequestBody defines body for TeamJoin for application/json ContentType.
+type TeamJoinJSONRequestBody TeamJoinJSONBody
+
+// TeamPlanDistributeJSONRequestBody defines body for TeamPlanDistribute for application/json ContentType.
+type TeamPlanDistributeJSONRequestBody TeamPlanDistributeJSONBody
+
+// TeamPlanAckJSONRequestBody defines body for TeamPlanAck for application/json ContentType.
+type TeamPlanAckJSONRequestBody TeamPlanAckJSONBody
+
+// TeamTransferJSONRequestBody defines body for TeamTransfer for application/json ContentType.
+type TeamTransferJSONRequestBody TeamTransferJSONBody
+
+// WatchAckJSONRequestBody defines body for WatchAck for application/json ContentType.
+type WatchAckJSONRequestBody WatchAckJSONBody
+
+// WatchBoxSendJSONRequestBody defines body for WatchBoxSend for application/json ContentType.
+type WatchBoxSendJSONRequestBody WatchBoxSendJSONBody
+
+// WatchRedeemJSONRequestBody defines body for WatchRedeem for application/json ContentType.
+type WatchRedeemJSONRequestBody WatchRedeemJSONBody
+
+// WatchSnapshotJSONRequestBody defines body for WatchSnapshot for application/json ContentType.
+type WatchSnapshotJSONRequestBody WatchSnapshotJSONBody
+
+// WatchUnlinkJSONRequestBody defines body for WatchUnlink for application/json ContentType.
+type WatchUnlinkJSONRequestBody WatchUnlinkJSONBody
 
 // Getter for additional properties for BodyweightEntry. Returns the specified
 // element and whether it was found
@@ -3104,6 +5122,30 @@ func (a *BodyweightEntry) UnmarshalJSON(b []byte) error {
 			return fmt.Errorf("error reading 'd': %w", err)
 		}
 		delete(object, "d")
+	}
+
+	if raw, found := object["gone"]; found {
+		err = json.Unmarshal(raw, &a.Gone)
+		if err != nil {
+			return fmt.Errorf("error reading 'gone': %w", err)
+		}
+		delete(object, "gone")
+	}
+
+	if raw, found := object["ins"]; found {
+		err = json.Unmarshal(raw, &a.Ins)
+		if err != nil {
+			return fmt.Errorf("error reading 'ins': %w", err)
+		}
+		delete(object, "ins")
+	}
+
+	if raw, found := object["src"]; found {
+		err = json.Unmarshal(raw, &a.Src)
+		if err != nil {
+			return fmt.Errorf("error reading 'src': %w", err)
+		}
+		delete(object, "src")
 	}
 
 	if raw, found := object["t"]; found {
@@ -3145,6 +5187,170 @@ func (a BodyweightEntry) MarshalJSON() ([]byte, error) {
 		object["d"], err = json.Marshal(a.D)
 		if err != nil {
 			return nil, fmt.Errorf("error marshaling 'd': %w", err)
+		}
+	}
+
+	if a.Gone != nil {
+		object["gone"], err = json.Marshal(a.Gone)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'gone': %w", err)
+		}
+	}
+
+	if a.Ins != nil {
+		object["ins"], err = json.Marshal(a.Ins)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'ins': %w", err)
+		}
+	}
+
+	if a.Src != nil {
+		object["src"], err = json.Marshal(a.Src)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'src': %w", err)
+		}
+	}
+
+	if a.T != nil {
+		object["t"], err = json.Marshal(a.T)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 't': %w", err)
+		}
+	}
+
+	if a.W != nil {
+		object["w"], err = json.Marshal(a.W)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'w': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for BodyweightEntry_Ins_Item. Returns the specified
+// element and whether it was found
+func (a BodyweightEntry_Ins_Item) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for BodyweightEntry_Ins_Item
+func (a *BodyweightEntry_Ins_Item) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for BodyweightEntry_Ins_Item to handle AdditionalProperties
+func (a *BodyweightEntry_Ins_Item) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["at"]; found {
+		err = json.Unmarshal(raw, &a.At)
+		if err != nil {
+			return fmt.Errorf("error reading 'at': %w", err)
+		}
+		delete(object, "at")
+	}
+
+	if raw, found := object["id"]; found {
+		err = json.Unmarshal(raw, &a.Id)
+		if err != nil {
+			return fmt.Errorf("error reading 'id': %w", err)
+		}
+		delete(object, "id")
+	}
+
+	if raw, found := object["sid"]; found {
+		err = json.Unmarshal(raw, &a.Sid)
+		if err != nil {
+			return fmt.Errorf("error reading 'sid': %w", err)
+		}
+		delete(object, "sid")
+	}
+
+	if raw, found := object["src"]; found {
+		err = json.Unmarshal(raw, &a.Src)
+		if err != nil {
+			return fmt.Errorf("error reading 'src': %w", err)
+		}
+		delete(object, "src")
+	}
+
+	if raw, found := object["t"]; found {
+		err = json.Unmarshal(raw, &a.T)
+		if err != nil {
+			return fmt.Errorf("error reading 't': %w", err)
+		}
+		delete(object, "t")
+	}
+
+	if raw, found := object["w"]; found {
+		err = json.Unmarshal(raw, &a.W)
+		if err != nil {
+			return fmt.Errorf("error reading 'w': %w", err)
+		}
+		delete(object, "w")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for BodyweightEntry_Ins_Item to handle AdditionalProperties
+func (a BodyweightEntry_Ins_Item) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.At != nil {
+		object["at"], err = json.Marshal(a.At)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'at': %w", err)
+		}
+	}
+
+	if a.Id != nil {
+		object["id"], err = json.Marshal(a.Id)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'id': %w", err)
+		}
+	}
+
+	if a.Sid != nil {
+		object["sid"], err = json.Marshal(a.Sid)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'sid': %w", err)
+		}
+	}
+
+	if a.Src != nil {
+		object["src"], err = json.Marshal(a.Src)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'src': %w", err)
 		}
 	}
 
@@ -3466,6 +5672,14 @@ func (a *CoachProposal) UnmarshalJSON(b []byte) error {
 		delete(object, "summary")
 	}
 
+	if raw, found := object["trigger"]; found {
+		err = json.Unmarshal(raw, &a.Trigger)
+		if err != nil {
+			return fmt.Errorf("error reading 'trigger': %w", err)
+		}
+		delete(object, "trigger")
+	}
+
 	if raw, found := object["watch"]; found {
 		err = json.Unmarshal(raw, &a.Watch)
 		if err != nil {
@@ -3596,6 +5810,13 @@ func (a CoachProposal) MarshalJSON() ([]byte, error) {
 		object["summary"], err = json.Marshal(a.Summary)
 		if err != nil {
 			return nil, fmt.Errorf("error marshaling 'summary': %w", err)
+		}
+	}
+
+	if a.Trigger != nil {
+		object["trigger"], err = json.Marshal(a.Trigger)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'trigger': %w", err)
 		}
 	}
 
@@ -5885,35 +8106,55 @@ func (a Workout_Entries_Item) MarshalJSON() ([]byte, error) {
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// AccountDelete Delete your own account and everything of yours
+	// (POST /api/account/delete)
+	AccountDelete(c *gin.Context)
 	// CreateDeviceLink Make a one-time device link
 	// (POST /api/account/device-link)
+	//
+	// Deprecated: this operation has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	CreateDeviceLink(c *gin.Context)
 	// RemoveAccountEmail Remove the e-mail this profile may sign in with
 	// (DELETE /api/account/email)
 	RemoveAccountEmail(c *gin.Context)
 	// SetAccountEmail Set, change or remove the e-mail this profile may sign in with
 	// (POST /api/account/email)
+	//
+	// Deprecated: this operation has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	SetAccountEmail(c *gin.Context)
+	// AccountExport Download everything the server has of yours
+	// (GET /api/account/export)
+	AccountExport(c *gin.Context)
 	// RemovePasskey Remove one passkey
 	// (DELETE /api/account/passkeys)
 	RemovePasskey(c *gin.Context, params RemovePasskeyParams)
 	// ListPasskeys This profile's passkeys
 	// (GET /api/account/passkeys)
+	//
+	// Deprecated: this operation has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	ListPasskeys(c *gin.Context)
 	// AddPasskeyOptions Add a passkey (step 1): prove it is you, get creation options
 	// (POST /api/account/passkeys/options)
+	//
+	// Deprecated: this operation has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	AddPasskeyOptions(c *gin.Context)
 	// RenamePasskey Name one passkey
 	// (POST /api/account/passkeys/rename)
+	//
+	// Deprecated: this operation has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	RenamePasskey(c *gin.Context)
 	// AddPasskeyVerify Add a passkey (step 2): store the new one
 	// (POST /api/account/passkeys/verify)
+	//
+	// Deprecated: this operation has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	AddPasskeyVerify(c *gin.Context)
 	// RemoveAccountPassword Remove this profile's password
 	// (DELETE /api/account/password)
 	RemoveAccountPassword(c *gin.Context)
 	// GetAccountPassword Whether this profile has a password
 	// (GET /api/account/password)
+	//
+	// Deprecated: this operation has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	GetAccountPassword(c *gin.Context)
 	// SetAccountPassword Set or change this profile's password
 	// (POST /api/account/password)
@@ -5924,12 +8165,18 @@ type ServerInterface interface {
 	// AdminAudit Admin: read the activity log
 	// (GET /api/admin/audit)
 	AdminAudit(c *gin.Context, params AdminAuditParams)
-	// AdminAuditClear Admin: clear the activity log
+	// AdminAuditClear Owner: clear the activity log
 	// (POST /api/admin/audit/clear)
 	AdminAuditClear(c *gin.Context)
 	// GetAdminCoach Admin: the Coach card
 	// (GET /api/admin/coach)
 	GetAdminCoach(c *gin.Context)
+	// GetAdminCoachAgentConfig Admin: the AI-Native agent tuning (turns cap, review words)
+	// (GET /api/admin/coach/agent-config)
+	GetAdminCoachAgentConfig(c *gin.Context)
+	// PutAdminCoachAgentConfig Admin: set the agent tuning (partial update)
+	// (PUT /api/admin/coach/agent-config)
+	PutAdminCoachAgentConfig(c *gin.Context)
 	// PostAdminCoachConfig Admin: change the Coach settings
 	// (POST /api/admin/coach/config)
 	PostAdminCoachConfig(c *gin.Context)
@@ -5939,12 +8186,18 @@ type ServerInterface interface {
 	// PostAdminCoachDisconnect Admin: remove the provider credential
 	// (POST /api/admin/coach/disconnect)
 	PostAdminCoachDisconnect(c *gin.Context)
+	// PutAdminCoachLimits Admin: set the per-user Coach hard limits
+	// (PUT /api/admin/coach/limits)
+	PutAdminCoachLimits(c *gin.Context)
 	// PostAdminCoachModels Admin: list the models the endpoint serves
 	// (POST /api/admin/coach/models)
 	PostAdminCoachModels(c *gin.Context)
 	// PostAdminCoachTest Admin: run one round trip against the provider
 	// (POST /api/admin/coach/test)
 	PostAdminCoachTest(c *gin.Context)
+	// GetAdminCoachUsageOverview Admin: instance-wide Coach usage (three pools)
+	// (GET /api/admin/coach/usage-overview)
+	GetAdminCoachUsageOverview(c *gin.Context)
 	// AdminInvites Admin: list invite codes
 	// (GET /api/admin/invites)
 	AdminInvites(c *gin.Context)
@@ -5954,9 +8207,15 @@ type ServerInterface interface {
 	// AdminInviteRevoke Admin: revoke an unused invite code
 	// (POST /api/admin/invites/revoke)
 	AdminInviteRevoke(c *gin.Context)
+	// AdminLive Admin: live training presence (SSE)
+	// (GET /api/admin/live)
+	AdminLive(c *gin.Context)
 	// AdminOverview Admin: instance overview KPIs
 	// (GET /api/admin/overview)
 	AdminOverview(c *gin.Context)
+	// AdminOwnerTransfer Owner: hand the owner role to another admin
+	// (POST /api/admin/owner)
+	AdminOwnerTransfer(c *gin.Context)
 	// AdminRoles Admin: role assignments (super_admin only)
 	// (GET /api/admin/roles)
 	AdminRoles(c *gin.Context)
@@ -5966,7 +8225,16 @@ type ServerInterface interface {
 	// AdminRoleRevoke Admin: revoke a role (super_admin only, step-up required)
 	// (POST /api/admin/roles/revoke)
 	AdminRoleRevoke(c *gin.Context)
-	// AdminStepUp Admin: start a step-up passkey ceremony
+	// AdminSession Admin: the caller's role and step-up window
+	// (GET /api/admin/session)
+	AdminSession(c *gin.Context)
+	// AdminSettingsGet Admin: instance settings
+	// (GET /api/admin/settings)
+	AdminSettingsGet(c *gin.Context)
+	// AdminSettingsPut Admin: change instance settings (ops, step-up required)
+	// (PUT /api/admin/settings)
+	AdminSettingsPut(c *gin.Context)
+	// AdminStepUp Admin: open a 5-minute step-up window (SMS code)
 	// (POST /api/admin/step-up)
 	AdminStepUp(c *gin.Context)
 	// AdminUser Admin: one user in detail
@@ -5980,22 +8248,99 @@ type ServerInterface interface {
 	AdminUserDisable(c *gin.Context)
 	// AdminPasswordReset Admin: issue a one-time password reset code
 	// (POST /api/admin/user/password-reset)
+	//
+	// Deprecated: this operation has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	AdminPasswordReset(c *gin.Context)
+	// AdminRecoveryCode Admin: make a one-time recovery code (#584)
+	// (POST /api/admin/user/recovery)
+	AdminRecoveryCode(c *gin.Context)
+	// AdminUserRole Owner: make someone an admin, or remove the role
+	// (POST /api/admin/user/role)
+	AdminUserRole(c *gin.Context)
 	// AdminUsers Admin: list all users
 	// (GET /api/admin/users)
-	AdminUsers(c *gin.Context)
+	AdminUsers(c *gin.Context, params AdminUsersParams)
 	// AdminUserActivity Admin: another user workout detail (step-up required)
 	// (GET /api/admin/users/{id}/activity)
 	AdminUserActivity(c *gin.Context, id string)
+	// AdminUserExport Admin: export one user's data (ops, step-up required)
+	// (GET /api/admin/users/{id}/export)
+	AdminUserExport(c *gin.Context, id string)
 	// AdminUserQuotaGet Admin: a user quota row
 	// (GET /api/admin/users/{id}/quota)
 	AdminUserQuotaGet(c *gin.Context, id string)
 	// AdminUserQuotaPut Admin: change a user quota (step-up required)
 	// (PUT /api/admin/users/{id}/quota)
 	AdminUserQuotaPut(c *gin.Context, id string)
+	// AliveHeartbeat Training heartbeat for the console live view
+	// (POST /api/alive)
+	AliveHeartbeat(c *gin.Context)
+	// AuthBindPhone Bind a mobile number to the signed-in account
+	// (POST /api/auth/bind-phone)
+	AuthBindPhone(c *gin.Context)
+	// AuthCaptcha A digit-image captcha required before sending an SMS
+	// (GET /api/auth/captcha)
+	AuthCaptcha(c *gin.Context)
+	// AuthSessions List active device sessions
+	// (GET /api/auth/sessions)
+	AuthSessions(c *gin.Context)
+	// AuthSessionRevokeCurrent Sign out this device (revoke its session)
+	// (DELETE /api/auth/sessions/current)
+	AuthSessionRevokeCurrent(c *gin.Context)
+	// AuthSessionRevoke Revoke one device session
+	// (DELETE /api/auth/sessions/{sid})
+	AuthSessionRevoke(c *gin.Context, sid string)
+	// AuthSmsSend Send a login/signup SMS code to a mobile number
+	// (POST /api/auth/sms/send)
+	AuthSmsSend(c *gin.Context)
+	// AuthSmsVerify Verify the SMS code — signs in or signs up
+	// (POST /api/auth/sms/verify)
+	AuthSmsVerify(c *gin.Context)
+	// AuthWechatConfirm The mini program confirms a scan-login ticket
+	// (POST /api/auth/wechat/confirm)
+	AuthWechatConfirm(c *gin.Context)
+	// AuthWechatPoll Poll a scan-login ticket
+	// (GET /api/auth/wechat/poll)
+	AuthWechatPoll(c *gin.Context, params AuthWechatPollParams)
+	// AuthWechatQrcode A mini-program QR for scan login
+	// (GET /api/auth/wechat/qrcode)
+	AuthWechatQrcode(c *gin.Context)
+	// CoachBindStudent Coach: bind a student by phone number
+	// (POST /api/coach-console/bindings)
+	CoachBindStudent(c *gin.Context)
+	// CoachUnbindStudent Coach: unbind a student
+	// (DELETE /api/coach-console/bindings/{studentId})
+	CoachUnbindStudent(c *gin.Context, studentId string)
+	// CoachStudents Coach: the bound students, with summaries
+	// (GET /api/coach-console/students)
+	CoachStudents(c *gin.Context)
+	// CoachStudentDetail Coach: one student's whitelisted data
+	// (GET /api/coach-console/students/{id})
+	CoachStudentDetail(c *gin.Context, id string)
+	// CoachStudentExport Coach: export a student's whitelisted data
+	// (GET /api/coach-console/students/{id}/export)
+	CoachStudentExport(c *gin.Context, id string)
+	// CoachPutStudentPlan Coach: push a weekly plan to the student
+	// (PUT /api/coach-console/students/{id}/plan)
+	CoachPutStudentPlan(c *gin.Context, id string)
 	// GetCoachAccount Whose provider account this profile would spend
 	// (GET /api/coach/account)
 	GetCoachAccount(c *gin.Context)
+	// PostCoachAdapt Ask the Coach about an exercise mid-workout
+	// (POST /api/coach/adapt)
+	PostCoachAdapt(c *gin.Context)
+	// PostCoachAsk Ask the Coach a question
+	// (POST /api/coach/ask)
+	PostCoachAsk(c *gin.Context)
+	// PostCoachChat Start or continue a chat with the Coach
+	// (POST /api/coach/chat)
+	PostCoachChat(c *gin.Context)
+	// PostCoachChatConfirm Answer a proposal — the only gate through which the Coach writes anything
+	// (POST /api/coach/chat/{id}/confirm)
+	PostCoachChatConfirm(c *gin.Context, id string)
+	// GetCoachChatEvents Stream one chat turn's progress as server-sent events
+	// (GET /api/coach/chat/{id}/events)
+	GetCoachChatEvents(c *gin.Context, id string)
 	// GetCoachCohort How this profile sits against the others who opted in
 	// (GET /api/coach/cohort)
 	GetCoachCohort(c *gin.Context)
@@ -6011,6 +8356,15 @@ type ServerInterface interface {
 	// PostCoachForget Drop everything the server holds for this profile
 	// (POST /api/coach/forget)
 	PostCoachForget(c *gin.Context)
+	// GetCoachMemory Everything the Coach remembers about this profile
+	// (GET /api/coach/memory)
+	GetCoachMemory(c *gin.Context)
+	// DeleteCoachMemory Forget one memory entry
+	// (DELETE /api/coach/memory/{id})
+	DeleteCoachMemory(c *gin.Context, id string)
+	// PutCoachMemory Edit one memory entry's text
+	// (PUT /api/coach/memory/{id})
+	PutCoachMemory(c *gin.Context, id string)
 	// PostCoachResolve Apply or discard the waiting proposal
 	// (POST /api/coach/pending/resolve)
 	PostCoachResolve(c *gin.Context)
@@ -6023,6 +8377,9 @@ type ServerInterface interface {
 	// GetCoachStatus The running job, the waiting proposal and today's budget
 	// (GET /api/coach/status)
 	GetCoachStatus(c *gin.Context)
+	// GetCoachUsage This profile's Coach spend and limits
+	// (GET /api/coach/usage)
+	GetCoachUsage(c *gin.Context)
 	// GetConfig Instance configuration
 	// (GET /api/config)
 	GetConfig(c *gin.Context)
@@ -6037,24 +8394,57 @@ type ServerInterface interface {
 	GetApiDataRev(c *gin.Context)
 	// DeviceLinkOptions Redeem a device link (step 1): check the code, get creation options
 	// (POST /api/device-link/options)
+	//
+	// Deprecated: this operation has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	DeviceLinkOptions(c *gin.Context)
 	// DeviceLinkVerify Redeem a device link (step 2): store the passkey and sign this device in
 	// (POST /api/device-link/verify)
+	//
+	// Deprecated: this operation has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	DeviceLinkVerify(c *gin.Context)
 	// GetHealth Health check
 	// (GET /api/health)
 	GetHealth(c *gin.Context)
+	// ListIntegrations The integrations this server offers, and the caller's connections
+	// (GET /api/integrations)
+	ListIntegrations(c *gin.Context)
+	// ConnectIntegration Add a connection (a webhook)
+	// (POST /api/integrations/connect)
+	ConnectIntegration(c *gin.Context)
+	// DisconnectIntegration Remove a connection
+	// (POST /api/integrations/disconnect)
+	DisconnectIntegration(c *gin.Context)
+	// IntegrationLog A connection's activity log
+	// (GET /api/integrations/log)
+	IntegrationLog(c *gin.Context, params IntegrationLogParams)
+	// RetryIntegration Send the failed deliveries again
+	// (POST /api/integrations/retry)
+	RetryIntegration(c *gin.Context)
+	// TestIntegration Send a test event now
+	// (POST /api/integrations/test)
+	TestIntegration(c *gin.Context)
+	// UpdateIntegration Rename a connection, change its events, pause or resume it
+	// (POST /api/integrations/update)
+	UpdateIntegration(c *gin.Context)
 	// LoginOptions Start passkey login (WebAuthn ceremony, step 1)
 	// (POST /api/login/options)
+	//
+	// Deprecated: this operation has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	LoginOptions(c *gin.Context)
 	// LoginPassword Sign in with a profile name or e-mail and a password
 	// (POST /api/login/password)
+	//
+	// Deprecated: this operation has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	LoginPassword(c *gin.Context)
 	// RedeemPasswordReset Set a new password with an admin's one-time reset code
 	// (POST /api/login/password-reset)
+	//
+	// Deprecated: this operation has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	RedeemPasswordReset(c *gin.Context)
 	// LoginVerify Finish passkey login (WebAuthn ceremony, step 2)
 	// (POST /api/login/verify)
+	//
+	// Deprecated: this operation has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	LoginVerify(c *gin.Context)
 	// Logout Sign out (this device)
 	// (POST /api/logout)
@@ -6077,11 +8467,18 @@ type ServerInterface interface {
 	// PutMedia Upload one photo, GIF or video
 	// (PUT /api/media/{hash})
 	PutMedia(c *gin.Context, hash string)
+	// NudgeCheck Whether a day was trained or excused (the phone's background check)
+	// (GET /api/nudge-check)
+	NudgeCheck(c *gin.Context, params NudgeCheckParams)
 	// PairCreate Mint a pairing code for the mobile app
 	// (POST /api/pair/create)
+	//
+	// Deprecated: this operation has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	PairCreate(c *gin.Context)
 	// PairRedeem Redeem a pairing code for a Bearer token
 	// (POST /api/pair/redeem)
+	//
+	// Deprecated: this operation has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	PairRedeem(c *gin.Context)
 	// PushPublicKey VAPID public key
 	// (GET /api/push/public-key)
@@ -6106,13 +8503,97 @@ type ServerInterface interface {
 	PushUnsubscribe(c *gin.Context)
 	// RegisterOptions Start passkey registration (WebAuthn ceremony, step 1)
 	// (POST /api/register/options)
+	//
+	// Deprecated: this operation has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	RegisterOptions(c *gin.Context)
 	// RegisterPassword Create a profile with a name and password
 	// (POST /api/register/password)
+	//
+	// Deprecated: this operation has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	RegisterPassword(c *gin.Context)
 	// RegisterVerify Finish passkey registration (WebAuthn ceremony, step 2)
 	// (POST /api/register/verify)
+	//
+	// Deprecated: this operation has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	RegisterVerify(c *gin.Context)
+	// GetTeam The caller's live team (as owner or member)
+	// (GET /api/team)
+	GetTeam(c *gin.Context)
+	// CreateTeam Create a team (the caller becomes its owner/coach)
+	// (POST /api/team)
+	CreateTeam(c *gin.Context)
+	// RenameTeam Rename the caller's team (owner only)
+	// (PUT /api/team)
+	RenameTeam(c *gin.Context)
+	// TeamBoard Whole-team board (owner only)
+	// (GET /api/team/board)
+	TeamBoard(c *gin.Context)
+	// TeamInsights Coach analysis cards (owner only)
+	// (GET /api/team/insights)
+	TeamInsights(c *gin.Context)
+	// TeamInviteDelete Burn the live invite code (owner only)
+	// (DELETE /api/team/invite)
+	TeamInviteDelete(c *gin.Context)
+	// TeamInvite Mint the team invite code (owner only)
+	// (POST /api/team/invite)
+	TeamInvite(c *gin.Context)
+	// TeamJoin Join a team with an invite code
+	// (POST /api/team/join)
+	TeamJoin(c *gin.Context)
+	// TeamLeave Leave the caller's team (members only)
+	// (POST /api/team/leave)
+	TeamLeave(c *gin.Context)
+	// TeamMembers Live member roster
+	// (GET /api/team/members)
+	TeamMembers(c *gin.Context)
+	// TeamMemberKick Remove a member (owner only; soft delete)
+	// (DELETE /api/team/members/{uid})
+	TeamMemberKick(c *gin.Context, uid string)
+	// TeamMemberSummary One member's dashboard card (owner only)
+	// (GET /api/team/members/{uid}/summary)
+	TeamMemberSummary(c *gin.Context, uid string)
+	// TeamPlansList Plan assignments (role-aware)
+	// (GET /api/team/plans)
+	TeamPlansList(c *gin.Context, params TeamPlansListParams)
+	// TeamPlanDistribute Distribute a training plan to a member (owner only)
+	// (POST /api/team/plans)
+	TeamPlanDistribute(c *gin.Context)
+	// TeamPlanRevoke Revoke a still-distributed plan (owner only)
+	// (DELETE /api/team/plans/{id})
+	TeamPlanRevoke(c *gin.Context, id openapi_types.UUID)
+	// TeamPlanAck Acknowledge a distributed plan (its member only)
+	// (POST /api/team/plans/{id}/ack)
+	TeamPlanAck(c *gin.Context, id openapi_types.UUID)
+	// TeamTransfer Transfer ownership to a live member (owner only)
+	// (POST /api/team/transfer)
+	TeamTransfer(c *gin.Context)
+	// WatchAck Events applied, out of the queue
+	// (POST /api/watch/ack)
+	WatchAck(c *gin.Context)
+	// WatchBoxRead The watch reads the page's last snapshot
+	// (GET /api/watch/box)
+	WatchBoxRead(c *gin.Context)
+	// WatchBoxSend The watch sends its events
+	// (POST /api/watch/box)
+	WatchBoxSend(c *gin.Context)
+	// WatchEvents What the watches sent, oldest first
+	// (GET /api/watch/events)
+	WatchEvents(c *gin.Context)
+	// WatchLinks The profile's paired watches
+	// (GET /api/watch/links)
+	WatchLinks(c *gin.Context)
+	// WatchPair A pairing code for a Zepp OS watch
+	// (POST /api/watch/pair)
+	WatchPair(c *gin.Context)
+	// WatchRedeem Redeem a watch pairing code for a watch token
+	// (POST /api/watch/redeem)
+	WatchRedeem(c *gin.Context)
+	// WatchSnapshot The page's snapshot for the profile's watches
+	// (PUT /api/watch/snapshot)
+	WatchSnapshot(c *gin.Context)
+	// WatchUnlink Unpair one watch, or every watch
+	// (POST /api/watch/unlink)
+	WatchUnlink(c *gin.Context)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -6123,6 +8604,19 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(c *gin.Context)
+
+// AccountDelete operation middleware
+func (siw *ServerInterfaceWrapper) AccountDelete(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.AccountDelete(c)
+}
 
 // CreateDeviceLink operation middleware
 func (siw *ServerInterfaceWrapper) CreateDeviceLink(c *gin.Context) {
@@ -6161,6 +8655,19 @@ func (siw *ServerInterfaceWrapper) SetAccountEmail(c *gin.Context) {
 	}
 
 	siw.Handler.SetAccountEmail(c)
+}
+
+// AccountExport operation middleware
+func (siw *ServerInterfaceWrapper) AccountExport(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.AccountExport(c)
 }
 
 // RemovePasskey operation middleware
@@ -6327,6 +8834,14 @@ func (siw *ServerInterfaceWrapper) AdminAudit(c *gin.Context) {
 		return
 	}
 
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "q", c.Request.URL.Query(), &params.Q, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter q: %w", err), http.StatusBadRequest)
+		return
+	}
+
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
 		if c.IsAborted() {
@@ -6361,6 +8876,32 @@ func (siw *ServerInterfaceWrapper) GetAdminCoach(c *gin.Context) {
 	}
 
 	siw.Handler.GetAdminCoach(c)
+}
+
+// GetAdminCoachAgentConfig operation middleware
+func (siw *ServerInterfaceWrapper) GetAdminCoachAgentConfig(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.GetAdminCoachAgentConfig(c)
+}
+
+// PutAdminCoachAgentConfig operation middleware
+func (siw *ServerInterfaceWrapper) PutAdminCoachAgentConfig(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.PutAdminCoachAgentConfig(c)
 }
 
 // PostAdminCoachConfig operation middleware
@@ -6402,6 +8943,19 @@ func (siw *ServerInterfaceWrapper) PostAdminCoachDisconnect(c *gin.Context) {
 	siw.Handler.PostAdminCoachDisconnect(c)
 }
 
+// PutAdminCoachLimits operation middleware
+func (siw *ServerInterfaceWrapper) PutAdminCoachLimits(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.PutAdminCoachLimits(c)
+}
+
 // PostAdminCoachModels operation middleware
 func (siw *ServerInterfaceWrapper) PostAdminCoachModels(c *gin.Context) {
 
@@ -6426,6 +8980,19 @@ func (siw *ServerInterfaceWrapper) PostAdminCoachTest(c *gin.Context) {
 	}
 
 	siw.Handler.PostAdminCoachTest(c)
+}
+
+// GetAdminCoachUsageOverview operation middleware
+func (siw *ServerInterfaceWrapper) GetAdminCoachUsageOverview(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.GetAdminCoachUsageOverview(c)
 }
 
 // AdminInvites operation middleware
@@ -6467,6 +9034,19 @@ func (siw *ServerInterfaceWrapper) AdminInviteRevoke(c *gin.Context) {
 	siw.Handler.AdminInviteRevoke(c)
 }
 
+// AdminLive operation middleware
+func (siw *ServerInterfaceWrapper) AdminLive(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.AdminLive(c)
+}
+
 // AdminOverview operation middleware
 func (siw *ServerInterfaceWrapper) AdminOverview(c *gin.Context) {
 
@@ -6478,6 +9058,19 @@ func (siw *ServerInterfaceWrapper) AdminOverview(c *gin.Context) {
 	}
 
 	siw.Handler.AdminOverview(c)
+}
+
+// AdminOwnerTransfer operation middleware
+func (siw *ServerInterfaceWrapper) AdminOwnerTransfer(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.AdminOwnerTransfer(c)
 }
 
 // AdminRoles operation middleware
@@ -6517,6 +9110,45 @@ func (siw *ServerInterfaceWrapper) AdminRoleRevoke(c *gin.Context) {
 	}
 
 	siw.Handler.AdminRoleRevoke(c)
+}
+
+// AdminSession operation middleware
+func (siw *ServerInterfaceWrapper) AdminSession(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.AdminSession(c)
+}
+
+// AdminSettingsGet operation middleware
+func (siw *ServerInterfaceWrapper) AdminSettingsGet(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.AdminSettingsGet(c)
+}
+
+// AdminSettingsPut operation middleware
+func (siw *ServerInterfaceWrapper) AdminSettingsPut(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.AdminSettingsPut(c)
 }
 
 // AdminStepUp operation middleware
@@ -6598,8 +9230,8 @@ func (siw *ServerInterfaceWrapper) AdminPasswordReset(c *gin.Context) {
 	siw.Handler.AdminPasswordReset(c)
 }
 
-// AdminUsers operation middleware
-func (siw *ServerInterfaceWrapper) AdminUsers(c *gin.Context) {
+// AdminRecoveryCode operation middleware
+func (siw *ServerInterfaceWrapper) AdminRecoveryCode(c *gin.Context) {
 
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
@@ -6608,7 +9240,87 @@ func (siw *ServerInterfaceWrapper) AdminUsers(c *gin.Context) {
 		}
 	}
 
-	siw.Handler.AdminUsers(c)
+	siw.Handler.AdminRecoveryCode(c)
+}
+
+// AdminUserRole operation middleware
+func (siw *ServerInterfaceWrapper) AdminUserRole(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.AdminUserRole(c)
+}
+
+// AdminUsers operation middleware
+func (siw *ServerInterfaceWrapper) AdminUsers(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params AdminUsersParams
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "q", c.Request.URL.Query(), &params.Q, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter q: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "role" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "role", c.Request.URL.Query(), &params.Role, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter role: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "status", c.Request.URL.Query(), &params.Status, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter status: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "sort", c.Request.URL.Query(), &params.Sort, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter sort: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", c.Request.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter page: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "per_page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "per_page", c.Request.URL.Query(), &params.PerPage, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter per_page: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.AdminUsers(c, params)
 }
 
 // AdminUserActivity operation middleware
@@ -6634,6 +9346,31 @@ func (siw *ServerInterfaceWrapper) AdminUserActivity(c *gin.Context) {
 	}
 
 	siw.Handler.AdminUserActivity(c, id)
+}
+
+// AdminUserExport operation middleware
+func (siw *ServerInterfaceWrapper) AdminUserExport(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", c.Param("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.AdminUserExport(c, id)
 }
 
 // AdminUserQuotaGet operation middleware
@@ -6686,6 +9423,301 @@ func (siw *ServerInterfaceWrapper) AdminUserQuotaPut(c *gin.Context) {
 	siw.Handler.AdminUserQuotaPut(c, id)
 }
 
+// AliveHeartbeat operation middleware
+func (siw *ServerInterfaceWrapper) AliveHeartbeat(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.AliveHeartbeat(c)
+}
+
+// AuthBindPhone operation middleware
+func (siw *ServerInterfaceWrapper) AuthBindPhone(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.AuthBindPhone(c)
+}
+
+// AuthCaptcha operation middleware
+func (siw *ServerInterfaceWrapper) AuthCaptcha(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.AuthCaptcha(c)
+}
+
+// AuthSessions operation middleware
+func (siw *ServerInterfaceWrapper) AuthSessions(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.AuthSessions(c)
+}
+
+// AuthSessionRevokeCurrent operation middleware
+func (siw *ServerInterfaceWrapper) AuthSessionRevokeCurrent(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.AuthSessionRevokeCurrent(c)
+}
+
+// AuthSessionRevoke operation middleware
+func (siw *ServerInterfaceWrapper) AuthSessionRevoke(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "sid" -------------
+	var sid string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "sid", c.Param("sid"), &sid, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter sid: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.AuthSessionRevoke(c, sid)
+}
+
+// AuthSmsSend operation middleware
+func (siw *ServerInterfaceWrapper) AuthSmsSend(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.AuthSmsSend(c)
+}
+
+// AuthSmsVerify operation middleware
+func (siw *ServerInterfaceWrapper) AuthSmsVerify(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.AuthSmsVerify(c)
+}
+
+// AuthWechatConfirm operation middleware
+func (siw *ServerInterfaceWrapper) AuthWechatConfirm(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.AuthWechatConfirm(c)
+}
+
+// AuthWechatPoll operation middleware
+func (siw *ServerInterfaceWrapper) AuthWechatPoll(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params AuthWechatPollParams
+
+	// ------------- Required query parameter "ticket" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "ticket", c.Request.URL.Query(), &params.Ticket, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter ticket: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.AuthWechatPoll(c, params)
+}
+
+// AuthWechatQrcode operation middleware
+func (siw *ServerInterfaceWrapper) AuthWechatQrcode(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.AuthWechatQrcode(c)
+}
+
+// CoachBindStudent operation middleware
+func (siw *ServerInterfaceWrapper) CoachBindStudent(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.CoachBindStudent(c)
+}
+
+// CoachUnbindStudent operation middleware
+func (siw *ServerInterfaceWrapper) CoachUnbindStudent(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "studentId" -------------
+	var studentId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "studentId", c.Param("studentId"), &studentId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter studentId: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.CoachUnbindStudent(c, studentId)
+}
+
+// CoachStudents operation middleware
+func (siw *ServerInterfaceWrapper) CoachStudents(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.CoachStudents(c)
+}
+
+// CoachStudentDetail operation middleware
+func (siw *ServerInterfaceWrapper) CoachStudentDetail(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", c.Param("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.CoachStudentDetail(c, id)
+}
+
+// CoachStudentExport operation middleware
+func (siw *ServerInterfaceWrapper) CoachStudentExport(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", c.Param("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.CoachStudentExport(c, id)
+}
+
+// CoachPutStudentPlan operation middleware
+func (siw *ServerInterfaceWrapper) CoachPutStudentPlan(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", c.Param("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.CoachPutStudentPlan(c, id)
+}
+
 // GetCoachAccount operation middleware
 func (siw *ServerInterfaceWrapper) GetCoachAccount(c *gin.Context) {
 
@@ -6697,6 +9729,95 @@ func (siw *ServerInterfaceWrapper) GetCoachAccount(c *gin.Context) {
 	}
 
 	siw.Handler.GetCoachAccount(c)
+}
+
+// PostCoachAdapt operation middleware
+func (siw *ServerInterfaceWrapper) PostCoachAdapt(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.PostCoachAdapt(c)
+}
+
+// PostCoachAsk operation middleware
+func (siw *ServerInterfaceWrapper) PostCoachAsk(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.PostCoachAsk(c)
+}
+
+// PostCoachChat operation middleware
+func (siw *ServerInterfaceWrapper) PostCoachChat(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.PostCoachChat(c)
+}
+
+// PostCoachChatConfirm operation middleware
+func (siw *ServerInterfaceWrapper) PostCoachChatConfirm(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", c.Param("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.PostCoachChatConfirm(c, id)
+}
+
+// GetCoachChatEvents operation middleware
+func (siw *ServerInterfaceWrapper) GetCoachChatEvents(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", c.Param("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.GetCoachChatEvents(c, id)
 }
 
 // GetCoachCohort operation middleware
@@ -6764,6 +9885,69 @@ func (siw *ServerInterfaceWrapper) PostCoachForget(c *gin.Context) {
 	siw.Handler.PostCoachForget(c)
 }
 
+// GetCoachMemory operation middleware
+func (siw *ServerInterfaceWrapper) GetCoachMemory(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.GetCoachMemory(c)
+}
+
+// DeleteCoachMemory operation middleware
+func (siw *ServerInterfaceWrapper) DeleteCoachMemory(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", c.Param("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.DeleteCoachMemory(c, id)
+}
+
+// PutCoachMemory operation middleware
+func (siw *ServerInterfaceWrapper) PutCoachMemory(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", c.Param("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.PutCoachMemory(c, id)
+}
+
 // PostCoachResolve operation middleware
 func (siw *ServerInterfaceWrapper) PostCoachResolve(c *gin.Context) {
 
@@ -6814,6 +9998,19 @@ func (siw *ServerInterfaceWrapper) GetCoachStatus(c *gin.Context) {
 	}
 
 	siw.Handler.GetCoachStatus(c)
+}
+
+// GetCoachUsage operation middleware
+func (siw *ServerInterfaceWrapper) GetCoachUsage(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.GetCoachUsage(c)
 }
 
 // GetConfig operation middleware
@@ -6905,6 +10102,111 @@ func (siw *ServerInterfaceWrapper) GetHealth(c *gin.Context) {
 	}
 
 	siw.Handler.GetHealth(c)
+}
+
+// ListIntegrations operation middleware
+func (siw *ServerInterfaceWrapper) ListIntegrations(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.ListIntegrations(c)
+}
+
+// ConnectIntegration operation middleware
+func (siw *ServerInterfaceWrapper) ConnectIntegration(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.ConnectIntegration(c)
+}
+
+// DisconnectIntegration operation middleware
+func (siw *ServerInterfaceWrapper) DisconnectIntegration(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.DisconnectIntegration(c)
+}
+
+// IntegrationLog operation middleware
+func (siw *ServerInterfaceWrapper) IntegrationLog(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params IntegrationLogParams
+
+	// ------------- Required query parameter "id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "id", c.Request.URL.Query(), &params.Id, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.IntegrationLog(c, params)
+}
+
+// RetryIntegration operation middleware
+func (siw *ServerInterfaceWrapper) RetryIntegration(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.RetryIntegration(c)
+}
+
+// TestIntegration operation middleware
+func (siw *ServerInterfaceWrapper) TestIntegration(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.TestIntegration(c)
+}
+
+// UpdateIntegration operation middleware
+func (siw *ServerInterfaceWrapper) UpdateIntegration(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.UpdateIntegration(c)
 }
 
 // LoginOptions operation middleware
@@ -7072,6 +10374,33 @@ func (siw *ServerInterfaceWrapper) PutMedia(c *gin.Context) {
 	}
 
 	siw.Handler.PutMedia(c, hash)
+}
+
+// NudgeCheck operation middleware
+func (siw *ServerInterfaceWrapper) NudgeCheck(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params NudgeCheckParams
+
+	// ------------- Required query parameter "date" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "date", c.Request.URL.Query(), &params.Date, runtime.BindQueryParameterOptions{Type: "string", Format: "date"})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter date: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.NudgeCheck(c, params)
 }
 
 // PairCreate operation middleware
@@ -7244,6 +10573,406 @@ func (siw *ServerInterfaceWrapper) RegisterVerify(c *gin.Context) {
 	siw.Handler.RegisterVerify(c)
 }
 
+// GetTeam operation middleware
+func (siw *ServerInterfaceWrapper) GetTeam(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.GetTeam(c)
+}
+
+// CreateTeam operation middleware
+func (siw *ServerInterfaceWrapper) CreateTeam(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.CreateTeam(c)
+}
+
+// RenameTeam operation middleware
+func (siw *ServerInterfaceWrapper) RenameTeam(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.RenameTeam(c)
+}
+
+// TeamBoard operation middleware
+func (siw *ServerInterfaceWrapper) TeamBoard(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.TeamBoard(c)
+}
+
+// TeamInsights operation middleware
+func (siw *ServerInterfaceWrapper) TeamInsights(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.TeamInsights(c)
+}
+
+// TeamInviteDelete operation middleware
+func (siw *ServerInterfaceWrapper) TeamInviteDelete(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.TeamInviteDelete(c)
+}
+
+// TeamInvite operation middleware
+func (siw *ServerInterfaceWrapper) TeamInvite(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.TeamInvite(c)
+}
+
+// TeamJoin operation middleware
+func (siw *ServerInterfaceWrapper) TeamJoin(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.TeamJoin(c)
+}
+
+// TeamLeave operation middleware
+func (siw *ServerInterfaceWrapper) TeamLeave(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.TeamLeave(c)
+}
+
+// TeamMembers operation middleware
+func (siw *ServerInterfaceWrapper) TeamMembers(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.TeamMembers(c)
+}
+
+// TeamMemberKick operation middleware
+func (siw *ServerInterfaceWrapper) TeamMemberKick(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "uid" -------------
+	var uid string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "uid", c.Param("uid"), &uid, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter uid: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.TeamMemberKick(c, uid)
+}
+
+// TeamMemberSummary operation middleware
+func (siw *ServerInterfaceWrapper) TeamMemberSummary(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "uid" -------------
+	var uid string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "uid", c.Param("uid"), &uid, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter uid: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.TeamMemberSummary(c, uid)
+}
+
+// TeamPlansList operation middleware
+func (siw *ServerInterfaceWrapper) TeamPlansList(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params TeamPlansListParams
+
+	// ------------- Optional query parameter "uid" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "uid", c.Request.URL.Query(), &params.Uid, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter uid: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.TeamPlansList(c, params)
+}
+
+// TeamPlanDistribute operation middleware
+func (siw *ServerInterfaceWrapper) TeamPlanDistribute(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.TeamPlanDistribute(c)
+}
+
+// TeamPlanRevoke operation middleware
+func (siw *ServerInterfaceWrapper) TeamPlanRevoke(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", c.Param("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.TeamPlanRevoke(c, id)
+}
+
+// TeamPlanAck operation middleware
+func (siw *ServerInterfaceWrapper) TeamPlanAck(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", c.Param("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.TeamPlanAck(c, id)
+}
+
+// TeamTransfer operation middleware
+func (siw *ServerInterfaceWrapper) TeamTransfer(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.TeamTransfer(c)
+}
+
+// WatchAck operation middleware
+func (siw *ServerInterfaceWrapper) WatchAck(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.WatchAck(c)
+}
+
+// WatchBoxRead operation middleware
+func (siw *ServerInterfaceWrapper) WatchBoxRead(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.WatchBoxRead(c)
+}
+
+// WatchBoxSend operation middleware
+func (siw *ServerInterfaceWrapper) WatchBoxSend(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.WatchBoxSend(c)
+}
+
+// WatchEvents operation middleware
+func (siw *ServerInterfaceWrapper) WatchEvents(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.WatchEvents(c)
+}
+
+// WatchLinks operation middleware
+func (siw *ServerInterfaceWrapper) WatchLinks(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.WatchLinks(c)
+}
+
+// WatchPair operation middleware
+func (siw *ServerInterfaceWrapper) WatchPair(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.WatchPair(c)
+}
+
+// WatchRedeem operation middleware
+func (siw *ServerInterfaceWrapper) WatchRedeem(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.WatchRedeem(c)
+}
+
+// WatchSnapshot operation middleware
+func (siw *ServerInterfaceWrapper) WatchSnapshot(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.WatchSnapshot(c)
+}
+
+// WatchUnlink operation middleware
+func (siw *ServerInterfaceWrapper) WatchUnlink(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.WatchUnlink(c)
+}
+
 // GinServerOptions provides options for the Gin server.
 type GinServerOptions struct {
 	BaseURL      string
@@ -7273,6 +11002,13 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 
 	router.GET(options.BaseURL+"/api/health", wrapper.GetHealth)
 	router.GET(options.BaseURL+"/api/config", wrapper.GetConfig)
+	router.GET(options.BaseURL+"/api/auth/captcha", wrapper.AuthCaptcha)
+	router.POST(options.BaseURL+"/api/auth/sms/send", wrapper.AuthSmsSend)
+	router.POST(options.BaseURL+"/api/auth/sms/verify", wrapper.AuthSmsVerify)
+	router.GET(options.BaseURL+"/api/auth/wechat/qrcode", wrapper.AuthWechatQrcode)
+	router.GET(options.BaseURL+"/api/auth/wechat/poll", wrapper.AuthWechatPoll)
+	router.POST(options.BaseURL+"/api/auth/wechat/confirm", wrapper.AuthWechatConfirm)
+	router.POST(options.BaseURL+"/api/auth/bind-phone", wrapper.AuthBindPhone)
 	router.GET(options.BaseURL+"/api/me", wrapper.GetMe)
 	router.POST(options.BaseURL+"/api/register/options", wrapper.RegisterOptions)
 	router.POST(options.BaseURL+"/api/register/verify", wrapper.RegisterVerify)
@@ -7280,8 +11016,22 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 	router.POST(options.BaseURL+"/api/login/verify", wrapper.LoginVerify)
 	router.POST(options.BaseURL+"/api/logout", wrapper.Logout)
 	router.POST(options.BaseURL+"/api/logout/all", wrapper.LogoutAll)
+	router.GET(options.BaseURL+"/api/auth/sessions", wrapper.AuthSessions)
+	router.DELETE(options.BaseURL+"/api/auth/sessions/current", wrapper.AuthSessionRevokeCurrent)
+	router.DELETE(options.BaseURL+"/api/auth/sessions/:sid", wrapper.AuthSessionRevoke)
+	router.POST(options.BaseURL+"/api/account/delete", wrapper.AccountDelete)
+	router.GET(options.BaseURL+"/api/account/export", wrapper.AccountExport)
 	router.POST(options.BaseURL+"/api/pair/create", wrapper.PairCreate)
 	router.POST(options.BaseURL+"/api/pair/redeem", wrapper.PairRedeem)
+	router.POST(options.BaseURL+"/api/watch/pair", wrapper.WatchPair)
+	router.POST(options.BaseURL+"/api/watch/redeem", wrapper.WatchRedeem)
+	router.GET(options.BaseURL+"/api/watch/links", wrapper.WatchLinks)
+	router.POST(options.BaseURL+"/api/watch/unlink", wrapper.WatchUnlink)
+	router.PUT(options.BaseURL+"/api/watch/snapshot", wrapper.WatchSnapshot)
+	router.GET(options.BaseURL+"/api/watch/events", wrapper.WatchEvents)
+	router.POST(options.BaseURL+"/api/watch/ack", wrapper.WatchAck)
+	router.GET(options.BaseURL+"/api/watch/box", wrapper.WatchBoxRead)
+	router.POST(options.BaseURL+"/api/watch/box", wrapper.WatchBoxSend)
 	router.POST(options.BaseURL+"/api/login/password", wrapper.LoginPassword)
 	router.POST(options.BaseURL+"/api/register/password", wrapper.RegisterPassword)
 	router.POST(options.BaseURL+"/api/login/password-reset", wrapper.RedeemPasswordReset)
@@ -7290,6 +11040,7 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 	router.POST(options.BaseURL+"/api/account/password", wrapper.SetAccountPassword)
 	router.DELETE(options.BaseURL+"/api/account/email", wrapper.RemoveAccountEmail)
 	router.POST(options.BaseURL+"/api/account/email", wrapper.SetAccountEmail)
+	router.POST(options.BaseURL+"/api/admin/user/recovery", wrapper.AdminRecoveryCode)
 	router.POST(options.BaseURL+"/api/admin/user/password-reset", wrapper.AdminPasswordReset)
 	router.DELETE(options.BaseURL+"/api/account/passkeys", wrapper.RemovePasskey)
 	router.GET(options.BaseURL+"/api/account/passkeys", wrapper.ListPasskeys)
@@ -7302,6 +11053,7 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 	router.GET(options.BaseURL+"/api/data", wrapper.GetData)
 	router.PUT(options.BaseURL+"/api/data", wrapper.PutData)
 	router.GET(options.BaseURL+"/api/data/rev", wrapper.GetApiDataRev)
+	router.GET(options.BaseURL+"/api/nudge-check", wrapper.NudgeCheck)
 	router.GET(options.BaseURL+"/api/media/:hash", wrapper.GetMedia)
 	router.PUT(options.BaseURL+"/api/media/:hash", wrapper.PutMedia)
 	router.POST(options.BaseURL+"/api/media/missing", wrapper.MediaMissing)
@@ -7313,11 +11065,20 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 	router.POST(options.BaseURL+"/api/push/test", wrapper.PushTest)
 	router.POST(options.BaseURL+"/api/push/rest-timer", wrapper.PushRestTimer)
 	router.POST(options.BaseURL+"/api/push/rest-timer/cancel", wrapper.PushRestTimerCancel)
+	router.GET(options.BaseURL+"/api/integrations", wrapper.ListIntegrations)
+	router.POST(options.BaseURL+"/api/integrations/connect", wrapper.ConnectIntegration)
+	router.POST(options.BaseURL+"/api/integrations/update", wrapper.UpdateIntegration)
+	router.POST(options.BaseURL+"/api/integrations/disconnect", wrapper.DisconnectIntegration)
+	router.POST(options.BaseURL+"/api/integrations/test", wrapper.TestIntegration)
+	router.POST(options.BaseURL+"/api/integrations/retry", wrapper.RetryIntegration)
+	router.GET(options.BaseURL+"/api/integrations/log", wrapper.IntegrationLog)
 	router.POST(options.BaseURL+"/api/activity", wrapper.PostActivity)
 	router.GET(options.BaseURL+"/api/admin/users", wrapper.AdminUsers)
 	router.GET(options.BaseURL+"/api/admin/user", wrapper.AdminUser)
 	router.POST(options.BaseURL+"/api/admin/user/disable", wrapper.AdminUserDisable)
 	router.POST(options.BaseURL+"/api/admin/user/delete", wrapper.AdminUserDelete)
+	router.POST(options.BaseURL+"/api/admin/user/role", wrapper.AdminUserRole)
+	router.POST(options.BaseURL+"/api/admin/owner", wrapper.AdminOwnerTransfer)
 	router.GET(options.BaseURL+"/api/admin/invites", wrapper.AdminInvites)
 	router.POST(options.BaseURL+"/api/admin/invites/new", wrapper.AdminInviteNew)
 	router.POST(options.BaseURL+"/api/admin/invites/revoke", wrapper.AdminInviteRevoke)
@@ -7327,12 +11088,21 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 	router.GET(options.BaseURL+"/api/coach/status", wrapper.GetCoachStatus)
 	router.POST(options.BaseURL+"/api/coach/plan", wrapper.PostCoachPlan)
 	router.POST(options.BaseURL+"/api/coach/review", wrapper.PostCoachReview)
+	router.POST(options.BaseURL+"/api/coach/ask", wrapper.PostCoachAsk)
+	router.POST(options.BaseURL+"/api/coach/adapt", wrapper.PostCoachAdapt)
 	router.POST(options.BaseURL+"/api/coach/debrief", wrapper.PostCoachDebrief)
 	router.POST(options.BaseURL+"/api/coach/pending/resolve", wrapper.PostCoachResolve)
 	router.GET(options.BaseURL+"/api/coach/cohort", wrapper.GetCoachCohort)
 	router.POST(options.BaseURL+"/api/coach/cohort/share", wrapper.PostCoachCohortShare)
 	router.GET(options.BaseURL+"/api/coach/account", wrapper.GetCoachAccount)
 	router.POST(options.BaseURL+"/api/coach/forget", wrapper.PostCoachForget)
+	router.POST(options.BaseURL+"/api/coach/chat", wrapper.PostCoachChat)
+	router.GET(options.BaseURL+"/api/coach/chat/:id/events", wrapper.GetCoachChatEvents)
+	router.POST(options.BaseURL+"/api/coach/chat/:id/confirm", wrapper.PostCoachChatConfirm)
+	router.GET(options.BaseURL+"/api/coach/memory", wrapper.GetCoachMemory)
+	router.DELETE(options.BaseURL+"/api/coach/memory/:id", wrapper.DeleteCoachMemory)
+	router.PUT(options.BaseURL+"/api/coach/memory/:id", wrapper.PutCoachMemory)
+	router.GET(options.BaseURL+"/api/coach/usage", wrapper.GetCoachUsage)
 	router.GET(options.BaseURL+"/api/admin/overview", wrapper.AdminOverview)
 	router.GET(options.BaseURL+"/api/admin/users/:id/quota", wrapper.AdminUserQuotaGet)
 	router.PUT(options.BaseURL+"/api/admin/users/:id/quota", wrapper.AdminUserQuotaPut)
@@ -7341,10 +11111,43 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 	router.POST(options.BaseURL+"/api/admin/roles/grant", wrapper.AdminRoleGrant)
 	router.POST(options.BaseURL+"/api/admin/roles/revoke", wrapper.AdminRoleRevoke)
 	router.POST(options.BaseURL+"/api/admin/step-up", wrapper.AdminStepUp)
+	router.GET(options.BaseURL+"/api/admin/session", wrapper.AdminSession)
+	router.GET(options.BaseURL+"/api/admin/users/:id/export", wrapper.AdminUserExport)
+	router.GET(options.BaseURL+"/api/admin/settings", wrapper.AdminSettingsGet)
+	router.PUT(options.BaseURL+"/api/admin/settings", wrapper.AdminSettingsPut)
+	router.POST(options.BaseURL+"/api/alive", wrapper.AliveHeartbeat)
+	router.GET(options.BaseURL+"/api/admin/live", wrapper.AdminLive)
 	router.GET(options.BaseURL+"/api/admin/coach", wrapper.GetAdminCoach)
 	router.POST(options.BaseURL+"/api/admin/coach/config", wrapper.PostAdminCoachConfig)
 	router.POST(options.BaseURL+"/api/admin/coach/test", wrapper.PostAdminCoachTest)
 	router.POST(options.BaseURL+"/api/admin/coach/models", wrapper.PostAdminCoachModels)
 	router.POST(options.BaseURL+"/api/admin/coach/connect", wrapper.PostAdminCoachConnect)
 	router.POST(options.BaseURL+"/api/admin/coach/disconnect", wrapper.PostAdminCoachDisconnect)
+	router.GET(options.BaseURL+"/api/admin/coach/usage-overview", wrapper.GetAdminCoachUsageOverview)
+	router.PUT(options.BaseURL+"/api/admin/coach/limits", wrapper.PutAdminCoachLimits)
+	router.GET(options.BaseURL+"/api/admin/coach/agent-config", wrapper.GetAdminCoachAgentConfig)
+	router.PUT(options.BaseURL+"/api/admin/coach/agent-config", wrapper.PutAdminCoachAgentConfig)
+	router.GET(options.BaseURL+"/api/coach-console/students", wrapper.CoachStudents)
+	router.POST(options.BaseURL+"/api/coach-console/bindings", wrapper.CoachBindStudent)
+	router.DELETE(options.BaseURL+"/api/coach-console/bindings/:studentId", wrapper.CoachUnbindStudent)
+	router.GET(options.BaseURL+"/api/coach-console/students/:id", wrapper.CoachStudentDetail)
+	router.PUT(options.BaseURL+"/api/coach-console/students/:id/plan", wrapper.CoachPutStudentPlan)
+	router.GET(options.BaseURL+"/api/coach-console/students/:id/export", wrapper.CoachStudentExport)
+	router.GET(options.BaseURL+"/api/team", wrapper.GetTeam)
+	router.POST(options.BaseURL+"/api/team", wrapper.CreateTeam)
+	router.PUT(options.BaseURL+"/api/team", wrapper.RenameTeam)
+	router.DELETE(options.BaseURL+"/api/team/invite", wrapper.TeamInviteDelete)
+	router.POST(options.BaseURL+"/api/team/invite", wrapper.TeamInvite)
+	router.POST(options.BaseURL+"/api/team/join", wrapper.TeamJoin)
+	router.GET(options.BaseURL+"/api/team/members", wrapper.TeamMembers)
+	router.DELETE(options.BaseURL+"/api/team/members/:uid", wrapper.TeamMemberKick)
+	router.GET(options.BaseURL+"/api/team/members/:uid/summary", wrapper.TeamMemberSummary)
+	router.GET(options.BaseURL+"/api/team/board", wrapper.TeamBoard)
+	router.GET(options.BaseURL+"/api/team/insights", wrapper.TeamInsights)
+	router.GET(options.BaseURL+"/api/team/plans", wrapper.TeamPlansList)
+	router.POST(options.BaseURL+"/api/team/plans", wrapper.TeamPlanDistribute)
+	router.POST(options.BaseURL+"/api/team/plans/:id/ack", wrapper.TeamPlanAck)
+	router.DELETE(options.BaseURL+"/api/team/plans/:id", wrapper.TeamPlanRevoke)
+	router.POST(options.BaseURL+"/api/team/transfer", wrapper.TeamTransfer)
+	router.POST(options.BaseURL+"/api/team/leave", wrapper.TeamLeave)
 }

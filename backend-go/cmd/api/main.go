@@ -19,6 +19,7 @@ import (
 	"github.com/changzhi777/openGym/backend-go/internal/auth"
 	"github.com/changzhi777/openGym/backend-go/internal/coach"
 	"github.com/changzhi777/openGym/backend-go/internal/coachconsole"
+	"github.com/changzhi777/openGym/backend-go/internal/team"
 	"github.com/changzhi777/openGym/backend-go/internal/data"
 	"github.com/changzhi777/openGym/backend-go/internal/httpx"
 	"github.com/changzhi777/openGym/backend-go/internal/llm"
@@ -304,6 +305,28 @@ func main() {
 	cc.GET("/students/:id", ccSvc.StudentDetail)
 	cc.PUT("/students/:id/plan", ccSvc.PutPlan)
 	cc.GET("/students/:id/export", ccSvc.Export)
+
+	// 团队教练域(fork;团队模式,语义真源 muhe-fit api-go/internal/team):建团/QR 邀请码/
+	// 快照分发确认制/看板聚合/insights 分析解读。owner 闸在 handlers 内(OwnerTeam);
+	// 建团资格不做角色闸——任何登录用户可建团(v1 绑定面继续并存)。
+	teamH := &team.Handlers{DB: db, Sessions: sessions, Invites: team.NewInviteStore(), Origin: origin(), Rdb: rdb}
+	r.POST("/api/team", teamH.Create)
+	r.GET("/api/team", teamH.Get)
+	r.PUT("/api/team", teamH.Rename)
+	r.POST("/api/team/invite", teamH.Invite)
+	r.DELETE("/api/team/invite", teamH.InviteDelete)
+	r.POST("/api/team/join", teamH.Join)
+	r.GET("/api/team/members", teamH.Members)
+	r.DELETE("/api/team/members/:uid", teamH.Kick)
+	r.POST("/api/team/leave", teamH.Leave)
+	r.GET("/api/team/members/:uid/summary", teamH.Summary)
+	r.GET("/api/team/board", teamH.Board)
+	r.GET("/api/team/insights", teamH.Insights)
+	r.POST("/api/team/plans", teamH.PlansCreate)
+	r.GET("/api/team/plans", teamH.PlansList)
+	r.POST("/api/team/plans/:id/ack", teamH.PlansAck)
+	r.DELETE("/api/team/plans/:id", teamH.PlansRevoke)
+	r.POST("/api/team/transfer", teamH.Transfer)
 
 	// 其余端点尚未实现 —— 与 Node 侧 501 stub 同语义。
 	r.NoRoute(func(c *gin.Context) {

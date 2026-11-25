@@ -4937,6 +4937,12 @@ paths:
               schema: { $ref: '#/components/schemas/Error' }
 
   /api/coach-console/bindings/{studentId}:
+    parameters:
+      - name: studentId
+        in: path
+        required: true
+        schema: { type: string }
+        description: The student user id (must be bound to this coach).
     delete:
       tags: [coach-console]
       operationId: coachUnbindStudent
@@ -4984,6 +4990,12 @@ paths:
         '404': { description: Not bound to this coach. }
 
   /api/coach-console/students/{id}/plan:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+        description: The student user id (must be bound to this coach).
     put:
       tags: [coach-console]
       operationId: coachPutStudentPlan
@@ -5072,6 +5084,634 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { description: Not bound to this coach. }
 
+
+
+  /api/team:
+    post:
+      tags: [team]
+      operationId: createTeam
+      summary: Create a team (the caller becomes its owner/coach)
+      description: |
+        The creator is the team's owner and its coach (one person, one role, W1).
+        One live team per owner (W7): creating while one is live is `409
+        team-live-exists`. The owner joins the member list with the `owner` role in
+        the same transaction.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  maxLength: 80
+                  description: Team display name (clamped to 80 runes).
+            example: { name: "晨练打卡团" }
+      responses:
+        '200':
+          description: Team created.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  team: { $ref: '#/components/schemas/TeamInfo' }
+                  role: { type: string, enum: [owner] }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409':
+          description: The caller already owns a live team.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "already leading a team", code: "team-live-exists" }
+
+    get:
+      tags: [team]
+      operationId: getTeam
+      summary: The caller's live team (as owner or member)
+      responses:
+        '200':
+          description: The team and the caller's role in it.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  team: { $ref: '#/components/schemas/TeamInfo' }
+                  role: { type: string, enum: [owner, member] }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404':
+          description: The caller has no live team.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "no live team", code: "team-none" }
+
+    put:
+      tags: [team]
+      operationId: renameTeam
+      summary: Rename the caller's team (owner only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, maxLength: 80 }
+            example: { name: "晨练打卡团" }
+      responses:
+        '200':
+          description: Renamed.
+          content:
+            application/json:
+              schema: { type: object, properties: { ok: { type: boolean } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403':
+          description: The caller is a member, not the owner.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "owner only", code: "team-owner-only" }
+        '404':
+          description: The caller has no live team.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "no live team", code: "team-none" }
+
+  /api/team/invite:
+    post:
+      tags: [team]
+      operationId: teamInvite
+      summary: Mint the team invite code (owner only)
+      description: |
+        8 chars from the pairing alphabet (no 0/O/1/I), shown `XXXX-XXXX`; stored
+        only as a SHA-256 hash; good for 15 minutes; burned by one join. One live
+        code per team: minting a new one retires the previous (W2 TTL start).
+      responses:
+        '200':
+          description: A fresh invite code.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code: { type: string, description: XXXX-XXXX. }
+                  expires: { type: number, description: Expiry (ms). }
+              example: { code: "K7WQ2MZP", expires: 1790000000000 }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403':
+          description: The caller is a member, not the owner.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "owner only", code: "team-owner-only" }
+        '404':
+          description: The caller has no live team.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "no live team", code: "team-none" }
+
+    delete:
+      tags: [team]
+      operationId: teamInviteDelete
+      summary: Burn the live invite code (owner only)
+      responses:
+        '200':
+          description: Burned.
+          content:
+            application/json:
+              schema: { type: object, properties: { ok: { type: boolean } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403':
+          description: The caller is a member, not the owner.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "owner only", code: "team-owner-only" }
+        '404':
+          description: The caller has no live team.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "no live team", code: "team-none" }
+
+  /api/team/join:
+    post:
+      tags: [team]
+      operationId: teamJoin
+      summary: Join a team with an invite code
+      description: |
+        Called by a signed-in candidate (paired app or browser): the code is matched
+        by SHA-256, TTL-checked and burned; then the caller is inserted as a live
+        `member`. Soft cap 50 live members (W8) → `409 team-full`; a returning member
+        whose row was soft-deleted rejoins with `ended_at` cleared. Case, spaces and
+        dashes in the code are ignored. Returns the team name and the owner's
+        nickname for the confirm card.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code: { type: string, description: 'Case, spaces and dashes are ignored.' }
+            example: { code: "K7WQ2MZP" }
+      responses:
+        '200':
+          description: Joined.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  team: { $ref: '#/components/schemas/TeamInfo' }
+                  owner:
+                    type: object
+                    properties:
+                      displayName: { type: string, description: Owner nickname. }
+        '400':
+          description: Code unknown, already used or expired.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "invalid or expired code", code: "team-code-invalid" }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409':
+          description: Team full (`team-full`) or caller already a live member of it (`team-joined`).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "team is full", code: "team-full" }
+
+  /api/team/members:
+    get:
+      tags: [team]
+      operationId: teamMembers
+      summary: Live member roster
+      description: |
+        Any live member may list the roster; owners additionally get each member's
+        data-authorization `scope` (W3) and `joinedAt`. `uid` is a management handle
+        for owner actions (kick, later transfer), not a display value — clients render
+        `displayName` only, which is a nickname or a masked id (裁定 #8).
+      responses:
+        '200':
+          description: The live roster.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  role: { type: string, enum: [owner, member] }
+                  members:
+                    type: array
+                    items: { $ref: '#/components/schemas/TeamMember' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404':
+          description: The caller has no live team.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "no live team", code: "team-none" }
+
+  /api/team/members/{uid}:
+    delete:
+      tags: [team]
+      operationId: teamMemberKick
+      summary: Remove a member (owner only; soft delete)
+      description: |
+        Sets `ended_at` on the membership row (W4); history is kept. The owner cannot
+        be kicked (including self) — owners leave by transferring or archiving.
+      parameters:
+        - { name: uid, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: Removed.
+          content:
+            application/json:
+              schema: { type: object, properties: { ok: { type: boolean } } }
+        '400':
+          description: Target is the owner (or the path uid is empty).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "cannot kick the owner", code: "team-owner-target" }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403':
+          description: The caller is a member, not the owner.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "owner only", code: "team-owner-only" }
+        '404':
+          description: No such live member.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "no such member", code: "member-gone" }
+
+  /api/team/members/{uid}/summary:
+    get:
+      tags: [team]
+      operationId: teamMemberSummary
+      summary: One member's dashboard card (owner only)
+      description: |
+        Case-② aggregation (设计 §13.4): parsed live from the member's synced state
+        doc — zero write-path changes, always consistent with the member's own
+        archive, and aggregates only: the raw doc never leaves the store (脱敏 #8).
+        Served through a 60-second Redis cache as a storm guard, so values may lag
+        up to a minute. Weekly done/planned use the server's simplified radius
+        (queue-aware precision stays a client-side weekTally concern).
+      parameters:
+        - { name: uid, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: The member's card.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TeamMemberSummary' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403':
+          description: The caller is a member, not the owner.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "owner only", code: "team-owner-only" }
+        '404':
+          description: No such live member (or the caller has no live team).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "no such member", code: "member-gone" }
+
+  /api/team/board:
+    get:
+      tags: [team]
+      operationId: teamBoard
+      summary: Whole-team board (owner only)
+      description: |
+        Per-member cards in leaderboard order (week done desc, streak weeks
+        tiebreak), plus the 12-week heatmap columns — done counts per week,
+        oldest first, current week last. Nicknames and numbers only (W5). Same
+        60-second cache semantics as the single-member summary.
+      responses:
+        '200':
+          description: The board.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  live:
+                    type: integer
+                    description: Members with at least one workout this week.
+                  weeks:
+                    type: array
+                    maxItems: 12
+                    items: { type: string }
+                    description: 12 week-start ISO keys (oldest first), aligned with each row's weekly.
+                  rows:
+                    type: array
+                    items: { $ref: '#/components/schemas/TeamMemberSummary' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403':
+          description: The caller is a member, not the owner.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "owner only", code: "team-owner-only" }
+        '404':
+          description: The caller has no live team.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "no live team", code: "team-none" }
+
+  /api/team/insights:
+    get:
+      tags: [team]
+      operationId: teamInsights
+      summary: Coach analysis cards (owner only)
+      description: |
+        Per-member insight rows in coaching order (completion rate desc, week
+        done tiebreak). Same states.doc case-② aggregation as the board, plus
+        dual-window comparisons (trailing 28 days vs the preceding 28) and a
+        rule-generated verdict sentence — no AI involved. Same 60-second cache
+        semantics as the board.
+      responses:
+        '200':
+          description: The insight rows.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  rows:
+                    type: array
+                    items: { $ref: '#/components/schemas/TeamInsight' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403':
+          description: The caller is a member, not the owner.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "owner only", code: "team-owner-only" }
+        '404':
+          description: The caller has no live team.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "no live team", code: "team-none" }
+
+  /api/team/plans:
+    post:
+      tags: [team]
+      operationId: teamPlanDistribute
+      summary: Distribute a training plan to a member (owner only)
+      description: |
+        Snapshot hand-off (§13.5): the plan (routines whitelist entries + optional
+        week) is stored verbatim as the assignment's snapshot; the member confirms
+        and their own client writes it into their own archive — the coach never
+        writes a member's data directly (W10; same confirm-gate shape as the AI
+        proposal flow, but identity+scope+confirm only, no content validation).
+        Redistributing the same plan name to the same member supersedes the pending
+        row (superseded_by version chain) rather than stacking duplicates.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [uid, plan]
+              properties:
+                uid: { type: string, description: Target member (opaque handle). }
+                plan:
+                  type: object
+                  required: [name]
+                  properties:
+                    name: { type: string, maxLength: 120 }
+                    routines: { type: array, items: { type: object } }
+                    week: { type: object }
+            example:
+              uid: u_1234567890abcdef
+              plan: { name: "基础三分化", routines: [{ id: r1, name: "推" }] }
+      responses:
+        '200':
+          description: Distributed.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  plan: { $ref: '#/components/schemas/PlanAssignment' }
+        '400':
+          description: Missing plan name or target.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "plan name required" }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403':
+          description: The caller is a member, not the owner.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "owner only", code: "team-owner-only" }
+        '404':
+          description: No such live member (or no live team).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "no such member", code: "member-gone" }
+
+    get:
+      tags: [team]
+      operationId: teamPlansList
+      summary: Plan assignments (role-aware)
+      description: |
+        Owners see the whole team's assignments (newest first, `uid` query filters
+        one member); members see only their own. `pending` is the caller's count of
+        still-distributed rows — the member's red-dot number (W11 M1 pull model:
+        the app fetches this on open; no push channel needed).
+      parameters:
+        - { name: uid, in: query, schema: { type: string }, description: Owner-only member filter. }
+      responses:
+        '200':
+          description: The assignment list.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pending: { type: integer, description: Caller's own still-distributed count. }
+                  plans:
+                    type: array
+                    items: { $ref: '#/components/schemas/PlanAssignment' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404':
+          description: The caller has no live team.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "no live team", code: "team-none" }
+
+  /api/team/plans/{id}/ack:
+    post:
+      tags: [team]
+      operationId: teamPlanAck
+      summary: Acknowledge a distributed plan (its member only)
+      description: |
+        The member settles the hand-off: `loaded` (their client applied the snapshot
+        via the loadStarterPlan semantics into their own archive) or `declined`.
+        Only still-distributed rows can be settled; superseded rows are immutable.
+        `received` is reserved for the M2 push channel and is not used by the M1
+        pull model.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [loaded, declined] }
+      responses:
+        '200':
+          description: Settled.
+          content:
+            application/json:
+              schema: { type: object, properties: { ok: { type: boolean } } }
+        '400':
+          description: Status must be loaded or declined.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "invalid ack status" }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404':
+          description: No such distributed assignment of the caller.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "no such plan", code: "plan-gone" }
+
+  /api/team/plans/{id}:
+    delete:
+      tags: [team]
+      operationId: teamPlanRevoke
+      summary: Revoke a still-distributed plan (owner only)
+      description: |
+        Only `distributed` rows can be revoked (a settled hand-off is history and
+        cannot be rewritten); the row is removed. Superseded rows are not
+        selectable targets.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Revoked.
+          content:
+            application/json:
+              schema: { type: object, properties: { ok: { type: boolean } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403':
+          description: The caller is a member, not the owner.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "owner only", code: "team-owner-only" }
+        '404':
+          description: No such revocable assignment.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "no such plan", code: "plan-gone" }
+
+  /api/team/transfer:
+    post:
+      tags: [team]
+      operationId: teamTransfer
+      summary: Transfer ownership to a live member (owner only)
+      description: |
+        原子事务三 UPDATE (§13.10): the current owner drops to `member`, the target
+        rises to `owner`, and `teams.owner_uid` follows — the old owner stays in the
+        team as a member (W12). Target must be a live `member` and not the caller.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [to_uid]
+              properties:
+                to_uid: { type: string }
+      responses:
+        '200':
+          description: Transferred.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  newOwner:
+                    type: object
+                    properties:
+                      displayName: { type: string }
+        '400':
+          description: Target missing or is the caller.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "cannot transfer to self", code: "team-owner-target" }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403':
+          description: The caller is a member, not the owner.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "owner only", code: "team-owner-only" }
+        '404':
+          description: Target is not a live member (or no live team).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "no such member", code: "member-gone" }
+
+  /api/team/leave:
+    post:
+      tags: [team]
+      operationId: teamLeave
+      summary: Leave the caller's team (members only)
+      description: |
+        Soft-deletes the caller's membership row (W4). The owner cannot leave:
+        transfer first (batch 3.5 face) or keep the team.
+      responses:
+        '200':
+          description: Left.
+          content:
+            application/json:
+              schema: { type: object, properties: { ok: { type: boolean } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404':
+          description: The caller has no live team.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "no live team", code: "team-none" }
+        '409':
+          description: The caller is the owner (transfer first).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "owner cannot leave; transfer first", code: "team-owner-leave" }
 
 components:
   securitySchemes:
@@ -6345,3 +6985,111 @@ components:
               outcome: { type: string }
               errorClass: { oneOf: [{ type: string }, { type: 'null' }] }
               ms: { type: integer }
+    TeamMemberSummary:
+      type: object
+      properties:
+        uid: { type: string, description: "Opaque management handle (裁定 #8)." }
+        displayName: { type: string, description: "Nickname or masked uid." }
+        weekDone: { type: integer, description: "Workouts logged this week (member's own week start)." }
+        weekPlanned: { type: integer, description: "Week-schedule days pointing at live routines (server simplified radius)." }
+        streakWeeks: { type: integer, description: "Consecutive training weeks; the current week never breaks the chain." }
+        monthVolume: { type: number, description: "Saved canonical volume summed over the calendar month." }
+        monthCheckins: { type: integer }
+        lastWorkout:
+          nullable: true
+          description: Latest session headline (d/name/vol); null when none.
+          type: object
+          properties:
+            d: { type: string }
+            name: { type: string }
+            vol: { type: number }
+        trendVolume4w: { type: number, description: Saved volume over the trailing 28 days. }
+        trendEst1rm:
+          type: number
+          description: Best epley estimate over completed sets in the trailing 28 days (server default formula).
+        weekly:
+          type: array
+          maxItems: 12
+          items: { type: integer }
+          description: Done counts for the last 12 weeks (oldest first), board heatmap column.
+    TeamInfo:
+      type: object
+      properties:
+        id: { type: string, description: Team id (uuid). }
+        name: { type: string }
+    TeamMember:
+      type: object
+      properties:
+        uid:
+          type: string
+          description: >-
+            Member user id — an opaque management handle for owner actions (kick,
+            later transfer), never rendered as an identity.
+        role: { type: string, enum: [owner, member] }
+        displayName:
+          type: string
+          description: Nickname, or the masked uid when no nickname exists (裁定 #8).
+        scope:
+          type: object
+          description: Data-authorization tier (W3); owner-facing rosters only.
+          properties:
+            tier: { type: string, enum: [basic, full] }
+        joinedAt: { type: string, description: ISO timestamp; owner-facing rosters only. }
+    PlanAssignment:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        memberUid: { type: string, description: "Opaque handle." }
+        memberDisplayName: { type: string, description: "Filled in owner-facing lists." }
+        planName: { type: string }
+        status: { type: string, enum: [distributed, received, loaded, declined] }
+        supersededBy:
+          type: string
+          nullable: true
+          format: uuid
+          description: "Newer assignment id when redistributed (version chain); null on the live row."
+        distributedAt: { type: string, description: ISO timestamp. }
+        settledAt: { type: string, nullable: true }
+        plan:
+          type: object
+          description: "Snapshot the member loads verbatim (W10 hand-off; the coach never writes the member's archive)."
+          properties:
+            name: { type: string }
+            routines: { type: array, items: { type: object } }
+            week: { type: object }
+    TeamInsight:
+      type: object
+      description: Coach analysis card (rule-generated verdict; no AI).
+      properties:
+        uid: { type: string, description: "Opaque management handle (裁定 #8)." }
+        displayName: { type: string, description: "Nickname or masked uid." }
+        weekDone: { type: integer }
+        weekPlanned: { type: integer }
+        rate: { type: integer, description: "Week completion rate 0-100; 0 when no plan is scheduled." }
+        streakWeeks: { type: integer }
+        vol4w: { type: number, description: Saved volume over the trailing 28 days. }
+        volPrev4w: { type: number, description: Saved volume over days 29-56 before now. }
+        volDelta: { type: integer, description: "Volume change vs previous window, percent; +100 when the previous window is empty." }
+        est1rm: { type: number, description: Best epley estimate over the trailing 28 days. }
+        est1rmPrev4w: { type: number, description: Best epley estimate over days 29-56 before now. }
+        est1rmDelta: { type: integer, description: Estimate change vs previous window, percent. }
+        lastWorkout:
+          nullable: true
+          description: Latest session headline (d/name/vol); null when none.
+          type: object
+          properties:
+            d: { type: string }
+            name: { type: string }
+            vol: { type: number }
+        weekly:
+          type: array
+          maxItems: 12
+          items: { type: integer }
+          description: Done counts for the last 12 weeks (oldest first).
+        verdict:
+          type: string
+          description: Rule-generated Chinese coaching sentence (completion → streak → deltas → flags).
+        flags:
+          type: array
+          items: { type: string, enum: [hot, miss, gain, drop] }
+          description: hot = week plan complete; miss = no workout this week; gain = est 1RM +≥5%; drop = volume -≤30%.

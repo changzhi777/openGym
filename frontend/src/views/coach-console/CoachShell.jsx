@@ -27,6 +27,9 @@ export default function CoachShell() {
         <NavLink end to="/coach-console" className={({ isActive }) => 'nav-item' + (isActive ? ' on' : '')}>
           <Icon name="dumbbell" />{adminT('我的学员')}
         </NavLink>
+        <NavLink to="/coach-console/team" className={({ isActive }) => 'nav-item' + (isActive ? ' on' : '')}>
+          <Icon name="barbell" />{adminT('我的团队')}
+        </NavLink>
         <div className="spacer" />
         <div className="adm-identity">
           <span className="adm-badge">{adminT('教练')}</span>

@@ -4,7 +4,7 @@
 # 缺失即拒绝起栈——防未来误加 ports 时弱口令裸奔公网)。
 services:
   pg:
-    image: postgres:16-alpine   # 本地已有;17 部署时再拉
+    image: docker.xuanyuan.run/library/postgres:16-alpine   # 本地已有;17 部署时再拉
     environment:
       POSTGRES_USER: muhe
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?backend-go/.env 需设 POSTGRES_PASSWORD}
@@ -20,7 +20,7 @@ services:
     networks: [internal]
 
   redis:
-    image: redis:7-alpine
+    image: docker.xuanyuan.run/library/redis:7-alpine
     ports:
       - "127.0.0.1:6379:6379"   # 本地开发:仅回环
     healthcheck:
@@ -36,8 +36,12 @@ services:
       DATABASE_URL: postgres://muhe:${POSTGRES_PASSWORD}@pg:5432/muhe?sslmode=disable
       REDIS_ADDR: redis:6379
       MUHE_ALLOW_SMS_DEV: "1"   # 本地栈:无 SMS_* 时验证码打日志(生产绝不带此值)
+      DATA_DIR: /data           # fail-closed 修复:无此目录时 secret 生成无处落盘,api 拒启
+      ORIGIN: "http://localhost:5173"   # 会话 cookie/CORS/深链 origin 对齐 PWA dev 源
+    tmpfs:
+      - /data:uid=65534,gid=65534   # scratch 运行层 nobody;tmpfs 以该 uid 挂才能建 secret
     ports:
-      - "3110:3100"
+      - "3120:3100"
     networks: [internal, default]
     depends_on:
       pg: { condition: service_healthy }
@@ -46,7 +50,7 @@ services:
 
 networks:
   internal:
-    internal: true   # pg/redis 不出网;api 借 default 发布 3110
+    internal: true   # pg/redis 不出网;api 借 default 发布 3120(muhe_fit 栈占 3110,错开)
 
 volumes:
   muhe-pg:

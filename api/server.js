@@ -2130,6 +2130,26 @@ const routes = {
   'PUT /api/admin/coach/limits': notYetGo,
   'GET /api/admin/coach/agent-config': notYetGo,
   'PUT /api/admin/coach/agent-config': notYetGo,
+  // 团队教练域(团队模式):建团/QR 邀请码/快照分发确认制/看板/insights 分析解读。
+  // 实现全在 Go 栈 backend-go/internal/team(0016_team 三表);带 {uid}/{id} 的四条
+  // 靠分发器模板键映射(下方 tm/tp)。
+  'POST /api/team': notYetGo,
+  'GET /api/team': notYetGo,
+  'PUT /api/team': notYetGo,
+  'POST /api/team/invite': notYetGo,
+  'DELETE /api/team/invite': notYetGo,
+  'POST /api/team/join': notYetGo,
+  'GET /api/team/members': notYetGo,
+  'DELETE /api/team/members/{uid}': notYetGo,
+  'POST /api/team/leave': notYetGo,
+  'GET /api/team/members/{uid}/summary': notYetGo,
+  'GET /api/team/board': notYetGo,
+  'GET /api/team/insights': notYetGo,
+  'POST /api/team/plans': notYetGo,
+  'GET /api/team/plans': notYetGo,
+  'POST /api/team/plans/{id}/ack': notYetGo,
+  'DELETE /api/team/plans/{id}': notYetGo,
+  'POST /api/team/transfer': notYetGo,
 
   'GET /api/health': async (req, res) => {
     if (!dataWritable()) return json(res, 503, { ok: false, writable: false });
@@ -3132,6 +3152,16 @@ const server = http.createServer(async (req, res) => {
   if (cc) { key = req.method + ' /api/coach/chat/{id}/' + cc[2]; }
   const cmm = /^\/api\/coach\/memory\/([^/]+)$/.exec(url.pathname);
   if (cmm) { key = req.method + ' /api/coach/memory/{id}'; }
+  // fork (Muhe): 团队域四条 {uid}/{id} 路由映射(stub 期即通,Go 实现后同键);
+  // plans/{id}/ack 必须先于 plans/{id} 判定(前缀重叠)。
+  const tm = /^(DELETE)$/.test(req.method) && /^\/api\/team\/members\/([^/]+)$/.exec(url.pathname);
+  if (tm) { key = 'DELETE /api/team/members/{uid}'; }
+  const tms = req.method === 'GET' && /^\/api\/team\/members\/([^/]+)\/summary$/.exec(url.pathname);
+  if (tms) { key = 'GET /api/team/members/{uid}/summary'; }
+  const tpa = req.method === 'POST' && /^\/api\/team\/plans\/([^/]+)\/ack$/.exec(url.pathname);
+  if (tpa) { key = 'POST /api/team/plans/{id}/ack'; }
+  const tp = req.method === 'DELETE' && /^\/api\/team\/plans\/([^/]+)$/.exec(url.pathname);
+  if (tp) { key = 'DELETE /api/team/plans/{id}'; }
   const handler = routes[key];
   if (!handler) return json(res, 404, { error: 'not found' });
   if (!csrfOk(req, key)) {

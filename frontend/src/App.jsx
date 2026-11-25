@@ -77,7 +77,9 @@ import AdminCoach from './views/AdminCoach.jsx'
 import CoachChatHome from './views/home-ai/CoachChatHome.jsx'
 import AdminAgentConfig from './views/admin/AgentConfig.jsx'
 import CoachMemory from './views/home-ai/CoachMemory.jsx'
+import TeamPage from './views/team/TeamPage.jsx'
 import CoachShell from './views/coach-console/CoachShell.jsx'
+import TeamTab from './views/coach-console/TeamTab.jsx'
 import CoachStudents from './views/coach-console/Students.jsx'
 import CoachStudentDetail from './views/coach-console/StudentDetail.jsx'
 
@@ -428,7 +430,10 @@ function Shell() {
               <Route path="/coach-console" element={<CoachShell />}>
                 <Route index element={<CoachStudents />} />
                 <Route path="students/:id" element={<CoachStudentDetail />} />
+                <Route path="team" element={<TeamTab />} />
               </Route>
+              {/* 团队页(fork;学员视角):扫码/手输邀请码加入、待接收计划装载;?team= 深链直入。 */}
+              <Route path="/team" element={<TeamPage />} />
               <Route path="*" element={<Navigate to="/home" replace />} />
             </Routes>
           )}

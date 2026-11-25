@@ -140,3 +140,31 @@ button.adm-tr.adm-td:last-child { border-bottom: 0; }
 .adm-rolepick.on { border-color: var(--label); }
 .adm-rolepick small { color: var(--label-3); font-size: 12px; }
 .adm-rowbtns { display: flex; gap: 6px; justify-content: flex-end; }
+
+/* 团队 tab(fork;views/coach-console/TeamTab.jsx)——视觉沿用 admin-console 令牌 */
+.cc-team{max-width:720px}
+.cc-team h2{margin:0 0 14px}
+.cc-team .adm-card{margin-bottom:16px;padding:14px 16px}
+.cc-label{font-size:var(--fs-footnote);color:var(--label-2);margin-bottom:8px}
+.cc-name{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.cc-name input{background:var(--surface-2);border:1px solid var(--stroke);border-radius:8px;padding:8px 10px;color:var(--label);flex:1;min-width:180px}
+.cc-invite-body{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.cc-code{font-size:28px;font-weight:700;letter-spacing:.18em;color:var(--green)}
+.cc-member{display:flex;align-items:center;gap:12px;padding:8px 0;border-top:1px solid var(--stroke)}
+.cc-member:first-of-type{border-top:none}
+.cc-member .cc-name{flex:1}
+.cc-dispatch{display:flex;flex-direction:column;gap:10px}
+.cc-dispatch select,.cc-dispatch input{background:var(--surface-2);border:1px solid var(--stroke);border-radius:8px;padding:8px 10px;color:var(--label)}
+.cc-routines{display:flex;flex-direction:column;gap:6px;max-height:180px;overflow:auto}
+.cc-routines label{display:flex;gap:8px;align-items:center}
+.cc-pending{margin-top:12px}
+.cc-board-row{padding:10px 0;border-top:1px solid var(--stroke)}
+.cc-board-row:first-of-type{border-top:none}
+.cc-board-head{display:flex;gap:8px;align-items:center;margin-bottom:4px}
+.cc-flag{font-size:11px;font-weight:600;border-radius:999px;padding:2px 9px}
+.cc-f-hot{background:rgba(48,209,88,0.14);background:color-mix(in srgb,var(--green) 14%,transparent);color:var(--green)}
+.cc-f-miss{background:rgba(255,69,58,0.14);background:color-mix(in srgb,var(--red) 14%,transparent);color:var(--red)}
+.cc-f-gain{background:rgba(100,210,255,0.14);background:color-mix(in srgb,var(--blue) 14%,transparent);color:var(--blue)}
+.cc-f-drop{background:rgba(255,159,10,0.14);background:color-mix(in srgb,var(--orange,#ff9f0a) 14%,transparent);color:var(--orange,#ff9f0a)}
+.cc-stats{display:flex;gap:16px;flex-wrap:wrap;font-size:var(--fs-footnote);color:var(--label-2);margin:6px 0}
+.cc-spark{width:100%;max-width:420px;height:34px;display:block}
