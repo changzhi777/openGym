@@ -307,13 +307,12 @@ describe('leaving the server', () => {
 /* "Delete my account" (App Store rule 5.1.1(v)): wherever there is a server account, a paired
    phone or a signed-in browser, and nowhere there is none. Once it is gone, Settings goes home. */
 describe('deleting the account', () => {
-  it('the row is deferred: an account on a paired phone or a signed-in browser shows none', async () => {
-    // 上游的「Delete my account」行依赖 passkey proof 链(PasswordAuth 随认证重构退役)——
-    // fork 把这一行延后(Settings.jsx 账号段注释),有账号也不渲染;删除权由服务端
-    // /api/account/delete(契约已在)与后续短信 proof 版本单独排期承接。
-    expect(rowByTitle(mount(<Settings page="account" />), 'Delete my account')).toBeUndefined()
+  it('the row is restored (fork 2026-11-25 阶段 2): a signed-in browser shows the delete row again', async () => {
+    // 阶段 2(2026-11-25)恢复了「Delete my account」行——fork 版 DeleteAccount.jsx
+    // 去 passkey 依赖改为 name-only 证明(输入账号名即本人),上游 passkey proof
+    // 链不再需要;见 components/DeleteAccount.jsx fork 注记与 FORK.md §5 阶段 2 行。
     mocks.MOBILE = false
-    expect(rowByTitle(mount(<Settings page="account" />), 'Delete my account')).toBeUndefined()
+    expect(rowByTitle(mount(<Settings page="account" />), 'Delete my account')).toBeTruthy()
   })
 
   it('no account, no row: a phone kept local, and a guest in a browser', async () => {

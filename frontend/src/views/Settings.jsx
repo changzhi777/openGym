@@ -198,8 +198,8 @@ export default function Settings({ page = null, find = null, via = null, entryKe
   const [boundPhone, setBoundPhone] = useState(null)
   const refreshBoundPhone = () => {
     if (!user) { setBoundPhone(''); return }
-    api('/api/me').then(me => {
-      const p = (me.identities || []).find(i => i.kind === 'phone')
+    Promise.resolve(api('/api/me')).then(me => {
+      const p = ((me && me.identities) || []).find(i => i.kind === 'phone')
       setBoundPhone(p ? p.identifier : '')
     }).catch(() => setBoundPhone(''))
   }
