@@ -1,11 +1,11 @@
 // views/Login.jsx — 登录/注册(认证重构:手机号+短信验证码 / 微信小程序码扫码)
 //
-// 设计规格(2026-10-29 十项决议;2026-11-25 阶段 3 视觉升级):全屏沉浸式浅色
-// (雾白→淡绿渐变 + 顶部品牌绿晕,无卡片)、LOGO 居中、**通道 segmented 置顶平级**
-// (Q7:手机/微信双通道互切)、手机 tab:内嵌 +86 前缀 → 图形验证码(SVG 数字码,
-// 发码前置闸) → 全宽『发送短信验证码』→ 6 格分段验证码(自动跳格/回退/粘贴) →
-// 品牌绿渐变 CTA;微信 tab:小程序码+轮询;错误=字段级红字。全中文文案。
-// 视觉升级只动样式与控件顺序(发码钮移到短信码之前,纠正主次),逻辑零改动。
+// 设计规格(2026-10-29 十项决议;2026-11-25 阶段 3 品牌绿美化;2026-11-25 液体玻璃重设计):
+// **深色液体玻璃主题,与 APP 配色同源**(暗色 --bg #000/--bg-el #0e0e10/默认 acc lime #248a3d):
+// 近黑底 + 品牌绿液态色斑 blob 漂移(纯 CSS,GPU 合成) + 玻璃卡片(backdrop blur+saturate+
+// 内描边高光)浮层 + 控件玻璃化 + CTA 按压弹性 + segmented 液态滑动 + @supports 渐进折射
+// (feDisplacementMap 仅支持的环境增强,不支持优雅降级) + prefers-reduced-motion 全降级。
+// 通道 segmented 置顶平级(Q7)、流程顺序(发码钮→短信码→CTA)沿用。**逻辑零改动**。
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { smsSend, smsVerify, wechatQrcode, wechatPoll, authCaptcha, bindPhone } from '../lib/api.js'
@@ -18,35 +18,87 @@ import { Button } from '../components/ui.jsx'
 
 const PHONE_RE = /^1\d{10}$/
 
-// 浅色系设计 token(Q8 色板;阶段 3 增加焦点光晕与渐变 CTA)。
+// 深色液体玻璃 token(与 APP 暗色主题同源:--bg #000/--bg-el #0e0e10/acc #248a3d)。
 const C = {
-  bgTop: '#f4f7f4', bgBottom: '#e6eee7', ink: '#1c1c1e', sub: '#6e6e73',
+  bg: '#05070a', ink: '#f2f2f7', sub: 'rgba(235,245,238,.72)',
   green: '#248a3d', greenLight: '#2f9c47', greenDark: '#1e7534',
-  hair: '#d5dcd6', white: '#ffffff', red: '#c62828',
-  ring: 'rgba(36,138,61,.14)',
+  glass: 'rgba(14,14,16,.55)', glassLine: 'rgba(255,255,255,.14)',
+  hair: 'rgba(255,255,255,.13)', white: '#ffffff', red: '#ff6b6b',
+  ring: 'rgba(47,156,71,.22)',
 }
 const loginInput = {
-  width: '100%', background: C.white, color: C.ink,
+  width: '100%', background: 'rgba(255,255,255,.06)', color: C.ink,
   border: `1.5px solid ${C.hair}`, borderRadius: 14,
   padding: '12px 13px', fontSize: 15, outline: 'none',
-  transition: 'border-color .15s, box-shadow .15s',
+  transition: 'border-color .15s, box-shadow .15s, background .15s',
+  backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
 }
-// 聚焦:品牌绿边 + 同色柔光晕(键盘进入感)。
+// 聚焦:品牌绿边 + 同色柔光晕 + 玻璃增亮。
 const focusInput = e => {
-  e.currentTarget.style.borderColor = C.green
+  e.currentTarget.style.borderColor = C.greenLight
   e.currentTarget.style.boxShadow = `0 0 0 4px ${C.ring}`
+  e.currentTarget.style.background = 'rgba(255,255,255,.10)'
 }
-const blurInput = e => { e.currentTarget.style.borderColor = C.hair; e.currentTarget.style.boxShadow = 'none' }
+const blurInput = e => { e.currentTarget.style.borderColor = C.hair; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.background = 'rgba(255,255,255,.06)' }
 const fieldErr = msg => <div style={{ color: C.red, fontSize: 12.5, marginTop: 5, textAlign: 'left' }}>{msg}</div>
 const label = txt => <div style={{ fontSize: 13, fontWeight: 600, color: C.sub, margin: '12px 0 6px', textAlign: 'left', letterSpacing: '.02em' }}>{txt}</div>
 
-// 入场动效(一次 fade+up,克制;组件级 <style> 随登录页卸载)。
+// 入场动效 + 液态背景动画 + reduced-motion 降级(组件级 <style>,卸载即清)。
 const loginStyle = <style>{`
-  @keyframes muLoginUp { from { opacity: 0; transform: translateY(10px) } to { opacity: 1; transform: none } }
-  .mu-login-anim { animation: muLoginUp .38s cubic-bezier(.2,.7,.3,1) both }
+  body { background: #05070a }
+  @keyframes muLoginUp { from { opacity: 0; transform: translateY(12px) } to { opacity: 1; transform: none } }
+  @keyframes muBlobA { 0% { transform: translate(-8%, -6%) scale(1) } 50% { transform: translate(10%, 8%) scale(1.18) } 100% { transform: translate(-8%, -6%) scale(1) } }
+  @keyframes muBlobB { 0% { transform: translate(6%, 4%) scale(1.1) } 50% { transform: translate(-10%, -8%) scale(.92) } 100% { transform: translate(6%, 4%) scale(1.1) } }
+  @keyframes muSheen { 0% { transform: translateX(-120%) } 60% { transform: translateX(120%) } 100% { transform: translateX(120%) } }
+  .mu-login-anim { animation: muLoginUp .4s cubic-bezier(.2,.7,.3,1) both }
+  .mu-blob-a { animation: muBlobA 52s ease-in-out infinite }
+  .mu-blob-b { animation: muBlobB 68s ease-in-out infinite }
+  .mu-glass-card {
+    position: relative; border-radius: 26px;
+    background: ${C.glass};
+    backdrop-filter: blur(26px) saturate(1.6); -webkit-backdrop-filter: blur(26px) saturate(1.6);
+    box-shadow: 0 24px 60px rgba(0,0,0,.5);
+    overflow: hidden;
+  }
+  /* rim 渐变描边(mask xor):顶亮→底绿调,四边统一 */
+  .mu-glass-card::after {
+    content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1px; pointer-events: none;
+    background: linear-gradient(180deg, rgba(255,255,255,.22), rgba(255,255,255,.05) 45%, rgba(74,222,128,.16));
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+  }
+  /* 卡缘流动高光(液态感主视觉):宽 160% 光带 transform 平移(合成器路径,零 repaint),扫 8.4s + 静默 5.6s */
+  .mu-glass-card::before {
+    content: ''; position: absolute; inset: 0; pointer-events: none; border-radius: inherit;
+    width: 160%;
+    background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,.055) 45%, rgba(255,255,255,.09) 50%, rgba(255,255,255,.055) 55%, transparent 70%);
+    animation: muSheen 14s linear infinite;
+    will-change: transform;
+  }
+  .mu-glass-card button:focus-visible, .mu-glass-card input:focus-visible,
+  .mu-page button:focus-visible {
+    outline: 2px solid rgba(111,206,133,.8); outline-offset: 2px;
+  }
+  .mu-glass-card input::placeholder { color: rgba(235,245,238,.42); opacity: 1 }
+  @media (prefers-reduced-motion: reduce) {
+    .mu-blob-a, .mu-blob-b, .mu-glass-card::before { animation: none }
+    .mu-login-anim { animation: none }
+  }
 `}</style>
 
-// ── 6 格分段验证码(自动跳格/回退/粘贴分发;获焦绿边+微放大) ─────────────────
+// 液态背景:近黑底上三枚品牌绿大色斑缓慢漂移(实色圆+blur 120px,稳定可见)。
+function LiquidBackdrop() {
+  return <div aria-hidden style={{ position: 'fixed', inset: 0, overflow: 'hidden', background: C.bg, zIndex: -1 }}>
+    <div className="mu-blob-a" style={{ position: 'absolute', width: '46vmax', height: '46vmax', left: '-6%', top: '-14%',
+      background: '#15803d', borderRadius: '50%', filter: 'blur(120px)', opacity: .5 }} />
+    <div className="mu-blob-b" style={{ position: 'absolute', width: '42vmax', height: '42vmax', right: '-8%', bottom: '-12%',
+      background: '#166534', borderRadius: '50%', filter: 'blur(120px)', opacity: .45 }} />
+    <div style={{ position: 'absolute', width: '24vmax', height: '24vmax', left: '34%', top: '4%',
+      background: '#4ade80', borderRadius: '50%', filter: 'blur(110px)', opacity: .16 }} />
+  </div>
+}
+
+// ── 6 格分段验证码(自动跳格/回退/粘贴分发;获焦绿边+微放大+玻璃底) ───────────────
 function SixDigits({ value, onChange, disabled = false }) {
   const refs = useRef([])                    // 稳定容器:重渲染/卸载时 ref 回调不错位
   const [focusIdx, setFocusIdx] = useState(-1)
@@ -79,8 +131,9 @@ function SixDigits({ value, onChange, disabled = false }) {
           tabIndex={disabled ? -1 : 0}
           style={{
             width: '100%', textAlign: 'center', fontSize: 21, fontWeight: 700,
-            color: disabled ? '#b8c2ba' : C.ink, background: disabled ? '#f2f5f2' : C.white,
-            border: `1.5px ${disabled ? 'dashed' : 'solid'} ${disabled ? '#d9e0da' : focusIdx === i ? C.green : C.hair}`,
+            color: disabled ? 'rgba(242,242,247,.35)' : C.ink,
+            background: disabled ? 'rgba(255,255,255,.03)' : 'rgba(255,255,255,.06)',
+            border: `1.5px ${disabled ? 'dashed' : 'solid'} ${disabled ? 'rgba(255,255,255,.18)' : focusIdx === i ? C.greenLight : C.hair}`,
             borderRadius: 12, padding: '10px 0', outline: 'none', flex: 1,
             boxShadow: focusIdx === i ? `0 0 0 4px ${C.ring}` : 'none',
             transform: focusIdx === i ? 'scale(1.05)' : 'none',
@@ -152,11 +205,10 @@ function PhoneForm({ config, onSignedIn }) {
   const sendReady = !(smsSent && countdown > 0)
   return <>
     {label('手机号')}
-    <div style={{ display: 'flex', alignItems: 'stretch', background: C.white,
+    <div style={{ display: 'flex', alignItems: 'stretch', background: 'rgba(255,255,255,.06)',
       border: `1.5px solid ${err?.field === 'phone' ? C.red : C.hair}`, borderRadius: 14,
-      overflow: 'hidden', transition: 'border-color .15s, box-shadow .15s',
-      boxShadow: '0 1px 2px rgba(28,28,30,.04)' }}>
-      <span style={{ padding: '12px 11px', background: '#f0f4f0', color: C.sub, fontSize: 14,
+      overflow: 'hidden', transition: 'border-color .15s, box-shadow .15s' }}>
+      <span style={{ padding: '12px 11px', background: 'rgba(255,255,255,.05)', color: C.sub, fontSize: 14,
         borderRight: `1.5px solid ${C.hair}`, userSelect: 'none' }}>+86</span>
       <input ref={phoneRef} inputMode="numeric" maxLength={11} placeholder="请输入手机号" value={phone}
         onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 11))}
@@ -169,7 +221,8 @@ function PhoneForm({ config, onSignedIn }) {
     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
       {cap && <div dangerouslySetInnerHTML={{ __html: cap.svg }}
         style={{ width: 148, height: 46, borderRadius: 12, overflow: 'hidden', cursor: 'pointer', flexShrink: 0,
-          border: `1.5px solid ${err?.field === 'captcha' ? C.red : C.hair}`, boxShadow: '0 1px 2px rgba(28,28,30,.04)' }}
+          border: `1.5px solid ${err?.field === 'captcha' ? C.red : C.hair}`, background: '#f6f8f6',
+          filter: 'brightness(.92) contrast(1.05)' }}
         onClick={refreshCaptcha} title="点击刷新" />}
       <input inputMode="numeric" maxLength={4} placeholder="输入 4 位数字" value={capCode}
         onChange={e => setCapCode(e.target.value.replace(/\D/g, '').slice(0, 4))}
@@ -181,9 +234,9 @@ function PhoneForm({ config, onSignedIn }) {
     {/* 发码钮:紧贴图形码之后(流程次序),描边次级样式——主 CTA 让位给登录 */}
     <button onClick={sendSms} disabled={!sendReady}
       style={{ width: '100%', marginTop: 14, padding: '11px 0', borderRadius: 12, cursor: sendReady ? 'pointer' : 'default',
-        background: sendReady ? 'rgba(36,138,61,.07)' : 'transparent',
-        border: `1.5px solid ${sendReady ? 'rgba(36,138,61,.35)' : C.hair}`,
-        color: sendReady ? C.green : '#9aa39b', fontSize: 14, fontWeight: 600,
+        background: sendReady ? 'rgba(47,156,71,.14)' : 'rgba(255,255,255,.04)',
+        border: `1.5px solid ${sendReady ? 'rgba(47,156,71,.45)' : C.hair}`,
+        color: sendReady ? '#6fce85' : (smsSent ? 'rgba(242,242,247,.58)' : 'rgba(242,242,247,.35)'), fontSize: 14, fontWeight: 600,
         transition: 'background .15s, border-color .15s, color .15s' }}>
       {smsSent ? `重新发送短信验证码${countdown > 0 ? `（${countdown}s）` : ''}` : '发送短信验证码'}
     </button>
@@ -209,15 +262,21 @@ function PhoneForm({ config, onSignedIn }) {
 
     <div style={{ height: 18 }} />
     <button onClick={signIn} disabled={busy || digits.length < 6}
-      style={{ width: '100%', padding: '14px 0', border: 'none', borderRadius: 14,
+      style={{ position: 'relative', overflow: 'hidden', width: '100%', padding: '14px 0', border: 'none', borderRadius: 14,
         background: busy || digits.length < 6
-          ? 'linear-gradient(180deg, #b9d6bf, #a9ccb1)'
-          : `linear-gradient(180deg, ${C.greenLight}, ${C.green})`,
-        color: busy || digits.length < 6 ? 'rgba(255,255,255,.85)' : '#fff',
+          ? 'linear-gradient(180deg, rgba(30,138,68,.5), rgba(20,107,53,.5))'
+          : 'linear-gradient(180deg, #1e8a44, #146b35)',
+        color: busy || digits.length < 6 ? 'rgba(234,255,242,.75)' : '#eafff2',
         fontSize: 16, fontWeight: 700, letterSpacing: '.04em',
-        boxShadow: busy || digits.length < 6 ? 'none' : '0 6px 18px rgba(36,138,61,.30)',
+        boxShadow: busy || digits.length < 6 ? 'none' : '0 8px 24px rgba(36,138,61,.38), inset 0 1px 0 rgba(255,255,255,.25)',
         cursor: busy || digits.length < 6 ? 'default' : 'pointer',
-        transition: 'background .15s, box-shadow .15s' }}>
+        transform: 'none', transition: 'background .15s, box-shadow .15s, transform .18s cubic-bezier(.34,1.56,.64,1)'
+      }}
+      onMouseDown={e => { if (!e.currentTarget.disabled) e.currentTarget.style.transform = 'scale(.965)' }}
+      onMouseUp={e => { e.currentTarget.style.transform = 'none' }}
+      onMouseLeave={e => { e.currentTarget.style.transform = 'none' }}
+      onTouchStart={e => { if (!e.currentTarget.disabled) e.currentTarget.style.transform = 'scale(.965)' }}
+      onTouchEnd={e => { e.currentTarget.style.transform = 'none' }}>
       登录 / 注册
     </button>
 
@@ -257,37 +316,45 @@ function WechatForm({ onSwitchBack }) {
     <div style={{ fontSize: 14, color: C.sub, marginBottom: 14, lineHeight: 1.6 }}>
       微信扫描二维码，在「沐禾健身」小程序中确认，网页将自动登录
     </div>
-    {err && <div className="dim small" style={{ color: '#c62828' }}>{err}</div>}
+    {err && <div className="dim small" style={{ color: '#ff6b6b' }}>{err}</div>}
     {qr?.image && <img alt="微信扫码" src={'data:image/png;base64,' + qr.image}
-      style={{ width: 224, height: 224, borderRadius: 16, background: '#fff', padding: 10,
-        border: `1px solid ${C.hair}`, margin: '0 auto', display: 'block',
-        boxShadow: '0 4px 18px rgba(28,28,30,.08)' }} />}
+      style={{ width: 224, height: 224, borderRadius: 18, background: '#ffffff', padding: 10,
+        border: '1px solid rgba(255,255,255,.16)', margin: '0 auto', display: 'block',
+        boxShadow: '0 12px 36px rgba(0,0,0,.55)' }} />}
     {status === 'confirmed'
-      ? <div style={{ color: C.green, fontWeight: 700, marginTop: 12 }}>已在微信中确认 ✓</div>
+      ? <div style={{ color: '#6fce85', fontWeight: 700, marginTop: 12 }}>已在微信中确认 ✓</div>
       : qr && <div style={{ color: C.sub, fontSize: 13, marginTop: 12 }}>等待扫码中…</div>}
     <div style={{ height: 12 }} />
-    <button onClick={load} style={{ background: 'none', border: 'none', color: C.green,
-      fontWeight: 600, cursor: 'pointer', fontSize: 13 }}>刷新二维码</button>
+    <button onClick={load} style={{ background: 'none', border: 'none', color: '#6fce85',
+      fontWeight: 600, cursor: 'pointer', fontSize: 13, padding: '10px 14px' }}>刷新二维码</button>
   </>
 }
 
-// 通道 segmented(Q7 平级互切;阶段 3 从底部孤立按钮升级为表单上方分段控件)。
+// 通道 segmented(Q7 平级互切;玻璃滑块液态滑动)。
 function ChannelTabs({ channel, setChannel }) {
+  const onPhone = channel === 'phone'
   const item = (key, txt, icon) => {
     const on = channel === key
     return <button key={key} onClick={() => setChannel(key)}
       style={{ flex: 1, padding: '10px 0', border: 'none', borderRadius: 10, cursor: 'pointer',
-        background: on ? C.white : 'transparent', color: on ? C.green : C.sub,
+        background: 'transparent', color: on ? '#6fce85' : C.sub,
         fontSize: 14.5, fontWeight: on ? 700 : 600,
-        boxShadow: on ? '0 1px 4px rgba(28,28,30,.10)' : 'none',
+        position: 'relative', zIndex: 1,
         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-        transition: 'background .15s, color .15s, box-shadow .15s' }}>
+        transition: 'color .22s' }}>
       {icon && <Icon name={icon} />}{txt}
     </button>
   }
   return (
-    <div style={{ display: 'flex', gap: 4, background: 'rgba(28,28,30,.055)',
-      borderRadius: 12, padding: 4, marginBottom: 18 }}>
+    <div style={{ position: 'relative', display: 'flex', gap: 4, background: 'rgba(255,255,255,.055)',
+      borderRadius: 13, padding: 4, marginBottom: 18, border: '1px solid rgba(255,255,255,.07)' }}>
+      {/* 液态滑块:绝对定位玻璃 pill,transform 平移(回弹曲线) */}
+      <div aria-hidden style={{ position: 'absolute', top: 4, bottom: 4, left: 4, width: 'calc(50% - 4px)',
+        borderRadius: 999, background: 'linear-gradient(rgba(74,222,128,.10), rgba(255,255,255,.06))',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,.18), 0 4px 14px rgba(0,0,0,.35)',
+        backdropFilter: 'blur(10px) saturate(1.4)', WebkitBackdropFilter: 'blur(10px) saturate(1.4)',
+        transform: onPhone ? 'translateX(0)' : 'translateX(calc(100% + 8px))',
+        transition: 'transform .32s cubic-bezier(.22,1,.36,1)' }} />
       {item('phone', '手机号登录')}
       {item('wechat', '微信扫码', 'qr')}
     </div>
@@ -302,54 +369,58 @@ export default function Login() {
   const head = <>
     <img src="/icon-192.png" alt="沐禾健身" width={64} height={64}
       style={{ borderRadius: 16, margin: '0 auto', display: 'block',
-        boxShadow: '0 8px 24px rgba(36,138,61,.26), 0 2px 6px rgba(36,138,61,.14)' }} />
-    <h1 style={{ fontSize: 25, fontWeight: 800, letterSpacing: '-.02em', margin: '12px 0 3px', color: '#1c1c1e' }}>沐禾健身</h1>
-    <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.3em', color: C.green, textTransform: 'uppercase', textIndent: '.3em' }}>MUHE FIT</div>
+        boxShadow: '0 10px 32px rgba(36,138,61,.40), 0 2px 8px rgba(0,0,0,.6)' }} />
+    <h1 style={{ fontSize: 25, fontWeight: 800, letterSpacing: '-.02em', margin: '12px 0 3px', color: C.ink }}>沐禾健身</h1>
+    <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.3em', color: '#6fce85', textTransform: 'uppercase', textIndent: '.3em' }}>MUHE FIT</div>
   </>
   const wrap = {
     display: 'flex', flexDirection: 'column', textAlign: 'center',
-    minHeight: '100dvh', padding: '24px 20px 40px', color: '#1c1c1e',
-    background: `radial-gradient(120% 42% at 50% -6%, rgba(36,138,61,.13) 0%, rgba(36,138,61,0) 60%), linear-gradient(180deg, ${C.bgTop} 0%, ${C.bgBottom} 100%)`,
+    minHeight: '100dvh', padding: '24px 20px 40px', color: C.ink,
     justifyContent: 'flex-start', paddingTop: 'max(7dvh, 44px)',
-    ['data-theme']: 'light',
   }
 
   // Demo build: no backend to sign in against — the only way in is the local guest profile.
   if (DEMO) return (
-    <div className="narrow" style={wrap}>
-      {loginStyle}
-      {head}
-      <div className="muted" style={{ marginBottom: 30 }}>Live demo. Everything stays in this browser.</div>
-      <Button variant="primary" icon="play" onClick={() => setGuest(true)}>Start the demo</Button>
-      <div className="card small muted" style={{ textAlign: 'start', marginTop: 16 }}>
-        This demo runs entirely in your browser on example data. Nothing is sent anywhere. Sign-in and sync across your devices come with the self-hosted server.
+    <>
+      <LiquidBackdrop />
+      <div className="narrow" style={wrap} data-theme="dark">
+        {loginStyle}
+        {head}
+        <div className="muted" style={{ marginBottom: 30 }}>Live demo. Everything stays in this browser.</div>
+        <Button variant="primary" icon="play" onClick={() => setGuest(true)}>Start the demo</Button>
+        <div className="card small muted" style={{ textAlign: 'start', marginTop: 16 }}>
+          This demo runs entirely in your browser on example data. Nothing is sent anywhere. Sign-in and sync across your devices come with the self-hosted server.
+        </div>
+        <div className="dim small" style={{ marginTop: 22, lineHeight: 1.6 }}>
+          <a href={REPO} target="_blank" rel="noopener">Self-host it in a minute →</a>
+        </div>
       </div>
-      <div className="dim small" style={{ marginTop: 22, lineHeight: 1.6 }}>
-        <a href={REPO} target="_blank" rel="noopener">Self-host it in a minute →</a>
-      </div>
-    </div>
+    </>
   )
 
   const signedIn = () => {}
 
   return (
-    <div className="narrow mu-login-anim" style={wrap}>
-      {loginStyle}
-      {head}
-      <div style={{ margin: '10px 0 18px', fontSize: 13.5, color: C.sub }}>你的训练、你的重量、你的档案。</div>
-      <div style={{ textAlign: 'start', maxWidth: 420, margin: '0 auto', width: '100%' }}>
-        <ChannelTabs channel={channel} setChannel={setChannel} />
-        {channel === 'phone'
-          ? <PhoneForm config={config} onSignedIn={signedIn} />
-          : <WechatForm onSwitchBack={() => {}} />}
+    <>
+      <LiquidBackdrop />
+      <div className="narrow mu-login-anim" style={wrap} data-theme="dark">
+        {loginStyle}
+        {head}
+        <div style={{ margin: '10px 0 18px', fontSize: 13.5, color: C.sub }}>你的训练、你的重量、你的档案。</div>
+        <div className="mu-glass-card mu-glass-refract" style={{ textAlign: 'start', maxWidth: 420, margin: '0 auto', width: '100%', padding: '20px 18px 18px' }}>
+          <ChannelTabs channel={channel} setChannel={setChannel} />
+          {channel === 'phone'
+            ? <PhoneForm config={config} onSignedIn={signedIn} />
+            : <WechatForm onSwitchBack={() => {}} />}
+        </div>
+        {canGuest && <>
+          <div style={{ height: 16 }} />
+          <Button variant="ghost" className="dim" onClick={() => setGuest(true)}>暂不登录，随便看看</Button>
+        </>}
+        <div className="dim small" style={{ marginTop: 26, lineHeight: 1.5, color: C.sub }}>
+          每个档案独立保存训练计划、训练记录与身体数据。
+        </div>
       </div>
-      {canGuest && <>
-        <div style={{ height: 16 }} />
-        <Button variant="ghost" className="dim" onClick={() => setGuest(true)}>暂不登录，随便看看</Button>
-      </>}
-      <div className="dim small" style={{ marginTop: 26, lineHeight: 1.5, color: C.sub }}>
-        每个档案独立保存训练计划、训练记录与身体数据。
-      </div>
-    </div>
+    </>
   )
 }
