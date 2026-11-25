@@ -1,5 +1,7 @@
 package ch.duartesantos.opengym;
 
+import com.muhe.fit.MainActivity;
+
 /**
  * The home-screen icons and the launcher entry each one is (AppIconPlugin). Every icon is an
  * activity-alias of MainActivity in AndroidManifest.xml with the MAIN/LAUNCHER filter, and exactly

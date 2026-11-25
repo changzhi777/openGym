@@ -1,5 +1,8 @@
 package ch.duartesantos.opengym;
 
+import com.muhe.fit.MainActivity;
+import com.muhe.fit.R;
+
 import android.app.PendingIntent;
 import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProvider;

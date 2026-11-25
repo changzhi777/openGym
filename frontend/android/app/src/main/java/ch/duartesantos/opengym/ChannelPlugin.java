@@ -1,5 +1,7 @@
 package ch.duartesantos.opengym;
 
+import com.muhe.fit.BuildConfig;
+
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;

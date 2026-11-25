@@ -8,6 +8,7 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import com.getcapacitor.BridgeActivity;
+import com.getcapacitor.Plugin;
 import com.getcapacitor.WebViewListener;
 
 public class MainActivity extends BridgeActivity {
@@ -21,7 +22,6 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(HealthConnectPlugin.class);
-        registerPlugin(InstallPlugin.class);
         registerPlugin(PrintPlugin.class);
         registerPlugin(RestAlertPlugin.class);
         registerPlugin(BackupFolderPlugin.class);
@@ -29,6 +29,11 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(BarIconsPlugin.class);
         super.onCreate(savedInstanceState);
         passSystemBarsToPage();
+    }
+
+    /** Flavor-only plugins (sideload's InstallPlugin) register through this alias. */
+    public void registerFlavorPlugin(Class<? extends Plugin> plugin) {
+        registerPlugin(plugin);
     }
 
     /**

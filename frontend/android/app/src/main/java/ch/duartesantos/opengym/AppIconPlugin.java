@@ -1,5 +1,7 @@
 package ch.duartesantos.opengym;
 
+import com.muhe.fit.MainActivity;
+
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.SharedPreferences;

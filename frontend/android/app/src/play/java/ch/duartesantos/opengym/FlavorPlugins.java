@@ -1,5 +1,7 @@
 package ch.duartesantos.opengym;
 
+import com.muhe.fit.MainActivity;
+
 /** Google Play installs the updates itself: no updater in this build. */
 final class FlavorPlugins {
     private FlavorPlugins() {}

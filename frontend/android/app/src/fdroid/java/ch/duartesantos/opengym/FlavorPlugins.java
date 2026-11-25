@@ -1,5 +1,7 @@
 package ch.duartesantos.opengym;
 
+import com.muhe.fit.MainActivity;
+
 /** F-Droid installs the updates itself: no updater in this build, like the Play one. */
 final class FlavorPlugins {
     private FlavorPlugins() {}

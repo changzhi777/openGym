@@ -1,5 +1,7 @@
 package ch.duartesantos.opengym;
 
+import com.muhe.fit.R;
+
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;

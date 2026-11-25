@@ -5,6 +5,7 @@ import android.media.AudioAttributes;
 import android.media.AudioManager;
 import android.speech.tts.TextToSpeech;
 import android.speech.tts.UtteranceProgressListener;
+import com.muhe.fit.RestAlert;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;

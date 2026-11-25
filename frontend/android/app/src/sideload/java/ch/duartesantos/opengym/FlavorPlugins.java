@@ -1,5 +1,7 @@
 package ch.duartesantos.opengym;
 
+import com.muhe.fit.MainActivity;
+
 
 /** The APK from GitHub and opengym.ch installs its own updates (InstallPlugin). */
 final class FlavorPlugins {

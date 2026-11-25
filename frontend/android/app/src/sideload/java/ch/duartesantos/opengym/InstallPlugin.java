@@ -1,4 +1,4 @@
-package com.muhe.fit;
+package ch.duartesantos.opengym;
 
 import android.content.Intent;
 import android.net.Uri;
