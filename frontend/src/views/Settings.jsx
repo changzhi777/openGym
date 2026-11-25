@@ -1206,7 +1206,7 @@ export default function Settings({ page = null, find = null, via = null, entryKe
           {user.admin && <Row icon="crown" iconTint="var(--indigo)" title={t('Admin dashboard')} accessory="chevron" onClick={() => nav('/admin')} />}
           {user.roles?.includes('coach') && <Row icon="dumbbell" iconTint="var(--green)" title={t('教练工作台')} accessory="chevron" onClick={() => nav('/coach-console')} />}
           <Row icon="phone" iconTint="var(--blue)" title={t('Bind mobile number')}
-            subtitle={boundPhone ? '已绑定：' + boundPhone.slice(0, 3) + '****' + boundPhone.slice(-4) : undefined}
+            subtitle={boundPhone ? '已绑定：' + boundPhone : undefined}
             accessory="chevron"
             onClick={() => useUI.getState().openSheet(close => <BindPhoneSheet close={close} onBound={refreshBoundPhone} />)} />
           <Row icon="share" iconTint="var(--indigo)" title={t('Export my data')} subtitle={t('Download everything the server has of yours as one JSON file.')}
