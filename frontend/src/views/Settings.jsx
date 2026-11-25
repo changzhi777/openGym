@@ -194,6 +194,16 @@ export default function Settings({ page = null, find = null, via = null, entryKe
 
   // --- update check state ---
   const [updateInfo, setUpdateInfo] = useState(null) // { hasUpdate, latestVersion, apkUrl, hashUrl } | null
+  // fork:账号已绑定的手机号(/api/me identities,掩码显示在账号页绑定行;null=探测中, ''=未绑定)
+  const [boundPhone, setBoundPhone] = useState(null)
+  const refreshBoundPhone = () => {
+    if (!user) { setBoundPhone(''); return }
+    api('/api/me').then(me => {
+      const p = (me.identities || []).find(i => i.kind === 'phone')
+      setBoundPhone(p ? p.identifier : '')
+    }).catch(() => setBoundPhone(''))
+  }
+  useEffect(refreshBoundPhone, [user?.id])
   const [android, setAndroid] = useState(() => MOBILE && platformNow() === 'android')
   const [ios, setIos] = useState(() => MOBILE && platformNow() === 'ios')   // the iPhone app: Settings → Apple Watch
   const [selfUpdate, setSelfUpdate] = useState(false)   // the sideloaded APK, which updates itself
@@ -1195,8 +1205,10 @@ export default function Settings({ page = null, find = null, via = null, entryKe
         </> : user ? <>
           {user.admin && <Row icon="crown" iconTint="var(--indigo)" title={t('Admin dashboard')} accessory="chevron" onClick={() => nav('/admin')} />}
           {user.roles?.includes('coach') && <Row icon="dumbbell" iconTint="var(--green)" title={t('教练工作台')} accessory="chevron" onClick={() => nav('/coach-console')} />}
-          <Row icon="phone" iconTint="var(--blue)" title={t('Bind mobile number')} accessory="chevron"
-            onClick={() => useUI.getState().openSheet(close => <BindPhoneSheet close={close} />)} />
+          <Row icon="phone" iconTint="var(--blue)" title={t('Bind mobile number')}
+            subtitle={boundPhone ? '已绑定：' + boundPhone.slice(0, 3) + '****' + boundPhone.slice(-4) : undefined}
+            accessory="chevron"
+            onClick={() => useUI.getState().openSheet(close => <BindPhoneSheet close={close} onBound={refreshBoundPhone} />)} />
           <Row icon="share" iconTint="var(--indigo)" title={t('Export my data')} subtitle={t('Download everything the server has of yours as one JSON file.')}
             onClick={doServerExport} />
           <Row icon="signOut" iconTint="var(--red)" title={t('Sign out')} danger onClick={signOutHere} />
@@ -1766,7 +1778,7 @@ function MediaRow() {
 }
 
 // BindPhoneSheet — 已登录账号绑定手机号(短信验证码;批F)。
-function BindPhoneSheet({ close }) {
+function BindPhoneSheet({ close, onBound }) {
   const toast = useUI(s2 => s2.toast)
   const [phone, setPhone] = useState('')
   const [code, setCode] = useState('')
@@ -1793,6 +1805,7 @@ function BindPhoneSheet({ close }) {
     try {
       await bindPhone(phone, code.trim())
       toast(t('Mobile number bound'))
+      onBound?.()
       close()
     } catch (e) { setErr(e.message) } finally { setBusy(false) }
   }
