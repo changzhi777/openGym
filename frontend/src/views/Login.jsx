@@ -15,6 +15,7 @@ import { guestAllowed } from '../lib/guest.js'
 import { useState, useRef, useEffect } from 'react'
 import Icon from '../components/Icon.jsx'
 import { Button } from '../components/ui.jsx'
+import LoginServersMenu from './LoginServersMenu.jsx'
 
 const PHONE_RE = /^1\d{10}$/
 
@@ -408,6 +409,7 @@ export default function Login() {
         {head}
         <div style={{ margin: '10px 0 18px', fontSize: 13.5, color: C.sub }}>你的训练、你的重量、你的档案。</div>
         <div className="mu-glass-card mu-glass-refract" style={{ textAlign: 'start', maxWidth: 420, margin: '0 auto', width: '100%', padding: '20px 18px 18px' }}>
+          <LoginServersMenu />
           <ChannelTabs channel={channel} setChannel={setChannel} />
           {channel === 'phone'
             ? <PhoneForm config={config} onSignedIn={signedIn} />
