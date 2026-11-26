@@ -63,3 +63,7 @@ frontend/pdf-samples/
 
 # fork(W1): dev-only API target switch file (dev-api-switcher.mjs)
 frontend/.dev-api-target
+
+# W1 双后端切换开关(本机环境值,勿入库)
+frontend/.dev-api-target
+backend-go/.dev-api-target

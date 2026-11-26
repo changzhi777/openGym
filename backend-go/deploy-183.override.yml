@@ -1,0 +1,22 @@
+# deploy-183.override.yml — openGym 测试版 183 部署覆盖(muhe-go-open183 项目):
+# api 宿主端口改 3130(muhe-fit 实例占 3110)+ ORIGIN 对齐 PWA 口 + nginx 服务
+# (PWA dist 静态托管 + /api 与 /coach-console 反代;一站式入口 3131)。
+# 用法: docker compose -f compose.go.yml -f deploy-183.override.yml -p muhe-go183 up -d --build
+services:
+  api:
+    ports: !override
+      - "3130:3100"
+    environment:
+      ORIGIN: "http://10.10.10.7:3131"   # 会话 cookie/QR 深链 origin——内网口(183 内网 IP;Tailscale 口 100.98.98.183:3131 并存可用,cookie 各自独立会话)
+
+  nginx:
+    image: docker.xuanyuan.run/library/nginx:alpine
+    ports:
+      - "3131:80"
+    volumes:
+      - ./frontend/dist:/usr/share/nginx/html:ro
+      - ./nginx-183.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      api: { condition: service_started }
+    networks: [default]
+    restart: unless-stopped
