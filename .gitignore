@@ -67,3 +67,7 @@ frontend/.dev-api-target
 # W1 双后端切换开关(本机环境值,勿入库)
 frontend/.dev-api-target
 backend-go/.dev-api-target
+
+# kiri 本地全栈运行产物(go build 缓存 / Go API DATA_DIR,2026-11-26 验证轮)
+backend-go/.gocache/
+backend-go/.zcf-data-dev/
