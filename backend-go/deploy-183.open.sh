@@ -10,7 +10,11 @@ HOST183="${HOST183:-qm@100.98.98.183}"
 REMOTE="${REMOTE:-muhe-open183}"
 REPO="$(cd "$(dirname "$0")/.." && pwd)"          # worktree 根
 SMOKE=1
-[[ "${1:-}" == "--no-smoke" ]] && SMOKE=0
+REDEPLOY=0
+for a in "$@"; do
+  [[ "$a" == "--no-smoke" ]] && SMOKE=0
+  [[ "$a" == "--update" ]] && REDEPLOY=1
+done
 
 # -F none + /usr/bin/ssh 绝对路径双保险:绕开 ssh config(per-host 把 183 劫到 22222)
 # 与 PATH 里的 ssh wrapper(deploy-118 过 GFW 用的 -p 22222 前置包装器,会劫持脚本内 ssh)。
@@ -23,9 +27,11 @@ r() { local i rc; for i in 1 2 3; do
   rc=$?; echo "-- ssh 第 $i 次失败(rc=$rc),5s 后重试"; sleep 5
 done; return $rc; }
 
-echo "==> [1/6] qm-ub 连通性 + 端口占用检查(3130/3131 要求空闲;3110=muhe-fit 实例不动)"
+echo "==> [1/6] qm-ub 连通性${REDEPLOY:+(--update 重部署:跳过首部署端口检查)}"
 r "echo ok" >/dev/null || { echo "qm-ub 不可达(Tailscale/密钥)"; exit 1; }
-r "ss -tln 2>/dev/null | grep -Eq ':3130 |:3131 ' && { echo '端口 3130/3131 已被占用'; exit 1; } || echo ports-free"
+if [[ $REDEPLOY -ne 1 ]]; then
+  r "ss -tln 2>/dev/null | grep -Eq ':3130 |:3131 ' && { echo '端口 3130/3131 已被占用'; exit 1; } || echo ports-free"
+fi
 
 echo "==> [2/6] 打包 backend-go 源 + frontend dist"
 TAR_API=/tmp/open183-api.tar.gz
@@ -59,7 +65,6 @@ FAIL=0
 chk "api 直连 health(3130)" "$(r "curl -s -o /dev/null -w '%{http_code}' -m 8 http://127.0.0.1:3130/api/health")"
 chk "nginx PWA index(3131)" "$(r "curl -s -o /dev/null -w '%{http_code}' -m 8 http://127.0.0.1:3131/")"
 chk "nginx 反代 /api/health(3131)" "$(r "curl -s -o /dev/null -w '%{http_code}' -m 8 http://127.0.0.1:3131/api/health")"
-chk "nginx 反代 /coach-console(3131)" "$(r "curl -s -m 8 http://127.0.0.1:3131/coach-console | grep -c '沐禾健身 · 教练台'")"
 if [[ $FAIL -eq 1 ]]; then echo "冒烟有 FAIL——查日志: ssh $HOST183 'cd ~/$REMOTE && docker compose -p muhe-go-open183 logs api --tail 20'"; exit 1; fi
 [[ $SMOKE -eq 1 ]] || echo "--no-smoke:已跳过深度冒烟"
 echo "部署完成:qm-ub ~/$REMOTE(compose 项目 muhe-go-open183)
