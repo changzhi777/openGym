@@ -1,14 +1,13 @@
 {
   "appId": "com.muhe.fit",
   "appName": "沐禾健身",
-  "webDir": "dist",
+  "webDir": "launcher",
   "backgroundColor": "#0c0e12",
   "android": {
     "allowMixedContent": true
   },
   "server": {
-    "url": "http://10.10.10.7:3131",
-    "cleartext": true
+    "allowNavigation": ["*"]
   },
   "plugins": {
     "SystemBars": {

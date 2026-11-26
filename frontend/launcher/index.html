@@ -1,0 +1,212 @@
+<!doctype html>
+<!--
+  launcher/index.html — 测试版 APK 多服务器启动页(webDir 单文件,零构建依赖)
+  壳不再 server.url 远端加载:这里选服务器 → location.replace 整页跳转对应 PWA,
+  选择记 localStorage。切服务器 = 杀 APP 重开(Capacitor 壳的物理边界:远端
+  PWA 跨 origin 无法跳回本地页)。媒体由远端 PWA 同源加载,本页零媒体依赖。
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>沐禾健身</title>
+<style>
+  :root { color-scheme: dark; }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    min-height: 100vh; background: #0c0e12; color: #e8ece9;
+    font-family: -apple-system, "PingFang SC", "HarmonyOS Sans SC", "Noto Sans SC", sans-serif;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 24px 20px calc(24px + env(safe-area-inset-bottom));
+  }
+  .brand { text-align: center; margin-bottom: 34px; }
+  .logo {
+    width: 84px; height: 84px; margin: 0 auto 16px; border-radius: 22px; overflow: hidden;
+    box-shadow: 0 0 46px rgba(46, 165, 103, .35);
+    display: grid; place-items: center;
+  }
+  .logo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .brand h1 { font-size: 30px; font-weight: 700; letter-spacing: 2px; }
+  .brand p { margin-top: 8px; font-size: 13px; letter-spacing: 6px; color: #6fce85; font-weight: 600; }
+  .card {
+    width: 100%; max-width: 420px; background: #171a20; border: 1px solid #262b33;
+    border-radius: 18px; padding: 18px 16px;
+  }
+  .label { font-size: 13px; color: #9aa39c; margin-bottom: 10px; }
+  .srv { display: flex; flex-direction: column; gap: 8px; }
+  .srv button {
+    display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+    background: #1e232b; color: #e8ece9; border: 1.5px solid #2b313b; border-radius: 12px;
+    padding: 13px 14px; font-size: 15px; cursor: pointer;
+  }
+  .srv button.on { border-color: #2ea567; background: #17301f; }
+  .srv .dot { width: 18px; height: 18px; border-radius: 50%; border: 2px solid #3a424d; flex: none; }
+  .srv button.on .dot { border-color: #2ea567; background: #2ea567; box-shadow: inset 0 0 0 3.5px #17301f; }
+  .srv .txt { flex: 1; min-width: 0; }
+  .srv .nm { font-size: 15px; }
+  .srv .url { font-size: 11.5px; color: #8a938b; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .srv .del { border: none; background: none; color: #e05252; font-size: 17px; padding: 2px 6px; flex: none; }
+  .add { display: flex; gap: 8px; margin-top: 14px; }
+  .add input {
+    flex: 1; min-width: 0; background: #1e232b; color: #e8ece9; border: 1.5px solid #2b313b;
+    border-radius: 12px; padding: 11px 12px; font-size: 13.5px; outline: none;
+  }
+  .add input:focus { border-color: #2ea567; }
+  .add button {
+    background: #17301f; color: #4cc577; border: 1.5px solid #2ea567; border-radius: 12px;
+    padding: 0 14px; font-size: 13.5px; cursor: pointer; flex: none;
+  }
+  .go {
+    width: 100%; max-width: 420px; margin-top: 16px; padding: 15px; border: none; border-radius: 14px;
+    background: linear-gradient(180deg, #2ea567, #1d7a4b); color: #fff; font-size: 16.5px; font-weight: 700;
+    letter-spacing: 1px; cursor: pointer; box-shadow: 0 8px 22px rgba(46, 165, 103, .28);
+  }
+  .go:disabled { opacity: .45; box-shadow: none; }
+  .auto {
+    width: 100%; max-width: 420px; margin-top: 14px; background: #171a20; border: 1px solid #262b33;
+    border-radius: 14px; padding: 13px 14px; font-size: 13px; color: #9aa39c; display: none;
+  }
+  .auto .bar { height: 3px; background: #262b33; border-radius: 2px; margin-top: 9px; overflow: hidden; }
+  .auto .bar i { display: block; height: 100%; background: #2ea567; width: 100%; }
+  .auto b { color: #e8ece9; }
+  .auto .stop { float: right; color: #6fce85; background: none; border: none; font-size: 13px; cursor: pointer; padding: 0 0 0 10px; }
+  .err { color: #e05252; font-size: 12.5px; margin-top: 8px; min-height: 16px; }
+</style>
+</head>
+<body>
+  <div class="brand">
+    <div class="logo"><img src="icon-192.png" alt=""></div>
+    <h1>沐禾健身</h1>
+    <p>MUHE FIT</p>
+  </div>
+
+  <div class="auto" id="auto">
+    <button class="stop" id="stopAuto">更换服务器</button>
+    <span><b id="autoName"></b> · <span id="autoN">3</span> 秒后自动进入</span>
+    <div class="bar"><i id="autoBar"></i></div>
+  </div>
+
+  <div class="card">
+    <div class="label">选择服务器（各服务器登录态独立保存）</div>
+    <div class="srv" id="srvList"></div>
+    <div class="add">
+      <input id="addUrl" type="url" inputmode="url" placeholder="自定义服务器地址，如 http://192.168.1.10:3131">
+      <button id="addBtn" type="button">添加</button>
+    </div>
+    <div class="err" id="err"></div>
+  </div>
+
+  <button class="go" id="goBtn" type="button" disabled>进入</button>
+
+<script>
+(function () {
+  'use strict'
+  var K_SERVERS = 'muhe_servers', K_LAST = 'muhe_last_server'
+  var DEFAULTS = [
+    { name: '183 测试版（局域网）', url: 'http://10.10.10.7:3131' },
+    { name: '183 测试版（Tailscale）', url: 'http://100.98.98.183:3131' },
+    { name: '生产正式版', url: 'https://app.qingmulife.com' },
+  ]
+  var sel = null, timer = null
+
+  function loadServers() {
+    try {
+      var v = JSON.parse(localStorage.getItem(K_SERVERS) || 'null')
+      if (Array.isArray(v) && v.length && v.every(function (s) { return s && s.url })) return v
+    } catch (e) { /* 损坏即回默认 */ }
+    return DEFAULTS.slice()
+  }
+  function saveServers(v) { localStorage.setItem(K_SERVERS, JSON.stringify(v)) }
+
+  function normUrl(raw) {
+    var u = (raw || '').trim()
+    if (!u) return ''
+    if (!/^https?:\/\//i.test(u)) u = 'http://' + u
+    try {
+      var p = new URL(u)
+      if (!/^https?:$/.test(p.protocol) || !p.hostname) return ''
+      return p.origin + (p.pathname === '/' ? '' : p.pathname.replace(/\/$/, ''))
+    } catch (e) { return '' }
+  }
+
+  var listEl = document.getElementById('srvList')
+  var goBtn = document.getElementById('goBtn')
+  var errEl = document.getElementById('err')
+
+  function render() {
+    var servers = loadServers()
+    listEl.innerHTML = ''
+    servers.forEach(function (s, i) {
+      var isDefault = DEFAULTS.some(function (d) { return d.url === s.url })
+      var b = document.createElement('button')
+      b.type = 'button'
+      if (sel === s.url) b.className = 'on'
+      b.innerHTML = '<span class="dot"></span><span class="txt"><div class="nm"></div><div class="url"></div></span>' +
+        (isDefault ? '' : '<span class="del" data-i="' + i + '" title="删除">✕</span>')
+      b.querySelector('.nm').textContent = s.name || normUrl(s.url)
+      b.querySelector('.url').textContent = s.url
+      b.addEventListener('click', function () { sel = s.url; render() })
+      var del = b.querySelector('.del')
+      if (del) del.addEventListener('click', function (ev) {
+        ev.stopPropagation()
+        var v = loadServers().filter(function (x, j) { return j !== i })
+        saveServers(v)
+        if (sel === s.url) sel = null
+        render()
+      })
+      listEl.appendChild(b)
+    })
+    goBtn.disabled = !sel
+    goBtn.textContent = sel ? '进入 ' + sel : '进入'
+  }
+
+  function go(url) {
+    localStorage.setItem(K_LAST, url)
+    location.replace(url)
+  }
+
+  goBtn.addEventListener('click', function () { if (sel) go(sel) })
+
+  document.getElementById('addBtn').addEventListener('click', function () {
+    var inp = document.getElementById('addUrl')
+    var u = normUrl(inp.value)
+    if (!u) { errEl.textContent = '地址无效——需要 http(s):// 主机[:端口]'; return }
+    errEl.textContent = ''
+    var servers = loadServers()
+    if (servers.some(function (s) { return s.url === u })) { sel = u; render(); inp.value = ''; return }
+    servers.push({ name: '自定义', url: u })
+    saveServers(servers)
+    sel = u
+    inp.value = ''
+    render()
+  })
+
+  // 自动进入:上次选择 3 秒倒计时(进度条),点「更换服务器」留在选择页
+  var last = localStorage.getItem(K_LAST)
+  if (last && normUrl(last)) {
+    var auto = document.getElementById('auto')
+    auto.style.display = 'block'
+    var servers = loadServers()
+    var hit = servers.find(function (s) { return s.url === last })
+    document.getElementById('autoName').textContent = (hit && hit.name) || last
+    sel = last
+    var n = 3, bar = document.getElementById('autoBar')
+    document.getElementById('autoN').textContent = n
+    bar.style.transition = 'width 3s linear'
+    requestAnimationFrame(function () { bar.style.width = '0%' })
+    timer = setInterval(function () {
+      n -= 1
+      if (n <= 0) { clearInterval(timer); go(last); return }
+      document.getElementById('autoN').textContent = n
+    }, 1000)
+    document.getElementById('stopAuto').addEventListener('click', function () {
+      clearInterval(timer)
+      auto.style.display = 'none'
+    })
+  }
+
+  render()
+})()
+</script>
+</body>
+</html>
