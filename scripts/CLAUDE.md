@@ -2,7 +2,7 @@
 
 # scripts/ — 仓库级工具链
 
-> 42 个文件（2026-11-18 复核）：目录库构建/校验/批量中文化、coach 资产构建、API 文档生成、媒体打包、翻译名称源数据、AI-Native golden 夹具与 WeKnora ETL，fork 部署（118 现行 + CT151 旧）与测试门脚本。全部为开发期工具，不进任何运行时镜像。
+> 58 个文件（2026-11-26 复核）：目录库构建/校验/批量中文化、coach 资产构建、API 文档生成、媒体打包、翻译名称源数据、AI-Native golden 夹具与 WeKnora ETL，fork 部署（118 现行 + CT151 旧）与测试门脚本，🆕 dev-verify 本地/真机验证工具链。全部为开发期工具，不进任何运行时镜像。
 
 ## 目录结构
 
@@ -29,6 +29,18 @@
 ### 🆕 weknora-import/（catalogue → WeKnora ETL，1 脚本）
 
 `import-catalogue.mjs` — 动作目录灌入 WeKnora 知识库：dry-run / 断点续跑 manifest / token 额度估算打印；**媒体永不进管道**、action id 进文档正文；zh.json 5,632 条资产复用（50 篇试跑 ≈13k token，全量 6,554 篇实施前已核算）。
+
+### 🆕 dev-verify/（本地/真机验证工具链，15 脚本 + README）
+
+kiri 本地全栈冒烟、183 测试版免手输登录链、真机 APK 驱动三类可复用验证脚本（2026-11-26 从 `.zcf/tmp` scratch 收编入库）。环境假设：本机 kiri（`backend-go/.env` + compose.go.yml 依赖容器）+ Tailscale/局域网直达 183（qm@100.98.98.183）+ USB 真机。详见 [dev-verify/README.md](./dev-verify/README.md)。
+
+| 分组 | 脚本 | 说明 |
+|------|------|------|
+| kiri 全栈 | `kiri-api.sh` / `kiri-smoke.sh` / `kiri-team-smoke.sh` / `kiri-web.sh` | 起 Go API（清残留+迁移上库）/ 登录链冒烟（captcha SVG 抽码→本地日志抠短信码）/ 建团+plans / 前端 dev 与 W1 反代验证 |
+| 183 免手输核心 | `captcha-code.py` / `redis-captcha.sh` / `login-coach.sh` / `apk-login-{once,full,rebound,student}.sh` | SVG text 抽码 / Redis 直读 `captcha:id:*` 答案键（TTL 5min）/ curl 全链拿会话 cookie / 真机 APK 四布局态一条龙（15s 绕开验证码 TTL） |
+| 辅助 | `verify-team.sh` / `ack-pending.sh` / `w2-compare.sh` / `media-183.sh` | team 域 e2e 17 断言 / 学员 ACK 链 / W2 数据一致性对比 / 183 补动作素材 |
+
+约定：`.zcf/tmp/` 仍为 gitignored 本地 scratch，可复用脚本收编本目录后相互引用一律走 `scripts/dev-verify/` 相对路径。
 
 ### 根级（构建、部署与测试门）
 
@@ -60,6 +72,8 @@
 | 🆕 frontend `onerm.js` / `queue.js` / `history.js` 算法 | `node scripts/golden/gen-onerm.mjs`（或 `gen-plan.mjs`）再 `go test ./internal/agent/`（golden 双端等价，禁手编夹具） |
 | 上线 | `./scripts/deploy-118.sh`（现行生产；`deploy-ct151.sh` 为旧内网实例保留） |
 | Hevy 映射过期 | `HEVY_API_KEY=… node scripts/build-hevy-id-map.mjs` |
+| 🆕 合并后/部署后全栈验证 | `bash scripts/dev-verify/kiri-api.sh` → `kiri-smoke.sh` → `kiri-team-smoke.sh` → `kiri-web.sh`（四连；真机链见 dev-verify/README） |
+| 🆕 183 动作素材缺失 | `bash scripts/dev-verify/media-183.sh`（deploy-183.open.sh 已自动集成 stage-media，仅在手工补媒体时用） |
 
 ## 相关模块
 
@@ -67,4 +81,4 @@ Go 栈的灰度切换脚本在 [backend-go/scripts/gray-switch.sh](../backend-go
 
 ---
 
-变更记录: 2026-11-18 V1.2 审查轮核准（init-architect）:37→**42 文件**（补 golden/ 2 + weknora-import/ 1 + nginx-118/ 2——台账批次 2/3/6 后段增量入目录结构）；catalogue 脚本 11→**10**；exercise-name-sources 9→**8** 语言 JSON；使用时机表补 golden 双跑行、上线入口改 **deploy-118.sh（现行）**（CT151 降旧，FORK.md §5 2026-10-29 行为准）。2026-10-27 V1.1 增量（init-architect）:新增 translate-zh.mjs / test-all.sh / deploy-ct151.sh，33→36 文件；2026-10-20 V1.0 初版
+变更记录: 2026-11-26 V1.3 增量（launcher 验证轮）:42→**58 文件**——🆕 **dev-verify/**（15 脚本 + README，从 `.zcf/tmp` scratch 收编入库：kiri 本地全栈冒烟四件 / 183 免手输登录链核心（captcha SVG 抽码 + Redis 直读答案键 + curl 全链 + 真机 APK 四布局态一条龙）/ verify-team e2e 等辅助四件）；目录结构加 dev-verify 段与约定（`.zcf/tmp` 仍 gitignored，相互引用走 scripts/dev-verify/ 相对路径）；使用时机表补全栈验证四连与 media-183 手工补素材两行。2026-11-18 V1.2 审查轮核准（init-architect）:37→**42 文件**（补 golden/ 2 + weknora-import/ 1 + nginx-118/ 2——台账批次 2/3/6 后段增量入目录结构）；catalogue 脚本 11→**10**；exercise-name-sources 9→**8** 语言 JSON；使用时机表补 golden 双跑行、上线入口改 **deploy-118.sh（现行）**（CT151 降旧，FORK.md §5 2026-10-29 行为准）。2026-10-27 V1.1 增量（init-architect）:新增 translate-zh.mjs / test-all.sh / deploy-ct151.sh，33→36 文件；2026-10-20 V1.0 初版
