@@ -7,8 +7,8 @@
     "allowMixedContent": true
   },
   "server": {
-    "url": "https://app.qingmulife.com",
-    "cleartext": false
+    "url": "http://10.10.10.7:3131",
+    "cleartext": true
   },
   "plugins": {
     "SystemBars": {

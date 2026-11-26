@@ -2,8 +2,10 @@
 # deploy-183-open.sh — openGym 测试版部署 qm-ub(100.98.98.183,Tailscale 直达):
 # backend-go 源 tar + frontend dist tar 双包 scp → 183 解包 → .env 种子 →
 # compose(muhe-go-open183 项目,override:api 3130 + nginx 3131 一站式)→ 冒烟。
+# dist 打包前自动 stage-media(catalogue 授权动作演示素材 → dist/exercise-media,
+# PWA 动作库/训练页的动画依赖它;2026-11-26 真机验证灰占位后补进流程)。
 # 参照 muhe-fit deploy-183.sh(qm 密钥免密/三次重试/项目名隔离同机 WeKnora 与 muhe-fit 实例)。
-# 用法: bash deploy-183.open.sh [--no-smoke]   (前端 dist 先本地 npm run build)
+# 用法: bash deploy-183.open.sh [--no-smoke]   (前端 dist 先本地 npm run build;媒体本脚本自动补)
 set -euo pipefail
 
 HOST183="${HOST183:-qm@100.98.98.183}"
@@ -40,6 +42,9 @@ tar -czf "$TAR_API" --exclude .env --exclude '*.test' \
   -C "$REPO/backend-go" \
   Dockerfile compose.go.yml deploy-183.override.yml nginx-183.conf go.mod go.sum cmd internal
 [[ -f "$REPO/frontend/dist/index.html" ]] || { echo "frontend/dist 缺失——先 npm run build"; exit 1; }
+[[ -d "$REPO/catalogue/media" ]] || { echo "catalogue/media 缺失——动作演示素材无从 stage"; exit 1; }
+echo "-- stage-media:授权动作素材进 dist/exercise-media(still webp + clip mp4)"
+node "$REPO/scripts/catalogue/stage-media.mjs" "$REPO/frontend/dist"
 tar -czf "$TAR_WEB" -C "$REPO/frontend" dist
 
 echo "==> [3/6] 传输(源码+dist;Tailscale 直连快,DERP 慢链耐心等)"
@@ -65,6 +70,8 @@ FAIL=0
 chk "api 直连 health(3130)" "$(r "curl -s -o /dev/null -w '%{http_code}' -m 8 http://127.0.0.1:3130/api/health")"
 chk "nginx PWA index(3131)" "$(r "curl -s -o /dev/null -w '%{http_code}' -m 8 http://127.0.0.1:3131/")"
 chk "nginx 反代 /api/health(3131)" "$(r "curl -s -o /dev/null -w '%{http_code}' -m 8 http://127.0.0.1:3131/api/health")"
+chk "动作演示素材 still(3131)" "$(r "curl -s -o /dev/null -w '%{http_code}' -m 8 http://127.0.0.1:3131/exercise-media/still/0001.webp")"
+chk "动作演示素材 clip(3131)" "$(r "curl -s -o /dev/null -w '%{http_code}' -m 8 http://127.0.0.1:3131/exercise-media/clip/0001.mp4")"
 if [[ $FAIL -eq 1 ]]; then echo "冒烟有 FAIL——查日志: ssh $HOST183 'cd ~/$REMOTE && docker compose -p muhe-go-open183 logs api --tail 20'"; exit 1; fi
 [[ $SMOKE -eq 1 ]] || echo "--no-smoke:已跳过深度冒烟"
 echo "部署完成:qm-ub ~/$REMOTE(compose 项目 muhe-go-open183)
