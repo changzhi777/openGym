@@ -82,7 +82,7 @@
 
   <div class="auto" id="auto">
     <button class="stop" id="stopAuto">更换服务器</button>
-    <span><b id="autoName"></b> · <span id="autoN">3</span> 秒后自动进入</span>
+    <span><b id="autoName"></b> · <span id="autoN">5</span> 秒后自动进入</span>
     <div class="bar"><i id="autoBar"></i></div>
   </div>
 
@@ -145,7 +145,10 @@
         (isDefault ? '' : '<span class="del" data-i="' + i + '" title="删除">✕</span>')
       b.querySelector('.nm').textContent = s.name || normUrl(s.url)
       b.querySelector('.url').textContent = s.url
-      b.addEventListener('click', function () { sel = s.url; render() })
+      b.addEventListener('click', function () {
+        if (timer) { clearInterval(timer); timer = null; document.getElementById('auto').style.display = 'none' }
+        sel = s.url; render()
+      })
       var del = b.querySelector('.del')
       if (del) del.addEventListener('click', function (ev) {
         ev.stopPropagation()
@@ -190,9 +193,9 @@
     var hit = servers.find(function (s) { return s.url === last })
     document.getElementById('autoName').textContent = (hit && hit.name) || last
     sel = last
-    var n = 3, bar = document.getElementById('autoBar')
+    var n = 5, bar = document.getElementById('autoBar')
     document.getElementById('autoN').textContent = n
-    bar.style.transition = 'width 3s linear'
+    bar.style.transition = 'width 5s linear'
     requestAnimationFrame(function () { bar.style.width = '0%' })
     timer = setInterval(function () {
       n -= 1
