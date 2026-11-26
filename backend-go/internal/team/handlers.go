@@ -8,11 +8,14 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"net/url"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/changzhi777/openGym/backend-go/internal/auth"
+	"github.com/changzhi777/openGym/backend-go/internal/qr"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -158,6 +161,29 @@ func (h *Handlers) InviteDelete(c *gin.Context) {
 	}
 	h.Invites.RevokeTeam(t.ID)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+// InviteQR GET /api/team/invite/qr — 团码二维码 PNG(每次渲染重出一枚活码,
+// device-link 同语义)。muhe-fit 正式版 APP 的 MuheTeamApi 声明此端点(ImageView 直显),
+// 测试版须契约对齐;PWA 侧用前端 QrCanvas 不走它。
+func (h *Handlers) InviteQR(c *gin.Context) {
+	t, _, ok := h.ownerTeam(c)
+	if !ok {
+		return
+	}
+	code := h.Invites.NewCode(t.ID)
+	size := 512
+	if v, err := strconv.Atoi(c.Query("size")); err == nil && v >= 64 && v <= 1024 {
+		size = v
+	}
+	logo := c.Query("logo") != "0"
+	png, err := qr.Render(h.Origin+"/?team="+url.QueryEscape(code), size, logo)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "render"})
+		return
+	}
+	c.Header("Cache-Control", "no-store") // 码即一次性凭据
+	c.Data(http.StatusOK, "image/png", png)
 }
 
 // Join POST /api/team/join — 凭码入团(哈希查→TTL→烧码→插入/复活)。

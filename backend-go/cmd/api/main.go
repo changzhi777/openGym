@@ -314,6 +314,7 @@ func main() {
 	r.GET("/api/team", teamH.Get)
 	r.PUT("/api/team", teamH.Rename)
 	r.POST("/api/team/invite", teamH.Invite)
+	r.GET("/api/team/invite/qr", teamH.InviteQR)
 	r.DELETE("/api/team/invite", teamH.InviteDelete)
 	r.POST("/api/team/join", teamH.Join)
 	r.GET("/api/team/members", teamH.Members)

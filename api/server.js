@@ -2137,6 +2137,7 @@ const routes = {
   'GET /api/team': notYetGo,
   'PUT /api/team': notYetGo,
   'POST /api/team/invite': notYetGo,
+  'GET /api/team/invite/qr': notYetGo,
   'DELETE /api/team/invite': notYetGo,
   'POST /api/team/join': notYetGo,
   'GET /api/team/members': notYetGo,

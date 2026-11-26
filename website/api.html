@@ -226,6 +226,7 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   <a class="side-link" href="#media"><b>Media</b><span>Photos &amp; videos of your exercises &amp; workouts</span></a>
   <a class="side-link" href="#coach"><b>AI Coach</b><span>Plans, reviews, debriefs</span></a>
   <a class="side-link" href="#coach-console"><b>Coach Console</b><span>Students, plans, whitelisted data</span></a>
+  <a class="side-link" href="#team"><b>Teams</b><span>Squads, invites, plan dispatch, boards</span></a>
   <a class="side-link" href="#integrations"><b>Integrations</b><span>Webhooks (INTEGRATIONS)</span></a>
   <a class="side-link" href="#admin"><b>Admin</b><span>Users, invites, audit log, Coach</span></a>
   <a class="side-link" href="#schemas"><b>Schemas</b><span>The state blob, the error shape &amp; co.</span></a>
@@ -250,7 +251,7 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   <p class="api-facts">
     <span>OpenAPI 3.1.0</span>
     <span>openGym v1.4.4</span>
-    <span>142 endpoints</span>
+    <span>162 endpoints</span>
     <span>AGPL-3.0-or-later</span>
   </p>
 
@@ -3961,6 +3962,739 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   <div class="prow rrow">
     <span class="r-code s4">404</span>
     <span class="p-desc">Not bound to this coach.</span>
+  </div>
+    </div>
+  </div>
+</details>
+  </div>
+</section>
+
+<section class="api-sec" id="team">
+  <h2>Teams</h2>
+  <p class="sub">Teams (fork): coach-led squads, invite codes, plan dispatch with student ack, boards and insights</p>
+  <div class="eps">
+
+<details class="ep" id="op-createTeam">
+  <summary>
+    <span class="m post">POST</span>
+    <span class="ep-path"><code>/api/team</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Create a team (the caller becomes its owner/coach)</span>
+  </summary>
+  <div class="ep-body">
+<p>The creator is the team's owner and its coach (one person, one role, W1). One live team per owner (W7): creating while one is live is <code>409 team-live-exists</code>. The owner joins the member list with the <code>owner</code> role in the same transaction.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">name<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string <span class="p-hint">(&le; 80 chars)</span></span>
+    <span class="p-desc">Team display name (clamped to 80 runes).</span>
+  </div>
+</div>
+<pre><code>{
+  &quot;name&quot;: &quot;晨练打卡团&quot;
+}</code></pre>
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">Team created.<span class="r-sig">{ team: <a href="#schema-TeamInfo">TeamInfo</a>, role: &quot;owner&quot; }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">409</span>
+    <span class="p-desc">The caller already owns a live team.<span class="r-sig"><code>{&quot;error&quot;:&quot;already leading a team&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-getTeam">
+  <summary>
+    <span class="m get">GET</span>
+    <span class="ep-path"><code>/api/team</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">The caller's live team (as owner or member)</span>
+  </summary>
+  <div class="ep-body">
+
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">The team and the caller's role in it.<span class="r-sig">{ team: <a href="#schema-TeamInfo">TeamInfo</a>, role: &quot;owner&quot; | &quot;member&quot; }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">404</span>
+    <span class="p-desc">The caller has no live team.<span class="r-sig"><code>{&quot;error&quot;:&quot;no live team&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-renameTeam">
+  <summary>
+    <span class="m put">PUT</span>
+    <span class="ep-path"><code>/api/team</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Rename the caller's team (owner only)</span>
+  </summary>
+  <div class="ep-body">
+
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">name<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string <span class="p-hint">(&le; 80 chars)</span></span>
+    <span class="p-desc"></span>
+  </div>
+</div>
+<pre><code>{
+  &quot;name&quot;: &quot;晨练打卡团&quot;
+}</code></pre>
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">Renamed.<span class="r-sig">{ ok: boolean }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">403</span>
+    <span class="p-desc">The caller is a member, not the owner.<span class="r-sig"><code>{&quot;error&quot;:&quot;owner only&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">404</span>
+    <span class="p-desc">The caller has no live team.<span class="r-sig"><code>{&quot;error&quot;:&quot;no live team&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-teamInvite">
+  <summary>
+    <span class="m post">POST</span>
+    <span class="ep-path"><code>/api/team/invite</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Mint the team invite code (owner only)</span>
+  </summary>
+  <div class="ep-body">
+<p>8 chars from the pairing alphabet (no 0/O/1/I), shown <code>XXXX-XXXX</code>; stored only as a SHA-256 hash; good for 15 minutes; burned by one join. One live code per team: minting a new one retires the previous (W2 TTL start).</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">A fresh invite code.<span class="r-sig">{ code: string, expires: number }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">403</span>
+    <span class="p-desc">The caller is a member, not the owner.<span class="r-sig"><code>{&quot;error&quot;:&quot;owner only&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">404</span>
+    <span class="p-desc">The caller has no live team.<span class="r-sig"><code>{&quot;error&quot;:&quot;no live team&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-teamInviteDelete">
+  <summary>
+    <span class="m delete">DELETE</span>
+    <span class="ep-path"><code>/api/team/invite</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Burn the live invite code (owner only)</span>
+  </summary>
+  <div class="ep-body">
+
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">Burned.<span class="r-sig">{ ok: boolean }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">403</span>
+    <span class="p-desc">The caller is a member, not the owner.<span class="r-sig"><code>{&quot;error&quot;:&quot;owner only&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">404</span>
+    <span class="p-desc">The caller has no live team.<span class="r-sig"><code>{&quot;error&quot;:&quot;no live team&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-teamInviteQr">
+  <summary>
+    <span class="m get">GET</span>
+    <span class="ep-path"><code>/api/team/invite/qr</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Invite QR code PNG (owner only)</span>
+  </summary>
+  <div class="ep-body">
+<p>Renders a fresh one-shot invite code as a QR PNG pointing at <code>{origin}/?team={code}</code> — minting invalidates the previous code, and the response is <code>Cache-Control: no-store</code> (the code IS the credential). The muhe-fit native app displays it directly; the PWA renders its own QR client-side and does not call this.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+<p class="ep-h">Query parameters</p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">size</span>
+    <span class="p-type">integer <span class="p-hint">(64&ndash;1024, default 512)</span></span>
+    <span class="p-desc">PNG pixel size (clamped).</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">logo</span>
+    <span class="p-type">&quot;1&quot; | &quot;0&quot;</span>
+    <span class="p-desc">0 skips the centered brand logo overlay.</span>
+  </div>
+</div>
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">QR PNG (no-store).</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">403</span>
+    <span class="p-desc">The caller is a member, not the owner.<span class="r-sig"><code>{&quot;error&quot;:&quot;owner only&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">404</span>
+    <span class="p-desc">The caller has no live team.<span class="r-sig"><code>{&quot;error&quot;:&quot;no live team&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-teamJoin">
+  <summary>
+    <span class="m post">POST</span>
+    <span class="ep-path"><code>/api/team/join</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Join a team with an invite code</span>
+  </summary>
+  <div class="ep-body">
+<p>Called by a signed-in candidate (paired app or browser): the code is matched by SHA-256, TTL-checked and burned; then the caller is inserted as a live <code>member</code>. Soft cap 50 live members (W8) → <code>409 team-full</code>; a returning member whose row was soft-deleted rejoins with <code>ended_at</code> cleared. Case, spaces and dashes in the code are ignored. Returns the team name and the owner's nickname for the confirm card.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">code<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc">Case, spaces and dashes are ignored.</span>
+  </div>
+</div>
+<pre><code>{
+  &quot;code&quot;: &quot;K7WQ2MZP&quot;
+}</code></pre>
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">Joined.<span class="r-sig">{ team: <a href="#schema-TeamInfo">TeamInfo</a>, owner: object }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">400</span>
+    <span class="p-desc">Code unknown, already used or expired.<span class="r-sig"><code>{&quot;error&quot;:&quot;invalid or expired code&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">409</span>
+    <span class="p-desc">Team full (<code>team-full</code>) or caller already a live member of it (<code>team-joined</code>).<span class="r-sig"><code>{&quot;error&quot;:&quot;team is full&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-teamMembers">
+  <summary>
+    <span class="m get">GET</span>
+    <span class="ep-path"><code>/api/team/members</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Live member roster</span>
+  </summary>
+  <div class="ep-body">
+<p>Any live member may list the roster; owners additionally get each member's data-authorization <code>scope</code> (W3) and <code>joinedAt</code>. <code>uid</code> is a management handle for owner actions (kick, later transfer), not a display value — clients render <code>displayName</code> only, which is a nickname or a masked id (裁定 #8).</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">The live roster.<span class="r-sig">{ role: &quot;owner&quot; | &quot;member&quot;, members: <a href="#schema-TeamMember">TeamMember</a>[] }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">404</span>
+    <span class="p-desc">The caller has no live team.<span class="r-sig"><code>{&quot;error&quot;:&quot;no live team&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-teamMemberKick">
+  <summary>
+    <span class="m delete">DELETE</span>
+    <span class="ep-path"><code>/api/team/members/{uid}</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Remove a member (owner only; soft delete)</span>
+  </summary>
+  <div class="ep-body">
+<p>Sets <code>ended_at</code> on the membership row (W4); history is kept. The owner cannot be kicked (including self) — owners leave by transferring or archiving.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+<p class="ep-h">Query parameters</p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">uid <span class="p-hint">(path)</span><em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+</div>
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">Removed.<span class="r-sig">{ ok: boolean }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">400</span>
+    <span class="p-desc">Target is the owner (or the path uid is empty).<span class="r-sig"><code>{&quot;error&quot;:&quot;cannot kick the owner&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">403</span>
+    <span class="p-desc">The caller is a member, not the owner.<span class="r-sig"><code>{&quot;error&quot;:&quot;owner only&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">404</span>
+    <span class="p-desc">No such live member.<span class="r-sig"><code>{&quot;error&quot;:&quot;no such member&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-teamMemberSummary">
+  <summary>
+    <span class="m get">GET</span>
+    <span class="ep-path"><code>/api/team/members/{uid}/summary</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">One member's dashboard card (owner only)</span>
+  </summary>
+  <div class="ep-body">
+<p>Case-② aggregation (设计 §13.4): parsed live from the member's synced state doc — zero write-path changes, always consistent with the member's own archive, and aggregates only: the raw doc never leaves the store (脱敏 #8). Served through a 60-second Redis cache as a storm guard, so values may lag up to a minute. Weekly done/planned use the server's simplified radius (queue-aware precision stays a client-side weekTally concern).</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+<p class="ep-h">Query parameters</p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">uid <span class="p-hint">(path)</span><em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+</div>
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">The member's card.<span class="r-sig"><a href="#schema-TeamMemberSummary">TeamMemberSummary</a></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">403</span>
+    <span class="p-desc">The caller is a member, not the owner.<span class="r-sig"><code>{&quot;error&quot;:&quot;owner only&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">404</span>
+    <span class="p-desc">No such live member (or the caller has no live team).<span class="r-sig"><code>{&quot;error&quot;:&quot;no such member&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-teamBoard">
+  <summary>
+    <span class="m get">GET</span>
+    <span class="ep-path"><code>/api/team/board</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Whole-team board (owner only)</span>
+  </summary>
+  <div class="ep-body">
+<p>Per-member cards in leaderboard order (week done desc, streak weeks tiebreak), plus the 12-week heatmap columns — done counts per week, oldest first, current week last. Nicknames and numbers only (W5). Same 60-second cache semantics as the single-member summary.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">The board.<span class="r-sig">{ live: integer, weeks: string[], rows: <a href="#schema-TeamMemberSummary">TeamMemberSummary</a>[] }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">403</span>
+    <span class="p-desc">The caller is a member, not the owner.<span class="r-sig"><code>{&quot;error&quot;:&quot;owner only&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">404</span>
+    <span class="p-desc">The caller has no live team.<span class="r-sig"><code>{&quot;error&quot;:&quot;no live team&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-teamInsights">
+  <summary>
+    <span class="m get">GET</span>
+    <span class="ep-path"><code>/api/team/insights</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Coach analysis cards (owner only)</span>
+  </summary>
+  <div class="ep-body">
+<p>Per-member insight rows in coaching order (completion rate desc, week done tiebreak). Same states.doc case-② aggregation as the board, plus dual-window comparisons (trailing 28 days vs the preceding 28) and a rule-generated verdict sentence — no AI involved. Same 60-second cache semantics as the board.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">The insight rows.<span class="r-sig">{ rows: <a href="#schema-TeamInsight">TeamInsight</a>[] }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">403</span>
+    <span class="p-desc">The caller is a member, not the owner.<span class="r-sig"><code>{&quot;error&quot;:&quot;owner only&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">404</span>
+    <span class="p-desc">The caller has no live team.<span class="r-sig"><code>{&quot;error&quot;:&quot;no live team&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-teamPlanDistribute">
+  <summary>
+    <span class="m post">POST</span>
+    <span class="ep-path"><code>/api/team/plans</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Distribute a training plan to a member (owner only)</span>
+  </summary>
+  <div class="ep-body">
+<p>Snapshot hand-off (§13.5): the plan (routines whitelist entries + optional week) is stored verbatim as the assignment's snapshot; the member confirms and their own client writes it into their own archive — the coach never writes a member's data directly (W10; same confirm-gate shape as the AI proposal flow, but identity+scope+confirm only, no content validation). Redistributing the same plan name to the same member supersedes the pending row (superseded_by version chain) rather than stacking duplicates.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">uid<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc">Target member (opaque handle).</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">plan<em class="p-req" title="required">required</em></span>
+    <span class="p-type">object</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">plan.name<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string <span class="p-hint">(&le; 120 chars)</span></span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">plan.routines</span>
+    <span class="p-type">object[]</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">plan.week</span>
+    <span class="p-type">object</span>
+    <span class="p-desc"></span>
+  </div>
+</div>
+<pre><code>{
+  &quot;uid&quot;: &quot;u_1234567890abcdef&quot;,
+  &quot;plan&quot;: {
+    &quot;name&quot;: &quot;基础三分化&quot;,
+    &quot;routines&quot;: [
+      {
+        &quot;id&quot;: &quot;r1&quot;,
+        &quot;name&quot;: &quot;推&quot;
+      }
+    ]
+  }
+}</code></pre>
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">Distributed.<span class="r-sig">{ plan: <a href="#schema-PlanAssignment">PlanAssignment</a> }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">400</span>
+    <span class="p-desc">Missing plan name or target.<span class="r-sig"><code>{&quot;error&quot;:&quot;plan name required&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">403</span>
+    <span class="p-desc">The caller is a member, not the owner.<span class="r-sig"><code>{&quot;error&quot;:&quot;owner only&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">404</span>
+    <span class="p-desc">No such live member (or no live team).<span class="r-sig"><code>{&quot;error&quot;:&quot;no such member&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-teamPlansList">
+  <summary>
+    <span class="m get">GET</span>
+    <span class="ep-path"><code>/api/team/plans</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Plan assignments (role-aware)</span>
+  </summary>
+  <div class="ep-body">
+<p>Owners see the whole team's assignments (newest first, <code>uid</code> query filters one member); members see only their own. <code>pending</code> is the caller's count of still-distributed rows — the member's red-dot number (W11 M1 pull model: the app fetches this on open; no push channel needed).</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+<p class="ep-h">Query parameters</p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">uid</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">Owner-only member filter.</span>
+  </div>
+</div>
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">The assignment list.<span class="r-sig">{ pending: integer, plans: <a href="#schema-PlanAssignment">PlanAssignment</a>[] }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">404</span>
+    <span class="p-desc">The caller has no live team.<span class="r-sig"><code>{&quot;error&quot;:&quot;no live team&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-teamPlanAck">
+  <summary>
+    <span class="m post">POST</span>
+    <span class="ep-path"><code>/api/team/plans/{id}/ack</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Acknowledge a distributed plan (its member only)</span>
+  </summary>
+  <div class="ep-body">
+<p>The member settles the hand-off: <code>loaded</code> (their client applied the snapshot via the loadStarterPlan semantics into their own archive) or <code>declined</code>. Only still-distributed rows can be settled; superseded rows are immutable. <code>received</code> is reserved for the M2 push channel and is not used by the M1 pull model.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+<p class="ep-h">Query parameters</p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">id <span class="p-hint">(path)</span><em class="p-req" title="required">required</em></span>
+    <span class="p-type">string <span class="p-hint">(uuid)</span></span>
+    <span class="p-desc"></span>
+  </div>
+</div>
+<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">status<em class="p-req" title="required">required</em></span>
+    <span class="p-type">&quot;loaded&quot; | &quot;declined&quot;</span>
+    <span class="p-desc"></span>
+  </div>
+</div>
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">Settled.<span class="r-sig">{ ok: boolean }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">400</span>
+    <span class="p-desc">Status must be loaded or declined.<span class="r-sig"><code>{&quot;error&quot;:&quot;invalid ack status&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">404</span>
+    <span class="p-desc">No such distributed assignment of the caller.<span class="r-sig"><code>{&quot;error&quot;:&quot;no such plan&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-teamPlanRevoke">
+  <summary>
+    <span class="m delete">DELETE</span>
+    <span class="ep-path"><code>/api/team/plans/{id}</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Revoke a still-distributed plan (owner only)</span>
+  </summary>
+  <div class="ep-body">
+<p>Only <code>distributed</code> rows can be revoked (a settled hand-off is history and cannot be rewritten); the row is removed. Superseded rows are not selectable targets.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+<p class="ep-h">Query parameters</p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">id <span class="p-hint">(path)</span><em class="p-req" title="required">required</em></span>
+    <span class="p-type">string <span class="p-hint">(uuid)</span></span>
+    <span class="p-desc"></span>
+  </div>
+</div>
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">Revoked.<span class="r-sig">{ ok: boolean }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">403</span>
+    <span class="p-desc">The caller is a member, not the owner.<span class="r-sig"><code>{&quot;error&quot;:&quot;owner only&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">404</span>
+    <span class="p-desc">No such revocable assignment.<span class="r-sig"><code>{&quot;error&quot;:&quot;no such plan&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-teamTransfer">
+  <summary>
+    <span class="m post">POST</span>
+    <span class="ep-path"><code>/api/team/transfer</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Transfer ownership to a live member (owner only)</span>
+  </summary>
+  <div class="ep-body">
+<p>原子事务三 UPDATE (§13.10): the current owner drops to <code>member</code>, the target rises to <code>owner</code>, and <code>teams.owner_uid</code> follows — the old owner stays in the team as a member (W12). Target must be a live <code>member</code> and not the caller.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">to_uid<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+</div>
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">Transferred.<span class="r-sig">{ ok: boolean, newOwner: object }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">400</span>
+    <span class="p-desc">Target missing or is the caller.<span class="r-sig"><code>{&quot;error&quot;:&quot;cannot transfer to self&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">403</span>
+    <span class="p-desc">The caller is a member, not the owner.<span class="r-sig"><code>{&quot;error&quot;:&quot;owner only&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">404</span>
+    <span class="p-desc">Target is not a live member (or no live team).<span class="r-sig"><code>{&quot;error&quot;:&quot;no such member&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-teamLeave">
+  <summary>
+    <span class="m post">POST</span>
+    <span class="ep-path"><code>/api/team/leave</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Leave the caller's team (members only)</span>
+  </summary>
+  <div class="ep-body">
+<p>Soft-deletes the caller's membership row (W4). The owner cannot leave: transfer first (batch 3.5 face) or keep the team.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">Left.<span class="r-sig">{ ok: boolean }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">404</span>
+    <span class="p-desc">The caller has no live team.<span class="r-sig"><code>{&quot;error&quot;:&quot;no live team&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">409</span>
+    <span class="p-desc">The caller is the owner (transfer first).<span class="r-sig"><code>{&quot;error&quot;:&quot;owner cannot leave; transfer first&quot;}</code></span></span>
   </div>
     </div>
   </div>
@@ -8371,6 +9105,336 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
     <span class="p-name">recent[].ms</span>
     <span class="p-type">integer</span>
     <span class="p-desc"></span>
+  </div>
+</div>
+  </div>
+</details>
+
+<details class="ep sch" id="schema-TeamMemberSummary">
+  <summary>
+    <span class="sch-name"><code>TeamMemberSummary</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum"></span>
+  </summary>
+  <div class="ep-body">
+
+<div class="ptab">
+  <div class="prow">
+    <span class="p-name">uid</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">Opaque management handle (裁定 #8).</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">displayName</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">Nickname or masked uid.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">weekDone</span>
+    <span class="p-type">integer</span>
+    <span class="p-desc">Workouts logged this week (member's own week start).</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">weekPlanned</span>
+    <span class="p-type">integer</span>
+    <span class="p-desc">Week-schedule days pointing at live routines (server simplified radius).</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">streakWeeks</span>
+    <span class="p-type">integer</span>
+    <span class="p-desc">Consecutive training weeks; the current week never breaks the chain.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">monthVolume</span>
+    <span class="p-type">number</span>
+    <span class="p-desc">Saved canonical volume summed over the calendar month.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">monthCheckins</span>
+    <span class="p-type">integer</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">lastWorkout</span>
+    <span class="p-type">object</span>
+    <span class="p-desc">Latest session headline (d/name/vol); null when none.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">lastWorkout.d</span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">lastWorkout.name</span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">lastWorkout.vol</span>
+    <span class="p-type">number</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">trendVolume4w</span>
+    <span class="p-type">number</span>
+    <span class="p-desc">Saved volume over the trailing 28 days.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">trendEst1rm</span>
+    <span class="p-type">number</span>
+    <span class="p-desc">Best epley estimate over completed sets in the trailing 28 days (server default formula).</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">weekly</span>
+    <span class="p-type">integer[]</span>
+    <span class="p-desc">Done counts for the last 12 weeks (oldest first), board heatmap column.</span>
+  </div>
+</div>
+  </div>
+</details>
+
+<details class="ep sch" id="schema-TeamInfo">
+  <summary>
+    <span class="sch-name"><code>TeamInfo</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum"></span>
+  </summary>
+  <div class="ep-body">
+
+<div class="ptab">
+  <div class="prow">
+    <span class="p-name">id</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">Team id (uuid).</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">name</span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+</div>
+  </div>
+</details>
+
+<details class="ep sch" id="schema-TeamMember">
+  <summary>
+    <span class="sch-name"><code>TeamMember</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum"></span>
+  </summary>
+  <div class="ep-body">
+
+<div class="ptab">
+  <div class="prow">
+    <span class="p-name">uid</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">Member user id — an opaque management handle for owner actions (kick, later transfer), never rendered as an identity.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">role</span>
+    <span class="p-type">&quot;owner&quot; | &quot;member&quot;</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">displayName</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">Nickname, or the masked uid when no nickname exists (裁定</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">scope</span>
+    <span class="p-type">object</span>
+    <span class="p-desc">Data-authorization tier (W3); owner-facing rosters only.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">scope.tier</span>
+    <span class="p-type">&quot;basic&quot; | &quot;full&quot;</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">joinedAt</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">ISO timestamp; owner-facing rosters only.</span>
+  </div>
+</div>
+  </div>
+</details>
+
+<details class="ep sch" id="schema-PlanAssignment">
+  <summary>
+    <span class="sch-name"><code>PlanAssignment</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum"></span>
+  </summary>
+  <div class="ep-body">
+
+<div class="ptab">
+  <div class="prow">
+    <span class="p-name">id</span>
+    <span class="p-type">string <span class="p-hint">(uuid)</span></span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">memberUid</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">Opaque handle.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">memberDisplayName</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">Filled in owner-facing lists.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">planName</span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">status</span>
+    <span class="p-type">&quot;distributed&quot; | &quot;received&quot; | &quot;loaded&quot; | &quot;declined&quot;</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">supersededBy</span>
+    <span class="p-type">string <span class="p-hint">(uuid)</span></span>
+    <span class="p-desc">Newer assignment id when redistributed (version chain); null on the live row.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">distributedAt</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">ISO timestamp.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">settledAt</span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">plan</span>
+    <span class="p-type">object</span>
+    <span class="p-desc">Snapshot the member loads verbatim (W10 hand-off; the coach never writes the member's archive).</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">plan.name</span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">plan.routines</span>
+    <span class="p-type">object[]</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">plan.week</span>
+    <span class="p-type">object</span>
+    <span class="p-desc"></span>
+  </div>
+</div>
+  </div>
+</details>
+
+<details class="ep sch" id="schema-TeamInsight">
+  <summary>
+    <span class="sch-name"><code>TeamInsight</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Coach analysis card (rule-generated verdict; no AI).</span>
+  </summary>
+  <div class="ep-body">
+
+<div class="ptab">
+  <div class="prow">
+    <span class="p-name">uid</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">Opaque management handle (裁定 #8).</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">displayName</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">Nickname or masked uid.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">weekDone</span>
+    <span class="p-type">integer</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">weekPlanned</span>
+    <span class="p-type">integer</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">rate</span>
+    <span class="p-type">integer</span>
+    <span class="p-desc">Week completion rate 0-100; 0 when no plan is scheduled.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">streakWeeks</span>
+    <span class="p-type">integer</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">vol4w</span>
+    <span class="p-type">number</span>
+    <span class="p-desc">Saved volume over the trailing 28 days.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">volPrev4w</span>
+    <span class="p-type">number</span>
+    <span class="p-desc">Saved volume over days 29-56 before now.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">volDelta</span>
+    <span class="p-type">integer</span>
+    <span class="p-desc">Volume change vs previous window, percent; +100 when the previous window is empty.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">est1rm</span>
+    <span class="p-type">number</span>
+    <span class="p-desc">Best epley estimate over the trailing 28 days.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">est1rmPrev4w</span>
+    <span class="p-type">number</span>
+    <span class="p-desc">Best epley estimate over days 29-56 before now.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">est1rmDelta</span>
+    <span class="p-type">integer</span>
+    <span class="p-desc">Estimate change vs previous window</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">lastWorkout</span>
+    <span class="p-type">object</span>
+    <span class="p-desc">Latest session headline (d/name/vol); null when none.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">lastWorkout.d</span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">lastWorkout.name</span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">lastWorkout.vol</span>
+    <span class="p-type">number</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">weekly</span>
+    <span class="p-type">integer[]</span>
+    <span class="p-desc">Done counts for the last 12 weeks (oldest first).</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">verdict</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">Rule-generated Chinese coaching sentence (completion → streak → deltas → flags).</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">flags</span>
+    <span class="p-type">(&quot;hot&quot; | &quot;miss&quot; | &quot;gain&quot; | &quot;drop&quot;)[]</span>
+    <span class="p-desc">hot = week plan complete; miss = no workout this week; gain = est 1RM +≥5%; drop = volume -≤30%.</span>
   </div>
 </div>
   </div>

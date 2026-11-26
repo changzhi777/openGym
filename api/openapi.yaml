@@ -140,6 +140,8 @@ tags:
     description: Mobile number + SMS code sign-in (register/login in one step)
   - name: coach-console
     description: 'Coach console (fork): bound students, whitelisted data, plan push'
+  - name: team
+    description: 'Teams (fork): coach-led squads, invite codes, plan dispatch with student ack, boards and insights'
   - name: wechat
     description: WeChat mini-program QR scan login
   - name: data
@@ -5227,6 +5229,46 @@ paths:
           content:
             application/json:
               schema: { type: object, properties: { ok: { type: boolean } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403':
+          description: The caller is a member, not the owner.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "owner only", code: "team-owner-only" }
+        '404':
+          description: The caller has no live team.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "no live team", code: "team-none" }
+
+  /api/team/invite/qr:
+    get:
+      tags: [team]
+      operationId: teamInviteQr
+      summary: Invite QR code PNG (owner only)
+      description: |
+        Renders a fresh one-shot invite code as a QR PNG pointing at
+        `{origin}/?team={code}` — minting invalidates the previous code, and the
+        response is `Cache-Control: no-store` (the code IS the credential).
+        The muhe-fit native app displays it directly; the PWA renders its own QR
+        client-side and does not call this.
+      parameters:
+        - name: size
+          in: query
+          schema: { type: integer, minimum: 64, maximum: 1024, default: 512 }
+          description: PNG pixel size (clamped).
+        - name: logo
+          in: query
+          schema: { type: string, enum: ["1", "0"] }
+          description: "0 skips the centered brand logo overlay."
+      responses:
+        '200':
+          description: QR PNG (no-store).
+          content:
+            image/png:
+              schema: { type: string, format: binary }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403':
           description: The caller is a member, not the owner.

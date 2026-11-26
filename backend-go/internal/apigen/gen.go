@@ -235,13 +235,13 @@ func (e CoachMemoryEntryKind) Valid() bool {
 
 // Defines values for CoachProposalBundleOpengymPlan.
 const (
-	N1 CoachProposalBundleOpengymPlan = 1
+	CoachProposalBundleOpengymPlanN1 CoachProposalBundleOpengymPlan = 1
 )
 
 // Valid indicates whether the value is a known member of the CoachProposalBundleOpengymPlan enum.
 func (e CoachProposalBundleOpengymPlan) Valid() bool {
 	switch e {
-	case N1:
+	case CoachProposalBundleOpengymPlanN1:
 		return true
 	default:
 		return false
@@ -2465,6 +2465,24 @@ const (
 func (e CreateTeam200JSONResponseBodyRole) Valid() bool {
 	switch e {
 	case CreateTeam200JSONResponseBodyRoleOwner:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TeamInviteQrParamsLogo.
+const (
+	TeamInviteQrParamsLogoN0 TeamInviteQrParamsLogo = "0"
+	TeamInviteQrParamsLogoN1 TeamInviteQrParamsLogo = "1"
+)
+
+// Valid indicates whether the value is a known member of the TeamInviteQrParamsLogo enum.
+func (e TeamInviteQrParamsLogo) Valid() bool {
+	switch e {
+	case TeamInviteQrParamsLogoN0:
+		return true
+	case TeamInviteQrParamsLogoN1:
 		return true
 	default:
 		return false
@@ -4753,6 +4771,18 @@ type CreateTeam200JSONResponseBodyRole string
 type RenameTeamJSONBody struct {
 	Name string `json:"name"`
 }
+
+// TeamInviteQrParams defines parameters for TeamInviteQr.
+type TeamInviteQrParams struct {
+	// Size PNG pixel size (clamped).
+	Size *int `form:"size,omitempty" json:"size,omitempty"`
+
+	// Logo 0 skips the centered brand logo overlay.
+	Logo *TeamInviteQrParamsLogo `form:"logo,omitempty" json:"logo,omitempty"`
+}
+
+// TeamInviteQrParamsLogo defines parameters for TeamInviteQr.
+type TeamInviteQrParamsLogo string
 
 // TeamJoinJSONBody defines parameters for TeamJoin.
 type TeamJoinJSONBody struct {
@@ -8537,6 +8567,9 @@ type ServerInterface interface {
 	// TeamInvite Mint the team invite code (owner only)
 	// (POST /api/team/invite)
 	TeamInvite(c *gin.Context)
+	// TeamInviteQr Invite QR code PNG (owner only)
+	// (GET /api/team/invite/qr)
+	TeamInviteQr(c *gin.Context, params TeamInviteQrParams)
 	// TeamJoin Join a team with an invite code
 	// (POST /api/team/join)
 	TeamJoin(c *gin.Context)
@@ -10664,6 +10697,41 @@ func (siw *ServerInterfaceWrapper) TeamInvite(c *gin.Context) {
 	siw.Handler.TeamInvite(c)
 }
 
+// TeamInviteQr operation middleware
+func (siw *ServerInterfaceWrapper) TeamInviteQr(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params TeamInviteQrParams
+
+	// ------------- Optional query parameter "size" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "size", c.Request.URL.Query(), &params.Size, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter size: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "logo" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "logo", c.Request.URL.Query(), &params.Logo, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter logo: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.TeamInviteQr(c, params)
+}
+
 // TeamJoin operation middleware
 func (siw *ServerInterfaceWrapper) TeamJoin(c *gin.Context) {
 
@@ -11138,6 +11206,7 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 	router.PUT(options.BaseURL+"/api/team", wrapper.RenameTeam)
 	router.DELETE(options.BaseURL+"/api/team/invite", wrapper.TeamInviteDelete)
 	router.POST(options.BaseURL+"/api/team/invite", wrapper.TeamInvite)
+	router.GET(options.BaseURL+"/api/team/invite/qr", wrapper.TeamInviteQr)
 	router.POST(options.BaseURL+"/api/team/join", wrapper.TeamJoin)
 	router.GET(options.BaseURL+"/api/team/members", wrapper.TeamMembers)
 	router.DELETE(options.BaseURL+"/api/team/members/:uid", wrapper.TeamMemberKick)
