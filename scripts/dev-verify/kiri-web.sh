@@ -8,8 +8,8 @@ if [ -n "${OLD:-}" ]; then echo "5173 already on pid $OLD"; else
   sleep 7
 fi
 echo "--- index ---"
-curl -s -o /dev/null -w "%{http_code}\n" -m 6 http://127.0.0.1:5173/
+curl -s -o /dev/null -w "%{http_code}\n" -m 6 http://localhost:5173/
 echo "--- vite log tail ---"
 tail -4 /tmp/vite-dev.log
 echo "--- api proxy via 5173 ---"
-curl -s -o /dev/null -w "%{http_code}\n" -m 6 http://127.0.0.1:5173/api/health
+curl -s -o /dev/null -w "%{http_code}\n" -m 6 http://localhost:5173/api/health

@@ -12,4 +12,4 @@ echo "--- GET /api/team/plans ---"
 curl -sf -b "$JAR" -o /tmp/kiri_plans.json -w "%{http_code}\n" http://127.0.0.1:3100/api/team/plans
 head -c 120 /tmp/kiri_plans.json 2>/dev/null; echo
 echo "--- frontend 5173 ---"
-curl -s -o /dev/null -w "%{http_code}\n" -m 4 http://127.0.0.1:5173/ || echo "not running"
+curl -s -o /dev/null -w "%{http_code}\n" -m 4 http://localhost:5173/ || echo "not running"
