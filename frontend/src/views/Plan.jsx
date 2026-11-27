@@ -31,6 +31,7 @@ import {
   chooseRotation, chooseFixedWeek, sequenceOf, isSimpleSequence, segmentAt, REST,
 } from '../lib/rotation.js'
 import { isOn } from '../lib/modules.js'
+import PlanTeamCard from './team/PlanTeamCard.jsx' // fork:教练学员团的计划同步入口(W10 衔接)
 
 // Plan has two views (v1.3.11): Schedule (how you train, and when) and Routines (what you
 // train). The last one you looked at comes back: a per-device convenience, never synced, so it
@@ -185,6 +186,7 @@ export default function Plan() {
     <input ref={fileRef} type="file" accept="application/json,.json" onChange={pickFile} hidden />
     <Segmented className="plan-views" tour="plan-views" value={view} onChange={setView}
       options={[{ value: 'schedule', label: t('Schedule') }, { value: 'routines', label: t('Routines') }]} />
+    <PlanTeamCard nav={nav} />
     {progChip && <button type="button" className="prog-strip" onClick={() => nav('/plan/programmes')}>
       <Icon name="calendar" /><span className="grow">{S.programmes?.[S.programme?.id]?.name || t('Programme')}</span><span className="tag acc">{progChip}</span>
     </button>}

@@ -3279,3 +3279,13 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
 .team-page .code-row{gap:10px}
 .team-page .code-row input{flex:1;min-width:0;background:var(--surface);border:1px solid var(--stroke);border-radius:10px;padding:11px 13px;font-size:16px;letter-spacing:.06em;text-transform:uppercase;color:var(--label);outline:none}
 .team-page .row-btns{display:flex;gap:8px;flex:none}
+
+/* plan-team-card — 计划页的团队计划同步卡(fork;W10 学员侧 Plan 页入口,PlanTeamCard.jsx)。
+   视觉沿用 team-page 的卡片语言;Plan 页无 .team-page 父类,故 .row-btns 等在此重新作用域化。 */
+.plan-team-card{border:1px solid var(--stroke);border-radius:var(--r-card);padding:13px 14px;margin-bottom:22px}
+.plan-team-card .lrow-t{font-size:15px}
+.plan-team-card .row-btns{display:flex;gap:8px;flex:none}
+.plan-team-card.hot{border-color:rgba(47,156,71,.45)}
+.plan-team-card.hot .lrow+.lrow{border-top:1px solid var(--stroke);padding-top:10px;margin-top:10px}
+.plan-team-card .quiet-row{display:flex;align-items:center;gap:8px;width:100%;background:none;border:none;padding:0;text-align:start;cursor:pointer;color:inherit}
+.plan-team-card.hot .plan-team-card-title{color:#6fce85}

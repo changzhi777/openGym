@@ -1,108 +1,28 @@
-import { useCallback, useEffect, useState } from 'react'
-import { useStore } from '../../store/useStore.js'
+import { useEffect, useState } from 'react'
 import { useUI } from '../../store/useUI.js'
 import { t } from '../../lib/i18n.js'
 import CameraScan from '../../components/CameraScan.jsx'
-import { ackPlan, getTeam, joinTeam, leaveTeam, teamPlans } from '../../lib/api-team.js'
-import { inviteCodeFromScanned, isPending, mergePlanRoutines, planNameOf } from '../../lib/team-load.js'
+import { inviteCodeFromScanned, planNameOf } from '../../lib/team-load.js'
+import { useTeamPlans } from './use-team-plans.js'
 
 // 团队页(学员视角,fork;团队模式 W10 快照中转的学员侧):
 // 无团 → 扫码/手输邀请码加入(码一次性,join 即入团);有团 → 我的教练 + 待接收计划
 // (接收 = 快照 routines 并入自己档 + ack;婉拒 = 仅 ack)。团长视角引导去教练台
 // (coach-console 的团队 tab——建团/出码/看板/分发都在那边)。
 // 深链:邀请 QR 内容 {origin}/?team=code,扫开即自动入团(join 即核销,UI 明示)。
+// 学员态与动作(拉取/接收/婉拒/入团/退出)单源在 use-team-plans.js——计划页的
+// PlanTeamCard 共用同一套语义。
 export default function TeamPage({ deepLinkCode }) {
-  const toast = useUI(s => s.toast)
-  const update = useStore(s => s.update)
-  const [view, setView] = useState('loading') // loading | none | member | owner
-  const [team, setTeam] = useState(null) // {id, name, role, ownerName}
-  const [pending, setPending] = useState([]) // 自己的 distributed 未链分发行
+  const { view, team, pending, busy, refresh, receive, decline, join, quit } = useTeamPlans()
   const [scanning, setScanning] = useState(false)
   const [code, setCode] = useState('')
-  const [busy, setBusy] = useState(false)
-
-  const refresh = useCallback(async () => {
-    try {
-      const id = await getTeam()
-      if (!id.team) { setView('none'); return }
-      if (id.role === 'owner') { setTeam({ ...id.team, role: 'owner' }); setView('owner'); return }
-      setTeam({ ...id.team, role: 'member' })
-      const plans = await teamPlans()
-      setPending((plans.plans || []).filter(isPending))
-      setView('member')
-    } catch (e) {
-      if (e && e.status === 404) setView('none')
-      else { toast(t('无法连接服务器')); setView('none') }
-    }
-  }, [toast])
-
-  useEffect(() => { refresh() }, [refresh])
 
   // 深链:扫邀请 QR 打开本页即自动入团(join 一次性核销,结果横幅明示)。
   useEffect(() => {
     const c = deepLinkCode ?? inviteCodeFromScanned(deepLinkCode)
     if (!c) return
-    joinTeam(c).then(r => {
-      toast(t('已加入') + ' ' + (r.team?.name || ''))
-      refresh()
-    }).catch(e => toast(joinError(e)))
+    join(c)
   }, [deepLinkCode]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  function joinError(e) {
-    if (e && e.code === 'team-code-invalid') return t('邀请码无效或已过期')
-    if (e && e.code === 'team-joined') return t('你已经在这个团队里了')
-    if (e && e.code === 'team-full') return t('团队人数已满')
-    return t('加入失败')
-  }
-
-  async function join(raw) {
-    const c = inviteCodeFromScanned(raw)
-    if (!c) { toast(t('不是有效的团队邀请码')); return }
-    if (busy) return
-    setBusy(true)
-    try {
-      const r = await joinTeam(c)
-      toast(t('已加入') + ' ' + (r.team?.name || '') + ' · ' + (r.owner?.displayName || ''))
-      setScanning(false); setCode('')
-      refresh()
-    } catch (e) { toast(joinError(e)) } finally { setBusy(false) }
-  }
-
-  // 接收:快照 routines 并入自己档(同名同练习复用)+ 盖章随同步上云 + ack;
-  // 装载失败不结算(可重试);婉拒只结算。
-  async function receive(a) {
-    if (busy) return
-    setBusy(true)
-    try {
-      const planRoutines = a?.plan?.routines
-      if (Array.isArray(planRoutines) && planRoutines.length) {
-        const { merged, added } = mergePlanRoutines(useStore.getState().S.routines || [], planRoutines)
-        if (added.length) update(S => { S.routines = merged })
-      }
-      await ackPlan(a.id, 'loaded')
-      toast(t('已接收,动作已并入你的计划'))
-      refresh()
-    } catch (e) { toast(t('接收失败,请重试')) } finally { setBusy(false) }
-  }
-
-  async function decline(a) {
-    if (busy) return
-    setBusy(true)
-    try {
-      await ackPlan(a.id, 'declined')
-      toast(t('已婉拒该计划'))
-      refresh()
-    } catch (e) { toast(t('操作失败,请重试')) } finally { setBusy(false) }
-  }
-
-  async function quit() {
-    if (!confirm(t('退出后教练将看不到你的训练数据,确定退出?'))) return
-    try {
-      await leaveTeam()
-      toast(t('已退出团队'))
-      setTeam(null); setPending([]); setView('none')
-    } catch (e) { toast(t('操作失败,请重试')) }
-  }
 
   if (view === 'loading') return <div className="team-page"><p className="muted">{t('加载中…')}</p></div>
 
@@ -180,3 +100,4 @@ export default function TeamPage({ deepLinkCode }) {
     </div>
   )
 }
+
